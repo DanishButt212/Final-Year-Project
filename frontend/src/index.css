@@ -1,0 +1,159 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource/merriweather/400.css';
+@import '@fontsource/merriweather/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/noto-nastaliq-urdu/400.css';
+
+/*
+ * Design tokens. Source of truth: design-system/digitaladaalat/MASTER.md.
+ * Light mode only; no gradients, blur or glow.
+ */
+@theme {
+  /* Brand */
+  --color-primary: #01411c;
+  --color-primary-hover: #0b5d2e;
+  --color-on-primary: #ffffff;
+  --color-accent: #b8962e; /* gold: non-text highlights only */
+  --color-accent-soft: #f6efd6;
+
+  /* Surfaces and text */
+  --color-background: #f5f6f4;
+  --color-surface: #ffffff;
+  --color-text: #1a1a1a;
+  --color-text-muted: #4a524c;
+  --color-border: #d9ded9;
+  --color-ring: #0b5d2e;
+  --color-destructive: #9b1c1c;
+  --color-row-alt: #fafbfa;
+  --color-primary-soft: #e3f1e7;
+
+  /* Status badges: Decided / Pending / Rejected-Overdue / Hearing Fixed */
+  --color-status-decided-bg: #e3f1e7;
+  --color-status-decided-fg: #01411c;
+  --color-status-decided-border: #b5d6bf;
+  --color-status-pending-bg: #fdf1d6;
+  --color-status-pending-fg: #6b4300;
+  --color-status-pending-border: #ebc987;
+  --color-status-rejected-bg: #fbe4e4;
+  --color-status-rejected-fg: #9b1c1c;
+  --color-status-rejected-border: #edb3b3;
+  --color-status-hearing-bg: #e4eaf0;
+  --color-status-hearing-fg: #2f4558;
+  --color-status-hearing-border: #b9c6d3;
+
+  /* Chart palette (admin dashboard, later phase) */
+  --color-chart-1: #01411c;
+  --color-chart-2: #0b5d2e;
+  --color-chart-3: #3e8a5a;
+  --color-chart-4: #7fb596;
+  --color-chart-5: #bfd9c8;
+
+  /* Typography */
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-heading: 'Merriweather', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --font-urdu: 'Noto Nastaliq Urdu', serif;
+
+  /* Shape */
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+@layer base {
+  html {
+    background: var(--color-background);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    color: var(--color-text);
+    line-height: 1.3;
+  }
+
+  a {
+    color: var(--color-primary);
+  }
+
+  /* Clickable things always look clickable. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  a[href],
+  select:not(:disabled),
+  summary,
+  label[for],
+  input[type='radio']:not(:disabled),
+  input[type='checkbox']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Visible keyboard focus everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  [lang='ur'],
+  .urdu {
+    font-family: var(--font-urdu);
+    line-height: 1.9;
+  }
+}
+
+/* Case numbers, challan and receipt ids. */
+.case-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Printable pages (cause list, challan, receipt, certificate in later phases). */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+}
