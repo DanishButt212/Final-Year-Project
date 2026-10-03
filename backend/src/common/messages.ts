@@ -17,5 +17,13 @@ export const Messages = {
   NOT_FOUND: 'The requested resource was not found.',
   TOO_MANY_REQUESTS: 'Too many attempts. Please wait a minute and try again.',
   INTERNAL: 'Something went wrong. Please try again later.',
+  CASE_INCOMPLETE: 'Incomplete case details.',
+  CASE_SUBMITTED: 'Case form data captured successfully.',
+  CASE_REGISTRATION_CLOSED: 'Case registration is currently closed.',
+  DOCUMENT_ATTACHED: 'Legal document attached successfully.',
+  INVALID_FILE: 'Only PDF format files under 25MB are allowed.',
+  MISSING_FILE: 'Please choose at least one PDF file.',
+  TOO_MANY_FILES: 'You can attach at most 10 files at a time.',
+  CASE_CLOSED: 'Documents cannot be attached to a closed case.',
   CNIC_NOT_VERIFIED: 'The CNIC could not be verified with NADRA. Please check the number.',
 } as const;

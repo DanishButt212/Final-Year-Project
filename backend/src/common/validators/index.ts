@@ -5,6 +5,12 @@ import { registerDecorator, ValidationArguments, ValidationOptions } from 'class
 export const Trim = () =>
   Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value));
 
+/** Trims; an empty result becomes undefined so optional fields can simply be left blank. */
+export const TrimOrUndefined = () =>
+  Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() || undefined : value,
+  );
+
 /** Trims and lower-cases (emails, usernames). */
 export const TrimLower = () =>
   Transform(({ value }: { value: unknown }) =>

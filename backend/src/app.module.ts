@@ -4,6 +4,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { CasesModule } from './cases/cases.module';
+import { StorageModule } from './storage/storage.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { validateEnv } from './config/env.validation';
@@ -28,8 +30,10 @@ import { UsersModule } from './users/users.module';
     PrismaModule,
     AuditModule,
     IntegrationsModule,
+    StorageModule,
     AuthModule,
     UsersModule,
+    CasesModule,
     HealthModule,
   ],
   providers: [

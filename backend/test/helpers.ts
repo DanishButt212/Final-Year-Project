@@ -66,3 +66,17 @@ export async function createUser(
     },
   });
 }
+
+/** A tiny but real PDF: starts with the %PDF- signature. `label` makes each file's bytes (and hash) unique. */
+export const pdfBuffer = (label = 'doc'): Buffer =>
+  Buffer.from(
+    `%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n% ${label}\ntrailer<</Root 1 0 R>>\n%%EOF\n`,
+  );
+
+export const validCase = (overrides: Record<string, unknown> = {}) => ({
+  caseType: 'CIVIL_SUIT',
+  reliefSought: 'Recovery of PKR 500,000 under the sale agreement dated 01-01-2026.',
+  petitioners: [{ name: 'Ayesha Siddiqui', address: 'House 5, Gulgasht, Multan' }],
+  respondents: [{ name: 'Bilal Ahmed', cnic: '36302-2222222-2', phone: '+92 321 7654321' }],
+  ...overrides,
+});

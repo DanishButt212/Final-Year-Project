@@ -1,3 +1,6 @@
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+
 export interface Env {
   NODE_ENV: string;
   PORT: number;
@@ -10,6 +13,11 @@ export interface Env {
   BCRYPT_ROUNDS: number;
   AUTH_THROTTLE_LIMIT: number;
   FORGOT_THROTTLE_LIMIT: number;
+  UPLOAD_THROTTLE_LIMIT: number;
+  /** Final location of uploaded files (git-ignored). */
+  UPLOAD_DIR: string;
+  /** Where multer first writes incoming files before they are validated and moved. */
+  UPLOAD_TMP_DIR: string;
 }
 
 const REQUIRED = ['DATABASE_URL', 'JWT_SECRET'] as const;
@@ -38,5 +46,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     BCRYPT_ROUNDS: Number(raw.BCRYPT_ROUNDS ?? (nodeEnv === 'test' ? 4 : 12)),
     AUTH_THROTTLE_LIMIT: Number(raw.AUTH_THROTTLE_LIMIT ?? 30),
     FORGOT_THROTTLE_LIMIT: Number(raw.FORGOT_THROTTLE_LIMIT ?? 10),
+    UPLOAD_THROTTLE_LIMIT: Number(raw.UPLOAD_THROTTLE_LIMIT ?? 20),
+    UPLOAD_DIR: resolve(String(raw.UPLOAD_DIR ?? join(process.cwd(), 'uploads'))),
+    UPLOAD_TMP_DIR: resolve(String(raw.UPLOAD_TMP_DIR ?? join(tmpdir(), 'digitaladaalat-uploads'))),
   };
 }
