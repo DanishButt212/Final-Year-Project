@@ -37,6 +37,23 @@ Version notes:
 - Tailwind CSS 4 is configured in CSS (`@theme` in `frontend/src/index.css`), not in `tailwind.config.js`.
 - `npm audit` reports 4 high-severity findings in the backend, all inside the Prisma CLI's own dev-time dependencies (`deepmerge-ts`, `mysql2`; the project does not use MySQL). The suggested fix downgrades to Prisma 6, so it was not applied. Revisit when Prisma 8 is stable. The frontend has 0 findings.
 
+## Phase 2 decisions: case filing (03-10-2026)
+- **New status `PENDING_ASSIGNMENT`:** a freshly filed case has no judge yet, so it starts here (Phase 3 allocation moves it on).
+- **New tables:** `CaseEvent` (lifecycle timeline) and `CaseCounter` (one row per year and case type, incremented atomically inside the filing transaction so UCNs never collide). `CaseDocument` gained `sha256` and `originalName`.
+- **UCN format:** `DA-<YYYY>-<CIV|CRA|WRT|BAL>-<6 digits>`. The migration rewrote the old sample UCNs to this format and initialised the counters.
+- **Upload API:** `POST /cases` is multipart. The form fields travel as JSON in one `data` field; PDFs go in `files`.
+- **File rules:** PDF only, 25 MB each, max 10 per request, extension check plus `%PDF-` magic-byte check. Invalid or oversize files return 400 with "Only PDF format files under 25MB are allowed." (not 413). Files are stored under random names (`cases/<caseId>/<uuid>.pdf`) behind a `StorageService` interface (local disk now, swappable later). Documents are never updated or deleted through the API.
+- **Registration switch:** setting `case_registration_open` = false returns 403 with code `REGISTRATION_CLOSED` and "Case registration is currently closed."
+- **Access:** only LITIGANT and LAWYER can file. A user sees cases they filed, plus (lawyers) cases where they are counsel of a party. Anyone else, and any malformed id, gets 404. Documents cannot be attached to DECIDED/REJECTED/DISMISSED cases (409).
+- **Unverified lawyers may file:** verification status is not checked. Decide whether filing should require a VERIFIED lawyer.
+- **Wizard prefill:** a litigant's first petitioner is prefilled from their profile; a lawyer's is left blank.
+- **Unsaved-changes guard:** covers tab close, reload and in-app link clicks, not the browser Back button.
+- **No client-side magic-byte check:** the browser checks extension, MIME and size; the server does the real check.
+- **Throttling and env:** new `UPLOAD_THROTTLE_LIMIT` (default 20/min); `UPLOAD_DIR` and `UPLOAD_TMP_DIR` added.
+- **Libraries added:** `multer`, `@types/multer` (backend), `@radix-ui/react-tabs` (frontend).
+- **Sidebar:** litigant and lawyer menus now start with Dashboard, New Case Submission, My Case Portfolio.
+- **Not in Phase 2:** payments/challan, judge allocation, hearings, evidence vault, notifications, admin case views.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** cancelled hearings must not keep holding a judge's slot. Replace the unique `(judgeId, date, timeSlot)` constraint on `Hearing` with a partial unique index that ignores `CANCELLED` hearings (raw SQL migration, `CREATE UNIQUE INDEX ... WHERE status <> 'CANCELLED'`). Do this when hearing scheduling is built, not before.
 

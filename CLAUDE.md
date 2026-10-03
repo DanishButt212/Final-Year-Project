@@ -9,7 +9,7 @@ DigitalAdaalat is a web-based Judicial ERP for Pakistan's court system (final ye
 - Mobile: React Native with Expo (later).
 
 ## Status
-Phase 1 is done: database schema + migrations + seed, backend auth/users/audit/health, frontend foundation. Everything else (cases, hearings, payments, evidence, summons, chamber, internship, reports, notifications, mobile) is planned; the empty backend folders each have a README.
+Phase 1 is done: database schema + migrations + seed, backend auth/users/audit/health, frontend foundation. Phase 2 is done: case filing for litigants and lawyers (multi-step form, PDF upload, auto UCN, portfolio, case detail). Everything else (allocation, hearings, payments, evidence, summons, chamber, internship, reports, notifications, mobile) is planned; the empty backend folders each have a README.
 
 ## Commands
 - Backend (`backend/`): `npm run start:dev`, `npm test`, `npm run test:e2e` (uses `.env.test` and the `digitaladaalat_test` database), `npm run lint`, `npm run build`, `npx prisma migrate dev --name <change>`, `npm run prisma:seed`.
