@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { toast } from '@/components/ui/toaster';
 import { setUnauthorizedHandler } from '@/lib/api';
@@ -12,6 +12,12 @@ const ME_KEY = ['auth', 'me'];
  * Holds the signed-in user. The session itself lives in an httpOnly cookie, so the only way to know
  * who is signed in is to ask the API (GET /auth/me); nothing sensitive is kept in browser storage.
  */
+/** Mark the user signed out and drop every other cached query. The session entry is kept (not cleared) so the provider's subscription sees the change. */
+function endSession(queryClient: QueryClient) {
+  queryClient.setQueryData(ME_KEY, null);
+  queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== ME_KEY[0] });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
@@ -32,8 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUnauthorizedHandler(() => {
       if (queryClient.getQueryData(ME_KEY)) {
-        queryClient.clear();
-        queryClient.setQueryData(ME_KEY, null);
+        endSession(queryClient);
         toast.info('Your session has ended. Please log in again.');
       }
     });
@@ -53,8 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authApi.logout();
     } finally {
-      queryClient.clear();
-      queryClient.setQueryData(ME_KEY, null);
+      endSession(queryClient);
     }
   }, [queryClient]);
 
