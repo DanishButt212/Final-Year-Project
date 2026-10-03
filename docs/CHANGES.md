@@ -52,6 +52,8 @@ Version notes:
 - **Throttling and env:** new `UPLOAD_THROTTLE_LIMIT` (default 20/min); `UPLOAD_DIR` and `UPLOAD_TMP_DIR` added.
 - **Libraries added:** `multer`, `@types/multer` (backend), `@radix-ui/react-tabs` (frontend).
 - **Sidebar:** litigant and lawyer menus now start with Dashboard, New Case Submission, My Case Portfolio.
+- **Lawyer verification (Phase 3):** once admin lawyer verification exists, filing a case will require a VERIFIED lawyer.
+- **Optional Phase 3 hardening:** a database-level lock (trigger) to block updates and deletes on `CaseDocument`; for now the API simply has no update or delete route.
 - **Not in Phase 2:** payments/challan, judge allocation, hearings, evidence vault, notifications, admin case views.
 
 ## Planned changes (not done yet)

@@ -56,6 +56,8 @@ npm run start:dev              # http://localhost:4000/api
 The seed prints the development passwords once and writes them to `docs/DEV_ACCOUNTS.md` (git-ignored, local only). Re-running the seed generates new passwords.
 After changing `prisma/schema.prisma`, create a migration with `npx prisma migrate dev --name <what_changed>`.
 
+**Case filing API (Phase 2).** Litigants and lawyers use `POST /cases` (multipart), `GET /cases`, `GET /cases/summary`, `GET /cases/:id`, `POST /cases/:id/documents` and `GET /cases/:id/documents/:docId/download`. Each case gets a number like `DA-2026-CIV-000045` (`CIV`, `CRA`, `WRT` or `BAL` by case type). Uploads are PDF only, 25 MB each, stored in `UPLOAD_DIR` (default `backend/uploads`, git-ignored). Optional env vars: `UPLOAD_DIR`, `UPLOAD_TMP_DIR`, `UPLOAD_THROTTLE_LIMIT` (see `backend/.env.example`).
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend

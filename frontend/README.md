@@ -6,9 +6,10 @@ Stack: React 19 + Vite 8 + TypeScript, Tailwind CSS 4, shadcn/ui-style component
 
 Design rules: `design-system/digitaladaalat/MASTER.md` is the final authority. Tokens are defined once in `src/index.css` (`@theme`).
 
-## What exists (Phase 1)
+## What exists (Phases 1 and 2)
 - Public: landing, login, register (Litigant/Lawyer), forgot password, reset password.
 - Signed in: shared layout (green header, role-based sidebar, breadcrumbs), profile (view and edit), one dashboard per role (Litigant, Lawyer, Intern, Judge, Admin) with empty states, a Process Server information page, "Coming in a later phase" pages for every sidebar item, 403 and 404 pages.
+- Case filing (Litigant and Lawyer): dashboard with real case totals, a 4-step New Case Submission form (case details, parties, PDF documents, review), My Case Portfolio (search, status filter, pagination), and a Case Detail page with Overview, Documents and Lifecycle tabs. PDFs only, 25 MB each.
 - Admin dashboard lists users from `GET /api/users` (search, role filter, pagination).
 - Reusable components in `src/components/ui`: Button, Input/PasswordInput, Field, Select, Table, Badge, Card, Dialog, Toaster, Skeleton, EmptyState, Pagination, Alert.
 
