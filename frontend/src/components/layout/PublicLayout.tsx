@@ -17,7 +17,7 @@ export function PublicLayout() {
         Skip to main content
       </a>
       <header className="bg-primary text-on-primary">
-        <div className="mx-auto flex min-h-14 max-w-6xl items-center justify-between gap-3 px-4">
+        <div className="flex min-h-14 items-center justify-between gap-3 px-4 sm:px-6">
           <Logo />
           <nav aria-label="Account" className="flex items-center gap-2">
             {user ? (
