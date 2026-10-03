@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+coverage
+.claude
+design-system
+backend/prisma/migrations
+backend/src/generated

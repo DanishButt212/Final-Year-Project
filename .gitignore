@@ -50,3 +50,9 @@ __pycache__/
 *.p12
 *.key
 *.mobileprovision
+
+# Local-only development credentials
+docs/DEV_ACCOUNTS.md
+
+# Generated Prisma client
+backend/src/generated/

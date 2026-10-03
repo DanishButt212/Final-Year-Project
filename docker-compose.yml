@@ -1,0 +1,20 @@
+# Optional alternative to a local PostgreSQL install.
+# Usage: docker compose up -d
+# Development only; the credentials below must never be used anywhere except localhost.
+services:
+  db:
+    image: postgres:17
+    container_name: digitaladaalat-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME}
+      POSTGRES_DB: digitaladaalat
+    ports:
+      - '5432:5432'
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+
+volumes:
+  dbdata:
