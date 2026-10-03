@@ -12,6 +12,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { CaseType, PartyRole, PrismaClient, Role } from '../src/generated/prisma/client';
+import { generateUcn } from '../src/cases/ucn';
 
 config({ quiet: true });
 
@@ -201,11 +202,16 @@ async function seedReference() {
     ['geofence_chamber_lng', '71.4697', 'Demo chamber longitude (Multan)'],
     ['max_pleading_size_mb', '25', 'Maximum PDF pleading size'],
     ['hearing_slots_per_day', '8', 'Number of hearing time slots per judge per day'],
+    [
+      'case_registration_open',
+      'true',
+      'Set to false to close new case registration (UC-2.1 precondition)',
+    ],
   ];
   for (const [key, value, description] of settings) {
     await prisma.systemSetting.upsert({
       where: { key },
-      update: { value },
+      update: {}, // never overwrite a value an administrator has changed
       create: { key, value, description },
     });
   }
@@ -348,7 +354,7 @@ async function seedSampleData(
         'Permanent injunction restraining interference in possession of House No. 14-B, Gulgasht Colony, Multan.',
       filer: 'litigant',
       judge: null,
-      status: 'FILED',
+      status: 'PENDING_ASSIGNMENT',
       court: courts.sessions.id,
       parties: [
         ['PETITIONER', 'Rukhsana Bibi', null],
@@ -359,26 +365,40 @@ async function seedSampleData(
 
   const created: Record<number, string> = {};
   for (const c of cases) {
-    const record = await prisma.case.create({
-      data: {
-        ucn: `DA-2026-MUL-${String(c.n).padStart(6, '0')}`,
-        caseType: c.type as CaseType,
-        status: c.status,
-        title: c.title,
-        reliefSought: c.relief,
-        filingDate: utcDate(-30 + c.n),
-        filedById: ids[c.filer],
-        courtId: c.court,
-        judgeId: c.judge ? ids[c.judge] : null,
-        allocatedAt: c.judge ? utcDate(-20 + c.n) : null,
-        parties: {
-          create: c.parties.map(([role, name, lawyerKey]) => ({
-            role: role as PartyRole,
-            name,
-            lawyerId: lawyerKey ? lawyers[lawyerKey] : null,
-          })),
+    const filingDate = utcDate(-30 + c.n);
+    const record = await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, c.type as CaseType, filingDate.getUTCFullYear());
+      return tx.case.create({
+        data: {
+          ucn,
+          caseType: c.type as CaseType,
+          status: c.status,
+          title: c.title,
+          reliefSought: c.relief,
+          filingDate,
+          filedById: ids[c.filer],
+          courtId: c.court,
+          judgeId: c.judge ? ids[c.judge] : null,
+          allocatedAt: c.judge ? utcDate(-20 + c.n) : null,
+          parties: {
+            create: c.parties.map(([role, name, lawyerKey]) => ({
+              role: role as PartyRole,
+              name,
+              lawyerId: lawyerKey ? lawyers[lawyerKey] : null,
+            })),
+          },
+          events: {
+            create: [
+              {
+                type: 'CASE_SUBMITTED' as const,
+                description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+                actorId: ids[c.filer],
+                createdAt: filingDate,
+              },
+            ],
+          },
         },
-      },
+      });
     });
     created[c.n] = record.id;
   }

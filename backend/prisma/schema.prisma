@@ -49,6 +49,7 @@ enum CaseType {
 
 enum CaseStatus {
   DRAFT
+  PENDING_ASSIGNMENT
   FILED
   UNDER_SCRUTINY
   ALLOCATED
@@ -57,6 +58,11 @@ enum CaseStatus {
   DECIDED
   REJECTED
   DISMISSED
+}
+
+enum CaseEventType {
+  CASE_SUBMITTED
+  DOCUMENT_ATTACHED
 }
 
 enum PartyRole {
@@ -193,6 +199,7 @@ model User {
   sessionParticipation   CourtSessionParticipant[]
   createdSessions        CourtSession[]
   createdCauseLists      CauseList[]
+  caseEvents             CaseEvent[]
 
   @@index([role, status])
   @@index([courtId])
@@ -295,7 +302,7 @@ model Courtroom {
 
 // ---------------------------------------------------------------- cases
 
-/// FR: electronic filing, UCN, random judge allocation (UC: File Case, Allocate Case)
+/// FR 3-1, FR 3-3: electronic filing and Unique Case Number (UC-2.1 Submit New Case, UC-2.3 View Case Portfolio)
 model Case {
   id           String     @id @default(uuid())
   ucn          String     @unique
@@ -324,6 +331,7 @@ model Case {
   challans  Challan[]
   summons   Summons[]
   billable  BillableEntry[]
+  events    CaseEvent[]
 
   @@index([filedById])
   @@index([judgeId, status])
@@ -342,6 +350,7 @@ model CaseParty {
   phone     String?
   address   String?
   lawyerId  String?
+  position  Int       @default(0) // order within its side (petitioners / respondents)
   createdAt DateTime  @default(now())
 
   case    Case           @relation(fields: [caseId], references: [id])
@@ -352,13 +361,15 @@ model CaseParty {
   @@index([lawyerId, caseId]) // supports lawyer double-booking lookups
 }
 
-/// FR: PDF pleading upload, max 25 MB (UC: Upload Pleadings)
+/// FR 3-2: PDF pleading upload, max 25 MB, locked once attached (UC-2.2 Upload Legal Pleadings)
 model CaseDocument {
   id           String       @id @default(uuid())
   caseId       String
   type         DocumentType @default(PLEADING)
   title        String
-  filePath     String
+  originalName String // file name as uploaded by the user (never used as a path)
+  filePath     String // storage key, e.g. cases/<caseId>/<uuid>.pdf
+  sha256       String
   mimeType     String       @default("application/pdf")
   sizeBytes    Int
   uploadedById String
@@ -387,6 +398,31 @@ model Evidence {
   uploadedBy User @relation(fields: [uploadedById], references: [id])
 
   @@index([caseId])
+}
+
+/// FR 3-3: lifecycle history shown on the case page (UC-2.3). Append-only by convention: no update or delete code paths.
+model CaseEvent {
+  id          String        @id @default(uuid())
+  caseId      String
+  type        CaseEventType
+  description String
+  actorId     String?
+  createdAt   DateTime      @default(now())
+
+  case  Case  @relation(fields: [caseId], references: [id])
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([caseId, createdAt])
+}
+
+/// FR 3-3: atomic sequence per year and case-type code, used to build the UCN (DA-YYYY-CODE-000001)
+model CaseCounter {
+  year      Int
+  typeCode  String
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year, typeCode])
 }
 
 // ---------------------------------------------------------------- hearings
