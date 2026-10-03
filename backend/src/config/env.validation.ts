@@ -9,6 +9,7 @@ export interface Env {
   RESET_TOKEN_TTL_MINUTES: number;
   BCRYPT_ROUNDS: number;
   AUTH_THROTTLE_LIMIT: number;
+  FORGOT_THROTTLE_LIMIT: number;
 }
 
 const REQUIRED = ['DATABASE_URL', 'JWT_SECRET'] as const;
@@ -35,6 +36,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     COOKIE_NAME: String(raw.COOKIE_NAME ?? 'da_token'),
     RESET_TOKEN_TTL_MINUTES: Number(raw.RESET_TOKEN_TTL_MINUTES ?? 60),
     BCRYPT_ROUNDS: Number(raw.BCRYPT_ROUNDS ?? (nodeEnv === 'test' ? 4 : 12)),
-    AUTH_THROTTLE_LIMIT: Number(raw.AUTH_THROTTLE_LIMIT ?? 10),
+    AUTH_THROTTLE_LIMIT: Number(raw.AUTH_THROTTLE_LIMIT ?? 30),
+    FORGOT_THROTTLE_LIMIT: Number(raw.FORGOT_THROTTLE_LIMIT ?? 10),
   };
 }

@@ -19,7 +19,8 @@ Running log of decisions and deviations from the project report. Maintained for 
 | 12 | 03-10-2026 | Database | All money fields are `Decimal(12,2)` (PKR). A chamber client's retainer balance is derived from `RetainerTransaction` rows, not stored. |
 | 13 | 03-10-2026 | Database | Judge anti-clash: unique `(judgeId, date, timeSlot)` on `Hearing`. Lawyer double-booking is checked in the application layer through `CaseParty.lawyerId`, backed by an index. |
 | 14 | 03-10-2026 | Backend | Password reset: random token, only its SHA-256 hash is stored, 1 hour expiry, single use, only the newest link works. The reset response is identical for known and unknown emails. |
-| 15 | 03-10-2026 | Backend | Rate limiting: 100 requests/minute per client overall; 10/minute on register, login, forgot and reset password (`AUTH_THROTTLE_LIMIT`). |
+| 15 | 03-10-2026 | Backend | Rate limiting: 100 requests/minute per client overall. Superseded for credential endpoints by entry 19. |
+| 19 | 03-10-2026 | Backend | Rate limits revised: register, login and reset password allow 30 requests/minute per IP (`AUTH_THROTTLE_LIMIT`, was 10) so users behind a shared court network are not locked out. Forgot password stays at 10/minute (`FORGOT_THROTTLE_LIMIT`) because it sends email. |
 | 16 | 03-10-2026 | Frontend | Added the Process Server information page (summons are served through the mobile app, not the website) and per-role "Coming in a later phase" pages for every sidebar item. |
 | 17 | 03-10-2026 | Frontend | Fonts self-hosted through Fontsource (Merriweather, Inter, JetBrains Mono, Noto Nastaliq Urdu) instead of Google Fonts, so the portal works offline and sends no data to third parties. |
 | 18 | 03-10-2026 | Tooling | Removed the unused design skills installed with UI UX Pro Max (brand, design, design-system, slides, banner-design, ui-styling). Only `ui-ux-pro-max` remains. |
@@ -35,6 +36,9 @@ Version notes:
 - NestJS 12 packages are ES modules. The backend compiles to CommonJS and relies on Node's `require(esm)` support (Node 20.19+, 22.12+ or 24). Jest runs with `--experimental-vm-modules` (set in the npm scripts).
 - Tailwind CSS 4 is configured in CSS (`@theme` in `frontend/src/index.css`), not in `tailwind.config.js`.
 - `npm audit` reports 4 high-severity findings in the backend, all inside the Prisma CLI's own dev-time dependencies (`deepmerge-ts`, `mysql2`; the project does not use MySQL). The suggested fix downgrades to Prisma 6, so it was not applied. Revisit when Prisma 8 is stable. The frontend has 0 findings.
+
+## Planned changes (not done yet)
+- **Phase 3, hearing slots:** cancelled hearings must not keep holding a judge's slot. Replace the unique `(judgeId, date, timeSlot)` constraint on `Hearing` with a partial unique index that ignores `CANCELLED` hearings (raw SQL migration, `CREATE UNIQUE INDEX ... WHERE status <> 'CANCELLED'`). Do this when hearing scheduling is built, not before.
 
 ## Open issues for the report
 - Methodology conflict: Chapter 1.6 says Agile/Scrum, while Chapter 3.3 says Iterative/Incremental. One must be chosen and both chapters made consistent.

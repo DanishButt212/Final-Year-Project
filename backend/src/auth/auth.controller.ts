@@ -11,9 +11,14 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/password.dto';
 import { RegisterDto } from './dto/register.dto';
 
-/** 10 attempts per minute per client on credential endpoints (configurable via AUTH_THROTTLE_LIMIT). */
+/** Credential endpoints: 30 requests per minute per client (override with AUTH_THROTTLE_LIMIT). */
 const authThrottle = () => ({
-  default: { limit: () => Number(process.env.AUTH_THROTTLE_LIMIT ?? 10), ttl: () => 60_000 },
+  default: { limit: () => Number(process.env.AUTH_THROTTLE_LIMIT ?? 30), ttl: () => 60_000 },
+});
+
+/** Forgot-password stays stricter because it triggers an email: 10 per minute (FORGOT_THROTTLE_LIMIT). */
+const forgotThrottle = () => ({
+  default: { limit: () => Number(process.env.FORGOT_THROTTLE_LIMIT ?? 10), ttl: () => 60_000 },
 });
 
 const meta = (req: Request): RequestMeta => ({
@@ -99,7 +104,7 @@ export class AuthController {
 
   /** Always answers with the same message so registered emails cannot be discovered. */
   @Public()
-  @Throttle(authThrottle())
+  @Throttle(forgotThrottle())
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
