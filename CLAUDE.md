@@ -30,6 +30,8 @@ design-system/  digitaladaalat/MASTER.md
 ## Theme summary
 Official, calm, trustworthy Pakistan court/government portal. Deep green primary (#01411C), muted gold accent (#B8962E, small highlights only), light mode only, Merriweather headings, Inter body, monospace case numbers. No gradients, glassmorphism, dark mode or emojis as icons. Full spec: `design-system/digitaladaalat/MASTER.md`.
 
+Our tokens in `MASTER.md` are the final authority. Use the UI UX Pro Max skill (`.claude/skills/ui-ux-pro-max`) only for checklist, accessibility, layout and dashboard/chart guidance; never let it override our colors, fonts or anti-patterns.
+
 ## Branch workflow
 - Personal branches (for example `danish`); never commit or push to `main` directly.
 - Changes go into `main` through pull requests, reviewed by Danish.
