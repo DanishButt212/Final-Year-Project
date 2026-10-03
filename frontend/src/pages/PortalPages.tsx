@@ -37,8 +37,9 @@ export function PortalHome() {
 }
 
 /** /:portal/:feature → a clear "later phase" page for every sidebar item. */
-export function ComingSoonPage() {
-  const { portal: slug, feature } = useParams();
+export function ComingSoonPage({ feature: featureProp }: { feature?: string }) {
+  const { portal: slug, feature: featureParam } = useParams();
+  const feature = featureProp ?? featureParam;
   const { user } = useAuth();
   const portal = slug ? PORTAL_BY_SLUG[slug] : undefined;
   if (!portal) return <NotFoundPage />;
@@ -67,4 +68,30 @@ export function ComingSoonPage() {
       </Card>
     </>
   );
+}
+
+const CASE_ROLES = ['LITIGANT', 'LAWYER'];
+
+/**
+ * Guards the case-filing routes (/litigant|lawyer/new-case, /cases, /cases/:id).
+ * Other roles keep their own pages: a judge opening /judge/cases still gets that portal's own page,
+ * and a user from a different portal gets 403.
+ */
+export function CaseRoute({
+  children,
+  detail = false,
+  feature,
+}: {
+  children: React.ReactNode;
+  feature: string;
+  detail?: boolean;
+}) {
+  const { portal: slug } = useParams();
+  const { user } = useAuth();
+  const portal = slug ? PORTAL_BY_SLUG[slug] : undefined;
+  if (!portal) return <NotFoundPage />;
+  if (!user || user.role !== portal.role) return <Navigate to="/forbidden" replace />;
+  if (!CASE_ROLES.includes(user.role))
+    return detail ? <NotFoundPage /> : <ComingSoonPage feature={feature} />;
+  return <>{children}</>;
 }

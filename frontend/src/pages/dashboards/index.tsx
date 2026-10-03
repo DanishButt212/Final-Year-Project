@@ -19,19 +19,13 @@ import { Alert } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { DashboardFrame, EmptyPanel, PanelGrid } from './parts';
 import AdminUsersPanel from './AdminUsersPanel';
+import CaseOverview from './CaseOverview';
 
 export function LitigantDashboard() {
   return (
     <DashboardFrame description="Your cases, hearings and payments at a glance.">
+      <CaseOverview />
       <PanelGrid>
-        <EmptyPanel
-          title="My cases"
-          icon={Briefcase}
-          emptyTitle="No cases yet"
-          emptyText="Cases you file or are a party to will appear here."
-          actionLabel="File a case"
-          actionTo="/litigant/file-case"
-        />
         <EmptyPanel
           title="Upcoming hearings"
           icon={CalendarDays}
@@ -66,6 +60,7 @@ export function LawyerDashboard() {
   const status = user?.lawyerProfile?.verificationStatus;
   return (
     <DashboardFrame description="Your chamber, clients and cases at a glance.">
+      <CaseOverview />
       {status === 'PENDING' && (
         <Alert variant="info" title="Verification pending" className="mb-6">
           An administrator will verify your Bar Council registration. Some features stay limited
@@ -83,14 +78,6 @@ export function LawyerDashboard() {
         </Alert>
       )}
       <PanelGrid>
-        <EmptyPanel
-          title="Cases"
-          icon={Briefcase}
-          emptyTitle="No cases yet"
-          emptyText="Cases where you appear as counsel will be listed here."
-          actionLabel="File a case"
-          actionTo="/lawyer/file-case"
-        />
         <EmptyPanel
           title="Clients"
           icon={Users}

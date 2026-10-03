@@ -7,7 +7,10 @@ import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
-import { ComingSoonPage, PortalHome } from '@/pages/PortalPages';
+import CaseDetailPage from '@/pages/cases/CaseDetailPage';
+import NewCasePage from '@/pages/cases/NewCasePage';
+import PortfolioPage from '@/pages/cases/PortfolioPage';
+import { CaseRoute, ComingSoonPage, PortalHome } from '@/pages/PortalPages';
 import ProfilePage from '@/pages/ProfilePage';
 import RegisterPage from '@/pages/RegisterPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
@@ -35,6 +38,30 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="profile" element={<ProfilePage />} />
           <Route path=":portal" element={<PortalHome />} />
+          <Route
+            path=":portal/new-case"
+            element={
+              <CaseRoute feature="new-case">
+                <NewCasePage />
+              </CaseRoute>
+            }
+          />
+          <Route
+            path=":portal/cases"
+            element={
+              <CaseRoute feature="cases">
+                <PortfolioPage />
+              </CaseRoute>
+            }
+          />
+          <Route
+            path=":portal/cases/:caseId"
+            element={
+              <CaseRoute detail feature="cases">
+                <CaseDetailPage />
+              </CaseRoute>
+            }
+          />
           <Route path=":portal/:feature" element={<ComingSoonPage />} />
         </Route>
       </Route>

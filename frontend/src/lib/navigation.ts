@@ -60,16 +60,16 @@ export const PORTALS: Record<Role, Portal> = {
     items: [
       dash('Your cases, hearings and payments at a glance.'),
       {
-        slug: 'my-cases',
-        label: 'My Cases',
-        icon: Briefcase,
-        description: 'Track every case you are a party to.',
-      },
-      {
-        slug: 'file-case',
-        label: 'File a Case',
+        slug: 'new-case',
+        label: 'New Case Submission',
         icon: FilePlus2,
         description: 'Multi-step electronic filing with PDF pleadings.',
+      },
+      {
+        slug: 'cases',
+        label: 'My Case Portfolio',
+        icon: Briefcase,
+        description: 'Track every case you filed, with its judge bench and full history.',
       },
       {
         slug: 'hearings',
@@ -109,12 +109,17 @@ export const PORTALS: Record<Role, Portal> = {
     label: 'Lawyer Chamber',
     items: [
       dash('Your chamber, clients and cases at a glance.'),
-      { slug: 'cases', label: 'Cases', icon: Briefcase, description: 'Cases you appear in.' },
       {
-        slug: 'file-case',
-        label: 'File a Case',
+        slug: 'new-case',
+        label: 'New Case Submission',
         icon: FilePlus2,
         description: 'Electronic filing for your clients.',
+      },
+      {
+        slug: 'cases',
+        label: 'My Case Portfolio',
+        icon: Briefcase,
+        description: 'Cases you filed or appear in, with their judge bench and full history.',
       },
       { slug: 'clients', label: 'Clients', icon: Users, description: 'Manage chamber clients.' },
       {

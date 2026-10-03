@@ -76,7 +76,7 @@ describe('role-based routing', () => {
     ['LITIGANT', '/admin'],
     ['LAWYER', '/judge'],
     ['JUDGE', '/admin/audit-logs'],
-    ['INTERN', '/litigant/file-case'],
+    ['INTERN', '/litigant/new-case'],
   ] as const)('%s opening %s is shown the 403 page', async (role, path) => {
     renderApp(path, role);
     expect(await screen.findByText(/403: you do not have access/i)).toBeInTheDocument();
@@ -88,9 +88,11 @@ describe('role-based routing', () => {
   });
 
   it('shows a clear "coming in a later phase" page for sidebar items', async () => {
-    renderApp('/litigant/file-case', 'LITIGANT');
+    renderApp('/litigant/hearings', 'LITIGANT');
     expect(await screen.findByText('Coming in a later phase')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'File a Case' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Hearings & Cause List' }),
+    ).toBeInTheDocument();
   });
 
   it('shows the 404 page for unknown routes, for guests and signed-in users', async () => {

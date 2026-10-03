@@ -1,7 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import type { ReactElement } from 'react';
+import { AxiosError } from 'axios';
 import { vi } from 'vitest';
+import { api } from '@/lib/api';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { AuthContext, type AuthState } from '@/auth/context';
 import type { User } from '@/lib/types';
@@ -54,5 +56,58 @@ export function renderPage(
         </MemoryRouter>
       </AuthContext.Provider>
     </QueryClientProvider>,
+  );
+}
+
+export interface MockRequest {
+  method: string;
+  url: string;
+  data: unknown;
+  params?: Record<string, unknown>;
+}
+export type MockResponse = { status?: number; data?: unknown };
+
+/**
+ * Replaces Axios' network adapter, so tests exercise the real API client (URLs, interceptors,
+ * error parsing) without a server. Returns a function that restores the original adapter.
+ * Responses with status >= 400 reject exactly like a real failed request.
+ */
+export function mockApi(handler: (req: MockRequest) => MockResponse | Promise<MockResponse>) {
+  const original = api.defaults.adapter;
+  const calls: MockRequest[] = [];
+  api.defaults.adapter = async (config) => {
+    const req: MockRequest = {
+      method: (config.method ?? 'get').toLowerCase(),
+      url: config.url ?? '',
+      data: config.data,
+      params: config.params,
+    };
+    calls.push(req);
+    const res = await handler(req);
+    const status = res.status ?? 200;
+    const response = {
+      data: res.data,
+      status,
+      statusText: String(status),
+      headers: {},
+      config,
+      request: {},
+    };
+    if (status >= 400) {
+      throw new AxiosError(
+        `Request failed with status code ${status}`,
+        'ERR_BAD_REQUEST',
+        config,
+        undefined,
+        response,
+      );
+    }
+    return response;
+  };
+  return Object.assign(
+    () => {
+      api.defaults.adapter = original;
+    },
+    { calls },
   );
 }
