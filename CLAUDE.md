@@ -8,6 +8,22 @@ DigitalAdaalat is a web-based Judicial ERP for Pakistan's court system (final ye
 - Frontend: React + Vite + TypeScript, Tailwind CSS, shadcn/ui, React Router, TanStack Query, React Hook Form + Zod, Axios.
 - Mobile: React Native with Expo (later).
 
+## Status
+Phase 1 is done: database schema + migrations + seed, backend auth/users/audit/health, frontend foundation. Everything else (cases, hearings, payments, evidence, summons, chamber, internship, reports, notifications, mobile) is planned; the empty backend folders each have a README.
+
+## Commands
+- Backend (`backend/`): `npm run start:dev`, `npm test`, `npm run test:e2e` (uses `.env.test` and the `digitaladaalat_test` database), `npm run lint`, `npm run build`, `npx prisma migrate dev --name <change>`, `npm run prisma:seed`.
+- Frontend (`frontend/`): `npm run dev`, `npm test`, `npm run lint`, `npm run build`.
+- Setup instructions: root `README.md`.
+
+## Technical notes
+- NestJS 12 is ES-module only; the backend compiles to CommonJS and relies on Node `require(esm)`; Jest runs with `--experimental-vm-modules` (already in the npm scripts).
+- Prisma 7: schema in `backend/prisma/schema.prisma`, connection in `backend/prisma.config.ts`, generated client in `backend/src/generated` (git-ignored; created by `prisma generate`).
+- The AuditLog table has a trigger that blocks UPDATE/DELETE. Tests reset data with `TRUNCATE ... CASCADE`.
+- All routes require a JWT unless marked `@Public()`; restrict by role with `@Roles(...)`.
+- Money is `Decimal` (PKR), never `Float`.
+- Never print or commit `.env`, `.env.test` or `docs/DEV_ACCOUNTS.md`.
+
 ## Folder structure
 ```
 backend/        NestJS API
