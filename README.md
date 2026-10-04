@@ -103,6 +103,23 @@ New settings (System Policies): `ad_valorem_percent` (default 1, 0 to 10), `ad_v
 
 The payment gateway is simulated. Test cards: `4242 4242 4242 4242` and `5555 5555 5555 4444` approve, `4000 0000 0000 0002` is declined (insufficient funds), every other number is declined. Card details are never stored or logged.
 
+**Lawyer chamber and legal intern portals (Phase 4B).**
+
+| Area | Routes |
+|---|---|
+| Chamber login | `POST /auth/login` with the extra field `chamberCode` (Chamber desk login form) |
+| Chamber profile | `GET` and `PUT /chamber/profile`, `GET /chamber/dashboard`, `GET /chamber/cases` |
+| Clients | `GET` and `POST /chamber/clients`, `GET` and `PATCH /chamber/clients/:id`, `GET /chamber/client-options` |
+| Billing and retainers | `POST` and `GET /chamber/billable`, `POST /chamber/clients/:id/retainer/deposit`, `GET /chamber/retainer-summary`, `POST /chamber/clients/:id/low-balance-alert` |
+| Expenses | `GET` and `POST /chamber/expenses` |
+| Interns (lawyer side) | `GET` and `POST /chamber/interns`, `GET /chamber/interns/:id`, `PATCH /chamber/interns/:id/status`, `GET /chamber/research-logs`, `PATCH /chamber/research-logs/:id/review` |
+| Intern (own side) | `GET /intern/summary`, `GET /intern/cases`, `GET` and `POST /intern/research-logs`, `PATCH /intern/research-logs/:id`, `POST /intern/attendance/check-in`, `POST /intern/attendance/check-out`, `GET /intern/attendance?month=YYYY-MM` |
+| Admin | `PATCH /admin/courts/:id` (latitude, longitude, geofenceRadiusM); `POST /admin/users` for an INTERN needs `supervisorLawyerId` |
+
+New settings (System Policies): `attendance_default_radius_m` (default 300, 50 to 5000) and `attendance_max_accuracy_m` (default 150, 10 to 1000).
+
+Chamber desk login: after seeding, a verified lawyer finds the Chamber ID (format `CH-123456`) on Chamber Settings & Identity Profile. The seeded court coordinates for Multan are approximate placeholders. To test attendance, open Courts & Benches as an administrator, stand where you want the geo-fence and use "Use my current location". The browser asks for the location permission (localhost counts as a secure origin).
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend
