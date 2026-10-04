@@ -178,6 +178,12 @@ export class EvidenceService {
   ) {
     const a = await this.access(user, caseId);
     if (!a.canUpload) throw this.forbidden();
+    if (a.case.status === 'DECIDED') {
+      throw new ConflictException({
+        code: 'CASE_DECIDED',
+        message: 'This case has been decided. No new exhibits can be added.',
+      });
+    }
     if (a.case.judgeId === null) {
       throw new ConflictException({ code: 'NOT_ALLOCATED', message: NOT_ALLOCATED_MESSAGE });
     }

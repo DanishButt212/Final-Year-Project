@@ -7,11 +7,12 @@
  */
 import { config } from 'dotenv';
 import * as bcrypt from 'bcrypt';
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { CaseType, PartyRole, PrismaClient, Role } from '../src/generated/prisma/client';
+import { CaseType, PartyRole, Prisma, PrismaClient, Role } from '../src/generated/prisma/client';
+import { computeEventHash } from '../src/audit/audit-hash';
 import { generateUcn } from '../src/cases/ucn';
 import { nextChallanNo, nextReceiptNo, nextSequence } from '../src/common/counters';
 import { calculateLedger, feeInputHash } from '../src/fees/fee-calculator';
@@ -1949,6 +1950,643 @@ async function seedPhase4C(ids: Record<string, string>) {
   }
 }
 
+// ------------------------------------------------------------------ Phase 4E: decisions, security alerts
+
+interface DecidedSpec {
+  type: CaseType;
+  title: string;
+  relief: string;
+  filer: string;
+  counsel: string | null;
+  judge: string;
+  filedAgo: number;
+  hearingsAgo: [number, 'HELD' | 'ADJOURNED'][];
+  decidedAgo: number;
+  decision: 'JUDGMENT' | 'DISMISSED' | 'DISPOSED';
+  order: string;
+}
+
+const DECIDED: DecidedSpec[] = [
+  {
+    type: 'CIVIL_SUIT',
+    title: 'Rukhsana Bibi vs. Habib Bank Limited',
+    relief: 'Recovery of PKR 1,250,000 wrongly debited from the plaintiff account.',
+    filer: 'litigant',
+    counsel: null,
+    judge: 'judge',
+    filedAgo: 118,
+    hearingsAgo: [
+      [96, 'HELD'],
+      [71, 'HELD'],
+      [44, 'HELD'],
+    ],
+    decidedAgo: 44,
+    decision: 'JUDGMENT',
+    order:
+      'The suit is decreed. The defendant bank shall refund PKR 1,250,000 with costs within thirty days of this order.',
+  },
+  {
+    type: 'BAIL_APPLICATION',
+    title: 'Naveed Iqbal vs. The State',
+    relief: 'Post-arrest bail in FIR No. 214/2026, Police Station Cantt, Multan.',
+    filer: 'lawyer',
+    counsel: 'lawyer',
+    judge: 'judge2',
+    filedAgo: 92,
+    hearingsAgo: [
+      [80, 'ADJOURNED'],
+      [66, 'HELD'],
+      [52, 'HELD'],
+    ],
+    decidedAgo: 52,
+    decision: 'DISPOSED',
+    order:
+      'Bail is allowed subject to surety bonds of PKR 200,000 and surrender of the passport. The application stands disposed of.',
+  },
+  {
+    type: 'WRIT_PETITION',
+    title: 'Multan Cloth Merchants vs. Excise Department',
+    relief: 'Writ against the retrospective levy imposed by notification dated 04-05-2026.',
+    filer: 'lawyer2',
+    counsel: 'lawyer2',
+    judge: 'judge3',
+    filedAgo: 105,
+    hearingsAgo: [
+      [85, 'HELD'],
+      [63, 'HELD'],
+      [37, 'HELD'],
+    ],
+    decidedAgo: 37,
+    decision: 'JUDGMENT',
+    order:
+      'The notification is declared to have no retrospective effect. The respondent shall refund any amount recovered under it.',
+  },
+  {
+    type: 'CRIMINAL_APPEAL',
+    title: 'Tariq Mahmood vs. The State',
+    relief: 'Appeal against the conviction recorded in Sessions Case No. 77/2026.',
+    filer: 'litigant2',
+    counsel: null,
+    judge: 'judge5',
+    filedAgo: 110,
+    hearingsAgo: [
+      [90, 'HELD'],
+      [58, 'HELD'],
+    ],
+    decidedAgo: 58,
+    decision: 'DISMISSED',
+    order:
+      'The appeal is dismissed. The conviction and sentence recorded by the trial court are upheld.',
+  },
+  {
+    type: 'CIVIL_SUIT',
+    title: 'Fatima Zahra vs. Gulzar Ahmed',
+    relief: 'Specific performance of the agreement to sell dated 12-01-2026.',
+    filer: 'lawyer5',
+    counsel: 'lawyer5',
+    judge: 'judge4',
+    filedAgo: 100,
+    hearingsAgo: [
+      [84, 'HELD'],
+      [60, 'ADJOURNED'],
+      [41, 'HELD'],
+    ],
+    decidedAgo: 41,
+    decision: 'JUDGMENT',
+    order:
+      'The defendant shall execute the sale deed within sixty days on receipt of the balance sale price of PKR 900,000.',
+  },
+  {
+    type: 'BAIL_APPLICATION',
+    title: 'Asif Raza vs. The State',
+    relief: 'Pre-arrest bail in FIR No. 118/2026, Police Station Mumtazabad, Multan.',
+    filer: 'lawyer',
+    counsel: 'lawyer',
+    judge: 'judge',
+    filedAgo: 70,
+    hearingsAgo: [
+      [60, 'HELD'],
+      [49, 'HELD'],
+    ],
+    decidedAgo: 31,
+    decision: 'DISPOSED',
+    order:
+      'Interim bail is confirmed on the same surety. The petitioner shall join the investigation as directed.',
+  },
+  {
+    type: 'WRIT_PETITION',
+    title: 'Shabana Kausar vs. Secretary Education',
+    relief: 'Writ for the reinstatement of the petitioner in service with back benefits.',
+    filer: 'litigant',
+    counsel: null,
+    judge: 'judge6',
+    filedAgo: 95,
+    hearingsAgo: [
+      [75, 'HELD'],
+      [48, 'HELD'],
+      [28, 'HELD'],
+    ],
+    decidedAgo: 28,
+    decision: 'JUDGMENT',
+    order:
+      'The termination order is set aside. The petitioner shall be reinstated with back benefits within thirty days.',
+  },
+  {
+    type: 'CIVIL_SUIT',
+    title: 'Adnan Sheikh vs. Rafi Traders',
+    relief: 'Recovery of PKR 780,000 on a dishonoured cheque.',
+    filer: 'litigant2',
+    counsel: null,
+    judge: 'judge2',
+    filedAgo: 80,
+    hearingsAgo: [
+      [62, 'HELD'],
+      [39, 'HELD'],
+    ],
+    decidedAgo: 24,
+    decision: 'DISMISSED',
+    order:
+      'The suit is dismissed for want of proof of the underlying transaction. Parties shall bear their own costs.',
+  },
+  {
+    type: 'CRIMINAL_APPEAL',
+    title: 'Munir Hussain vs. The State',
+    relief: 'Appeal against the sentence in Sessions Case No. 52/2026.',
+    filer: 'lawyer3',
+    counsel: 'lawyer3',
+    judge: 'judge',
+    filedAgo: 84,
+    hearingsAgo: [
+      [66, 'HELD'],
+      [40, 'HELD'],
+    ],
+    decidedAgo: 19,
+    decision: 'JUDGMENT',
+    order:
+      'The sentence is reduced to the period already undergone. The appellant shall be released if not required in another case.',
+  },
+  {
+    type: 'WRIT_PETITION',
+    title: 'Al-Noor Welfare Trust vs. Municipal Corporation',
+    relief: 'Writ against the demolition notice dated 21-07-2026.',
+    filer: 'lawyer2',
+    counsel: 'lawyer2',
+    judge: 'judge5',
+    filedAgo: 72,
+    hearingsAgo: [
+      [55, 'HELD'],
+      [33, 'ADJOURNED'],
+      [16, 'HELD'],
+    ],
+    decidedAgo: 16,
+    decision: 'DISPOSED',
+    order:
+      'The respondent has withdrawn the notice. The petition is disposed of as having become infructuous.',
+  },
+  {
+    type: 'BAIL_APPLICATION',
+    title: 'Ghulam Abbas vs. The State',
+    relief: 'Post-arrest bail in FIR No. 301/2026, Police Station Saddar, Multan.',
+    filer: 'lawyer5',
+    counsel: 'lawyer5',
+    judge: 'judge4',
+    filedAgo: 52,
+    hearingsAgo: [
+      [40, 'HELD'],
+      [22, 'HELD'],
+    ],
+    decidedAgo: 12,
+    decision: 'DISMISSED',
+    order:
+      'Bail is declined. The prosecution has made out a prima facie case on the record produced.',
+  },
+  {
+    type: 'CIVIL_SUIT',
+    title: 'Saima Parveen vs. Zafar Iqbal',
+    relief: 'Maintenance allowance and recovery of dowry articles.',
+    filer: 'litigant',
+    counsel: null,
+    judge: 'judge2',
+    filedAgo: 66,
+    hearingsAgo: [
+      [50, 'HELD'],
+      [27, 'HELD'],
+      [9, 'HELD'],
+    ],
+    decidedAgo: 9,
+    decision: 'JUDGMENT',
+    order:
+      'Maintenance of PKR 25,000 per month is fixed from the date of the suit. The dowry articles shall be returned within thirty days.',
+  },
+  {
+    type: 'WRIT_PETITION',
+    title: 'Pak Cotton Ginners vs. Federal Board of Revenue',
+    relief: 'Writ against the adjustment of input tax disallowed by the department.',
+    filer: 'lawyer',
+    counsel: 'lawyer',
+    judge: 'judge3',
+    filedAgo: 60,
+    hearingsAgo: [
+      [46, 'HELD'],
+      [21, 'HELD'],
+      [6, 'HELD'],
+    ],
+    decidedAgo: 6,
+    decision: 'JUDGMENT',
+    order:
+      'The disallowance is declared unlawful. The respondent shall allow the adjustment and issue a fresh assessment order.',
+  },
+  {
+    type: 'CRIMINAL_APPEAL',
+    title: 'Javed Akhtar vs. The State',
+    relief: 'Appeal against the order of the Anti-Terrorism Court dated 02-08-2026.',
+    filer: 'litigant2',
+    counsel: null,
+    judge: 'judge6',
+    filedAgo: 48,
+    hearingsAgo: [
+      [35, 'HELD'],
+      [14, 'HELD'],
+    ],
+    decidedAgo: 3,
+    decision: 'DISMISSED',
+    order:
+      'The appeal is dismissed as barred by limitation. No sufficient cause for the delay has been shown.',
+  },
+];
+
+const ADJOURNED_OPEN: {
+  title: string;
+  type: CaseType;
+  relief: string;
+  filer: string;
+  judge: string;
+  ago: number;
+}[] = [
+  {
+    title: 'Zeeshan Haider vs. Multan Development Authority',
+    type: 'CIVIL_SUIT',
+    relief: 'Injunction against the cancellation of the commercial plot allotment.',
+    filer: 'litigant',
+    judge: 'judge',
+    ago: 1,
+  },
+  {
+    title: 'Hafiz Rehman vs. The State',
+    type: 'BAIL_APPLICATION',
+    relief: 'Post-arrest bail in FIR No. 402/2026, Police Station Bosan Road, Multan.',
+    filer: 'lawyer2',
+    judge: 'judge3',
+    ago: 2,
+  },
+];
+
+async function seedPhase4E(ids: Record<string, string>, lawyers: Record<string, string>) {
+  const setting = await prisma.systemSetting.findUnique({
+    where: { key: 'security_escalation_threshold' },
+  });
+  if (!setting) {
+    await prisma.systemSetting.create({
+      data: {
+        key: 'security_escalation_threshold',
+        value: '3',
+        description: 'Refused admin-route attempts within 10 minutes that raise a security alert',
+      },
+    });
+  }
+
+  const sessions = await prisma.court.findUniqueOrThrow({
+    where: { name: 'District & Sessions Court Multan' },
+  });
+  const lhc = await prisma.court.findUniqueOrThrow({
+    where: { name: 'Lahore High Court Multan Bench' },
+  });
+  const rooms = await prisma.courtroom.findMany({
+    select: { id: true, name: true, courtId: true },
+  });
+  const judgeInfo = async (key: string) => {
+    const u = await prisma.user.findUniqueOrThrow({
+      where: { id: ids[key] },
+      select: { id: true, courtId: true, courtroomId: true, firstName: true, lastName: true },
+    });
+    const court = u.courtId === sessions.id ? sessions : lhc;
+    const room =
+      rooms.find((r) => r.id === u.courtroomId) ?? rooms.find((r) => r.courtId === court.id);
+    return { ...u, court, roomId: room?.id ?? null, roomName: room?.name ?? '' };
+  };
+
+  // Legacy DECIDED cases (older phases) get a decision type and order so every decided case shows a decision.
+  const legacy = await prisma.case.findMany({
+    where: { status: 'DECIDED', decisionType: null },
+    select: { id: true },
+  });
+  for (const c of legacy) {
+    await prisma.case.update({
+      where: { id: c.id },
+      data: {
+        decisionType: 'JUDGMENT',
+        decisionText:
+          'Decided on the record after hearing the parties. The detailed order was announced in court.',
+      },
+    });
+  }
+
+  const slotUse = new Map<string, number>();
+  const nextSlot = async (judgeId: string, date: Date) => {
+    const key = `${judgeId}|${date.toISOString().slice(0, 10)}`;
+    if (!slotUse.has(key)) {
+      const taken = await prisma.hearing.findMany({
+        where: { judgeId, date, status: { not: 'CANCELLED' } },
+        select: { timeSlot: true },
+      });
+      slotUse.set(key, Math.max(0, ...taken.map((t) => t.timeSlot)));
+    }
+    const n = (slotUse.get(key) ?? 0) + 1;
+    slotUse.set(key, n);
+    return n;
+  };
+  const clock = (slot: number) => `${String(8 + slot).padStart(2, '0')}:00`;
+  const at = (ago: number, hour: number) => {
+    const d = utcDate(-ago);
+    d.setUTCHours(hour, 15, 0, 0);
+    return d;
+  };
+
+  const decidedCount = await prisma.case.count({
+    where: { decisionType: { not: null }, decidedAt: { not: null } },
+  });
+  if (decidedCount < 10) {
+    for (const spec of DECIDED) {
+      if (await prisma.case.findFirst({ where: { title: spec.title } })) continue;
+      const judge = await judgeInfo(spec.judge);
+      const [petitioner, respondent] = spec.title.split(' vs. ');
+      const filingDate = utcDate(-spec.filedAgo);
+      const decidedAt = at(spec.decidedAgo, 11);
+      const caseId = await prisma.$transaction(async (tx) => {
+        const ucn = await generateUcn(tx, spec.type, filingDate.getUTCFullYear());
+        const created = await tx.case.create({
+          data: {
+            ucn,
+            caseType: spec.type,
+            status: 'DECIDED',
+            title: spec.title,
+            reliefSought: spec.relief,
+            filingDate,
+            filedById: ids[spec.filer],
+            courtId: judge.court.id,
+            courtroomId: judge.roomId,
+            judgeId: judge.id,
+            allocatedAt: utcDate(-(spec.filedAgo - 2)),
+            decidedAt,
+            decisionType: spec.decision,
+            decisionText: spec.order,
+            parties: {
+              create: [
+                {
+                  role: spec.type === 'CRIMINAL_APPEAL' ? 'APPELLANT' : 'PETITIONER',
+                  name: petitioner,
+                  lawyerId: spec.counsel ? lawyers[spec.counsel] : null,
+                },
+                { role: 'RESPONDENT', name: respondent },
+              ],
+            },
+          },
+        });
+        const events: Prisma.CaseEventCreateManyInput[] = [
+          {
+            caseId: created.id,
+            type: 'CASE_SUBMITTED',
+            description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+            actorId: ids[spec.filer],
+            createdAt: filingDate,
+          },
+          {
+            caseId: created.id,
+            type: 'CASE_ALLOCATED',
+            description: `Case allocated to ${judge.firstName} ${judge.lastName}, ${judge.court.name}, ${judge.roomName}.`,
+            actorId: ids.admin,
+            createdAt: utcDate(-(spec.filedAgo - 2)),
+          },
+        ];
+        for (const [i, [ago, status]] of spec.hearingsAgo.entries()) {
+          const date = utcDate(-ago);
+          const slot = await nextSlot(judge.id, date);
+          await tx.hearing.create({
+            data: {
+              caseId: created.id,
+              courtroomId: judge.roomId,
+              judgeId: judge.id,
+              date,
+              timeSlot: slot,
+              startTime: clock(slot),
+              status,
+              purpose: i === 0 ? 'Admission and framing of issues' : 'Arguments and evidence',
+              orderSummary:
+                status === 'ADJOURNED'
+                  ? 'Adjourned at the request of counsel; a new date will be fixed by the registry.'
+                  : 'Parties heard. Matter proceeds to the next stage.',
+              outcomeAt: at(ago, 12),
+            },
+          });
+          events.push({
+            caseId: created.id,
+            type: status === 'ADJOURNED' ? 'HEARING_ADJOURNED' : 'HEARING_COMPLETED',
+            description: `Hearing of ${date.toISOString().slice(8, 10)}-${date.toISOString().slice(5, 7)}-${date.getUTCFullYear()} ${status === 'ADJOURNED' ? 'adjourned' : 'completed'}.`,
+            actorId: judge.id,
+            createdAt: at(ago, 12),
+          });
+        }
+        events.push({
+          caseId: created.id,
+          type: 'CASE_DECIDED',
+          description: `Case decided: ${spec.decision === 'JUDGMENT' ? 'Judgment' : spec.decision === 'DISMISSED' ? 'Dismissed' : 'Disposed'}.`,
+          actorId: judge.id,
+          createdAt: decidedAt,
+        });
+        await tx.caseEvent.createMany({ data: events });
+        return created.id;
+      });
+      // A hashed audit row so the vault shows verifiable history for the seeded decisions.
+      const id = randomUUID();
+      const meta = {
+        ucn: (await prisma.case.findUniqueOrThrow({ where: { id: caseId }, select: { ucn: true } }))
+          .ucn,
+        decisionType: spec.decision,
+      };
+      await prisma.auditLog.create({
+        data: {
+          id,
+          createdAt: decidedAt,
+          actorId: judge.id,
+          actorRole: 'JUDGE',
+          action: 'CASE_DECIDED',
+          entity: 'Case',
+          entityId: caseId,
+          metadata: meta,
+          eventHash: computeEventHash({
+            id,
+            createdAt: decidedAt,
+            actorId: judge.id,
+            action: 'CASE_DECIDED',
+            entity: 'Case',
+            entityId: caseId,
+            metadata: meta,
+          }),
+        },
+      });
+    }
+  }
+
+  // Open cases whose latest hearing was adjourned: the registry still has to fix a new date.
+  for (const spec of ADJOURNED_OPEN) {
+    if (await prisma.case.findFirst({ where: { title: spec.title } })) continue;
+    const judge = await judgeInfo(spec.judge);
+    const [petitioner, respondent] = spec.title.split(' vs. ');
+    const filingDate = utcDate(-30);
+    await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, spec.type, filingDate.getUTCFullYear());
+      const created = await tx.case.create({
+        data: {
+          ucn,
+          caseType: spec.type,
+          status: 'PENDING',
+          title: spec.title,
+          reliefSought: spec.relief,
+          filingDate,
+          filedById: ids[spec.filer],
+          courtId: judge.court.id,
+          courtroomId: judge.roomId,
+          judgeId: judge.id,
+          allocatedAt: utcDate(-28),
+          parties: {
+            create: [
+              {
+                role: 'PETITIONER',
+                name: petitioner,
+                lawyerId: spec.filer.startsWith('lawyer') ? lawyers[spec.filer] : null,
+              },
+              { role: 'RESPONDENT', name: respondent },
+            ],
+          },
+        },
+      });
+      const date = utcDate(-spec.ago);
+      const slot = await nextSlot(judge.id, date);
+      await tx.hearing.create({
+        data: {
+          caseId: created.id,
+          courtroomId: judge.roomId,
+          judgeId: judge.id,
+          date,
+          timeSlot: slot,
+          startTime: clock(slot),
+          status: 'ADJOURNED',
+          purpose: 'Arguments',
+          orderSummary:
+            'Adjourned because the respondent counsel was unavailable. A new date is needed.',
+          outcomeAt: at(spec.ago, 12),
+        },
+      });
+      await tx.caseEvent.createMany({
+        data: [
+          {
+            caseId: created.id,
+            type: 'CASE_SUBMITTED',
+            description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+            actorId: ids[spec.filer],
+            createdAt: filingDate,
+          },
+          {
+            caseId: created.id,
+            type: 'CASE_ALLOCATED',
+            description: `Case allocated to ${judge.firstName} ${judge.lastName}, ${judge.court.name}, ${judge.roomName}.`,
+            actorId: ids.admin,
+            createdAt: utcDate(-28),
+          },
+          {
+            caseId: created.id,
+            type: 'HEARING_ADJOURNED',
+            description: 'Hearing adjourned. Order notes: A new date is needed.',
+            actorId: judge.id,
+            createdAt: at(spec.ago, 12),
+          },
+        ],
+      });
+    });
+  }
+
+  // Security: raw events and two alerts (one documentation-range address, one loopback). Nobody is signed out.
+  if ((await prisma.securityAlert.count()) === 0) {
+    const mk = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000);
+    const events: Prisma.SecurityEventCreateManyInput[] = [
+      ...[42, 40, 39].map((m) => ({
+        type: 'PRIVILEGE_ESCALATION',
+        actorId: ids.litigant2,
+        role: 'LITIGANT' as Role,
+        ip: '203.0.113.45',
+        method: 'GET',
+        route: '/api/admin/users',
+        code: 'ADMIN_ROUTE_FORBIDDEN',
+        createdAt: mk(m),
+      })),
+      ...[25, 24, 22, 21].map((m) => ({
+        type: 'PRIVILEGE_ESCALATION',
+        actorId: ids.lawyer3,
+        role: 'LAWYER' as Role,
+        ip: '::1',
+        method: 'GET',
+        route: '/api/admin/settings',
+        code: 'ADMIN_ROUTE_FORBIDDEN',
+        createdAt: mk(m),
+      })),
+      {
+        type: 'PRIVILEGE_ESCALATION',
+        actorId: null,
+        role: null,
+        ip: '198.51.100.7',
+        method: 'GET',
+        route: '/api/admin/audit-logs',
+        code: 'ADMIN_ROUTE_INVALID_TOKEN',
+        createdAt: mk(90),
+      },
+    ];
+    await prisma.securityEvent.createMany({ data: events });
+    const l2 = await prisma.user.findUniqueOrThrow({
+      where: { id: ids.litigant2 },
+      select: { email: true },
+    });
+    const l3 = await prisma.user.findUniqueOrThrow({
+      where: { id: ids.lawyer3 },
+      select: { email: true },
+    });
+    await prisma.securityAlert.createMany({
+      data: [
+        {
+          actorId: ids.litigant2,
+          actorEmail: l2.email,
+          actorRole: 'LITIGANT',
+          ip: '203.0.113.45',
+          attemptCount: 3,
+          lastActionCode: 'ADMIN_ROUTE_FORBIDDEN',
+          lastRoute: '/api/admin/users',
+          createdAt: mk(39),
+        },
+        {
+          actorId: ids.lawyer3,
+          actorEmail: l3.email,
+          actorRole: 'LAWYER',
+          ip: '::1',
+          attemptCount: 4,
+          lastActionCode: 'ADMIN_ROUTE_FORBIDDEN',
+          lastRoute: '/api/admin/settings',
+          createdAt: mk(21),
+        },
+      ],
+    });
+    console.log('Phase 4E: 2 open security alerts seeded.');
+  }
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -1985,6 +2623,7 @@ async function main() {
   await seedPhase4(ids);
   await seedPhase4B(ids, lawyerProfileIds);
   await seedPhase4C(ids);
+  await seedPhase4E(ids, lawyerProfileIds);
   const file = writeAccountsFile(credentials);
 
   console.log(

@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Prisma, Role } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { computeEventHash, sanitizeMetadata } from './audit-hash';
 
 export const AuditAction = {
   REGISTER: 'AUTH_REGISTER',
@@ -64,6 +66,17 @@ export const AuditAction = {
   SUMMONS_SEAL_VERIFIED: 'SUMMONS_SEAL_VERIFIED',
   SUMMONS_PROOF_VIEWED: 'SUMMONS_PROOF_VIEWED',
   SERVER_PROFILE_UPDATED: 'SERVER_PROFILE_UPDATED',
+  HEARING_OUTCOME_RECORDED: 'HEARING_OUTCOME_RECORDED',
+  CASE_DECIDED: 'CASE_DECIDED',
+  AUDIT_VERIFIED: 'ADMIN_AUDIT_INTEGRITY_VERIFIED',
+  SECURITY_ESCALATION_ALERT: 'SECURITY_ESCALATION_ALERT',
+  SECURITY_SESSION_TERMINATED: 'SECURITY_SESSION_TERMINATED',
+  HOST_BLOCKED: 'ADMIN_HOST_BLOCKED',
+  HOST_UNBLOCKED: 'ADMIN_HOST_UNBLOCKED',
+  SECURITY_ALERT_DISMISSED: 'ADMIN_SECURITY_ALERT_DISMISSED',
+  REPORT_EXPORTED: 'REPORT_EXPORTED',
+  REPORT_DOWNLOADED: 'REPORT_DOWNLOADED',
+  REPORT_VERIFIED: 'REPORT_VERIFIED',
 } as const;
 
 export interface AuditEntry {
@@ -104,14 +117,29 @@ export class AuditService {
 }
 
 function toData(entry: AuditEntry): Prisma.AuditLogUncheckedCreateInput {
+  const id = randomUUID();
+  const createdAt = new Date();
+  const metadata = sanitizeMetadata(entry.metadata);
+  const eventHash = computeEventHash({
+    id,
+    createdAt,
+    actorId: entry.actorId ?? null,
+    action: entry.action,
+    entity: entry.entity ?? null,
+    entityId: entry.entityId ?? null,
+    metadata,
+  });
   return {
+    id,
+    createdAt,
+    eventHash,
     action: entry.action,
     actorId: entry.actorId ?? null,
     actorRole: entry.actorRole ?? null,
     entity: entry.entity,
     entityId: entry.entityId,
     success: entry.success ?? true,
-    metadata: entry.metadata,
+    metadata: metadata === null ? undefined : (metadata as Prisma.InputJsonValue),
     ipAddress: entry.ipAddress,
     userAgent: entry.userAgent?.slice(0, 255),
   };

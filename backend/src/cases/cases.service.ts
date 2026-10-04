@@ -82,6 +82,8 @@ export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDeta
     startTime: h.startTime,
     status: h.status,
     purpose: h.purpose,
+    orderNotes: h.orderSummary,
+    outcomeAt: h.outcomeAt,
     courtroom: h.courtroom?.name ?? null,
     judge: `${h.judge.firstName} ${h.judge.lastName}`,
   }));
@@ -100,6 +102,14 @@ export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDeta
     filingDate: c.filingDate,
     createdAt: c.createdAt,
     allocatedAt: c.allocatedAt,
+    decision: c.decidedAt
+      ? {
+          type: c.decisionType,
+          orderText: c.decisionText,
+          decidedAt: c.decidedAt,
+          judge: c.judge ? `${c.judge.firstName} ${c.judge.lastName}` : null,
+        }
+      : null,
     filedBy: `${c.filedBy.firstName} ${c.filedBy.lastName}`,
     court: c.court,
     courtroom: c.courtroom,

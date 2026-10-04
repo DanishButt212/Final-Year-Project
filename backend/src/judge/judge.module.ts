@@ -1,4 +1,5 @@
-import { Controller, Get, Injectable, Module, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Injectable, Module, Param, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { fullName, personName } from '../admin/constants';
@@ -9,6 +10,8 @@ import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { PageQueryDto, pageMeta } from '../common/pagination';
 import { TrimOrUndefined } from '../common/validators';
 import { Prisma } from '../generated/prisma/client';
+import { SchedulingModule } from '../scheduling/scheduling.module';
+import { DecideCaseDto, HearingOutcomeDto, JudgeDecisionsService } from './judge-decisions.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export class JudgeCasesQueryDto extends PageQueryDto {
@@ -79,7 +82,36 @@ export class JudgeController {
   constructor(
     private readonly judge: JudgeService,
     private readonly caseService: CasesService,
+    private readonly decisions: JudgeDecisionsService,
   ) {}
+
+  /** Record the outcome of a hearing dated today or earlier. */
+  @Post('hearings/:id/outcome')
+  outcome(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIdPipe) id: string,
+    @Body() dto: HearingOutcomeDto,
+    @Req() req: Request,
+  ) {
+    return this.decisions.recordOutcome(user, id, dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
+
+  /** Decide the case: final order, immutable afterwards. */
+  @Post('cases/:id/decide')
+  decide(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIdPipe) id: string,
+    @Body() dto: DecideCaseDto,
+    @Req() req: Request,
+  ) {
+    return this.decisions.decide(user, id, dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
 
   /** Read-only case detail for the judge the case is allocated to (anyone else gets 404). */
   @Get('cases/:id')
@@ -94,5 +126,9 @@ export class JudgeController {
   }
 }
 
-@Module({ imports: [CasesModule], controllers: [JudgeController], providers: [JudgeService] })
+@Module({
+  imports: [CasesModule, SchedulingModule],
+  controllers: [JudgeController],
+  providers: [JudgeService, JudgeDecisionsService],
+})
 export class JudgeModule {}

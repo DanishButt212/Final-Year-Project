@@ -118,9 +118,12 @@ export class SummonsAdminService {
   async issue(actor: AuthUser, dto: IssueSummonsDto, meta: RequestMeta) {
     const c = await this.prisma.case.findUnique({
       where: { id: dto.caseId },
-      select: { id: true, ucn: true, judgeId: true },
+      select: { id: true, ucn: true, judgeId: true, status: true },
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
+    if (c.status === 'DECIDED') {
+      throw conflict('CASE_DECIDED', 'This case has been decided. No new summons can be issued.');
+    }
     if (!c.judgeId) {
       throw conflict(
         'CASE_NOT_ALLOCATED',

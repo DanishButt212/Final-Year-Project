@@ -22,6 +22,10 @@ export interface Env {
   EVIDENCE_ENCRYPTION_KEY?: string;
   /** Base64 of 32 random bytes; the summons module refuses to start without it. */
   SUMMONS_SEAL_SECRET?: string;
+  /** Base64 of 32 random bytes; the reports module refuses to start without it. */
+  REPORT_SEAL_SECRET?: string;
+  /** Express "trust proxy" value (deployment behind a reverse proxy only). */
+  TRUST_PROXY?: string;
 }
 
 const REQUIRED = ['DATABASE_URL', 'JWT_SECRET'] as const;
@@ -56,6 +60,8 @@ export function validateEnv(raw: Record<string, unknown>): Env {
       ? String(raw.EVIDENCE_ENCRYPTION_KEY)
       : undefined,
     SUMMONS_SEAL_SECRET: raw.SUMMONS_SEAL_SECRET ? String(raw.SUMMONS_SEAL_SECRET) : undefined,
+    REPORT_SEAL_SECRET: raw.REPORT_SEAL_SECRET ? String(raw.REPORT_SEAL_SECRET) : undefined,
+    TRUST_PROXY: raw.TRUST_PROXY ? String(raw.TRUST_PROXY) : undefined,
     UPLOAD_TMP_DIR: resolve(String(raw.UPLOAD_TMP_DIR ?? join(tmpdir(), 'digitaladaalat-uploads'))),
   };
 }

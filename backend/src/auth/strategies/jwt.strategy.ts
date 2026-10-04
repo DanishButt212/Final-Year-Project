@@ -11,6 +11,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 interface JwtPayload {
   sub: string;
   role: Role;
+  iat?: number;
 }
 
 /** Reads the JWT from the httpOnly cookie first, then from "Authorization: Bearer" (mobile app). */
@@ -35,9 +36,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload): Promise<AuthUser> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, role: true, email: true, status: true },
+      select: { id: true, role: true, email: true, status: true, sessionsInvalidatedAt: true },
     });
     if (!user || user.status !== 'ACTIVE') throw new UnauthorizedException(Messages.UNAUTHORIZED);
+    // The security engine ended this account's sessions: tokens issued before that moment are rejected.
+    const cutoff = user.sessionsInvalidatedAt?.getTime();
+    if (cutoff !== undefined && (payload.iat ?? 0) * 1000 < cutoff) {
+      throw new UnauthorizedException({
+        code: 'SESSION_TERMINATED',
+        message: Messages.SESSION_TERMINATED,
+      });
+    }
     return { id: user.id, role: user.role, email: user.email };
   }
 }

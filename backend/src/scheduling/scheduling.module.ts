@@ -7,5 +7,6 @@ import { SchedulingService } from './scheduling.service';
 @Module({
   controllers: [AdminSchedulingController, HearingsController],
   providers: [SchedulingEngine, SchedulingService, HearingsService],
+  exports: [SchedulingService],
 })
 export class SchedulingModule {}

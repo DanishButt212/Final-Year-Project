@@ -76,6 +76,9 @@ enum CaseEventType {
   SUMMONS_EXECUTED
   SUMMONS_REASSIGNED
   SUMMONS_CANCELLED
+  HEARING_COMPLETED
+  HEARING_ADJOURNED
+  CASE_DECIDED
 }
 
 enum EvidenceCategory {
@@ -124,6 +127,28 @@ enum HearingStatus {
   HELD
   ADJOURNED
   CANCELLED
+}
+
+enum DecisionType {
+  JUDGMENT
+  DISMISSED
+  DISPOSED
+}
+
+enum SecurityAlertStatus {
+  OPEN
+  DISMISSED
+  BLOCKED
+}
+
+enum ReportKind {
+  PERFORMANCE
+  AUDIT_TRAIL
+}
+
+enum ReportFormat {
+  PDF
+  EXCEL
 }
 
 enum CauseListStatus {
@@ -220,22 +245,23 @@ enum ParticipantRole {
 
 /// FR: registration, login, user management (UC: Register, Login, Manage Users)
 model User {
-  id           String     @id @default(uuid())
-  role         Role
-  firstName    String
-  lastName     String
-  cnic         String     @unique
-  email        String     @unique
-  username     String?    @unique // used by admin accounts to log in
-  phone        String
-  passwordHash String
-  status       UserStatus @default(ACTIVE)
-  profileImage String?
-  courtId      String? // judges are attached to a court
-  courtroomId  String? // and optionally to a courtroom
-  lastLoginAt  DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                    String     @id @default(uuid())
+  role                  Role
+  firstName             String
+  lastName              String
+  cnic                  String     @unique
+  email                 String     @unique
+  username              String?    @unique // used by admin accounts to log in
+  phone                 String
+  passwordHash          String
+  status                UserStatus @default(ACTIVE)
+  profileImage          String?
+  courtId               String? // judges are attached to a court
+  courtroomId           String? // and optionally to a courtroom
+  lastLoginAt           DateTime?
+  sessionsInvalidatedAt DateTime? // tokens issued before this moment are rejected
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
 
   court                  Court?                    @relation(fields: [courtId], references: [id])
   courtroom              Courtroom?                @relation(fields: [courtroomId], references: [id])
@@ -264,6 +290,8 @@ model User {
   createdSessions        CourtSession[]
   createdCauseLists      CauseList[]
   caseEvents             CaseEvent[]
+  blockedHosts           BlockedHost[]
+  generatedReports       GeneratedReport[]
 
   @@index([role, status])
   @@index([courtId])
@@ -378,22 +406,24 @@ model Courtroom {
 
 /// FR 3-1, FR 3-3: electronic filing and Unique Case Number (UC-2.1 Submit New Case, UC-2.3 View Case Portfolio)
 model Case {
-  id             String     @id @default(uuid())
-  ucn            String     @unique
+  id             String        @id @default(uuid())
+  ucn            String        @unique
   caseType       CaseType
-  status         CaseStatus @default(DRAFT)
+  status         CaseStatus    @default(DRAFT)
   title          String
   reliefSought   String
-  claimAmountPkr Decimal?   @db.Decimal(14, 2) // optional claim value, used for the Civil Suit ad valorem fee
-  filingDate     DateTime?  @db.Date
+  claimAmountPkr Decimal?      @db.Decimal(14, 2) // optional claim value, used for the Civil Suit ad valorem fee
+  filingDate     DateTime?     @db.Date
   filedById      String
   courtId        String?
   courtroomId    String?
   judgeId        String?
   allocatedAt    DateTime?
   decidedAt      DateTime?
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  decisionType   DecisionType?
+  decisionText   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   filedBy      User               @relation("CaseFiledBy", fields: [filedById], references: [id])
   judge        User?              @relation("CaseJudge", fields: [judgeId], references: [id])
@@ -526,6 +556,7 @@ model Hearing {
   status       HearingStatus @default(SCHEDULED)
   purpose      String?
   orderSummary String?
+  outcomeAt    DateTime? // when the judge recorded the hearing outcome
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -969,6 +1000,7 @@ model AuditLog {
   entityId  String?
   success   Boolean  @default(true)
   metadata  Json?
+  eventHash String? // SHA-256 of the canonical entry; null on rows written before Phase 4E ("legacy")
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
@@ -1010,4 +1042,74 @@ model CourtSessionParticipant {
   user    User         @relation(fields: [userId], references: [id])
 
   @@unique([sessionId, userId])
+}
+
+/// Raw security exceptions (for example a non-admin account refused on an /admin route).
+model SecurityEvent {
+  id        String   @id @default(uuid())
+  type      String // PRIVILEGE_ESCALATION
+  actorId   String?
+  role      Role?
+  ip        String?
+  method    String
+  route     String
+  code      String // for example ADMIN_ROUTE_FORBIDDEN or ADMIN_ROUTE_INVALID_TOKEN
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([ip, createdAt])
+}
+
+/// One open alert per offender; raised when the escalation threshold is reached.
+model SecurityAlert {
+  id             String              @id @default(uuid())
+  actorId        String?
+  actorEmail     String?
+  actorRole      Role?
+  ip             String?
+  attemptCount   Int
+  lastActionCode String
+  lastRoute      String?
+  status         SecurityAlertStatus @default(OPEN)
+  resolvedById   String?
+  resolvedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  blockedHosts BlockedHost[]
+
+  @@index([status, createdAt])
+}
+
+model BlockedHost {
+  id          String   @id @default(uuid())
+  ip          String   @unique
+  reason      String
+  createdById String
+  alertId     String?
+  createdAt   DateTime @default(now())
+
+  createdBy User           @relation(fields: [createdById], references: [id])
+  alert     SecurityAlert? @relation(fields: [alertId], references: [id])
+}
+
+/// Every exported report, with its verification seal. The file lives under uploads/reports.
+model GeneratedReport {
+  id            String       @id @default(uuid())
+  code          String       @unique // RPT-<YYYY>-<6 digits>
+  kind          ReportKind
+  format        ReportFormat
+  params        Json
+  filePath      String
+  fileSha256    String
+  dataSha256    String // SHA-256 of the data rows that went into the file
+  seal          String // HMAC-SHA256 over code, kind, params, dataSha256 and time (REPORT_SEAL_SECRET)
+  rowCount      Int
+  generatedById String
+  createdAt     DateTime     @default(now())
+
+  generatedBy User @relation(fields: [generatedById], references: [id])
+
+  @@index([createdAt])
 }

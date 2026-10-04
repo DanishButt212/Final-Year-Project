@@ -20,6 +20,7 @@ export const SETTING_KEYS = {
   attendanceMaxAccuracyM: 'attendance_max_accuracy_m',
   summonsMaxGpsAccuracyM: 'summons_max_gps_accuracy_m',
   summonsDefaultDueDays: 'summons_default_due_days',
+  securityEscalationThreshold: 'security_escalation_threshold',
 } as const;
 
 const DEFAULT_MAX_ATTACHMENT_MB = 25;
@@ -100,6 +101,12 @@ export class SettingsService {
     };
   }
 
+  /** Refused /admin attempts (within 10 minutes) that raise a privilege escalation alert. */
+  async securityEscalationThreshold(): Promise<number> {
+    const n = Number(await this.raw(SETTING_KEYS.securityEscalationThreshold));
+    return Number.isInteger(n) && n >= 1 && n <= 20 ? n : 3;
+  }
+
   async feePolicy(): Promise<FeePolicy> {
     const pct = Number(await this.raw(SETTING_KEYS.adValoremPercent));
     const cap = Number(await this.raw(SETTING_KEYS.adValoremCapPkr));
@@ -141,6 +148,7 @@ export class SettingsService {
       attendanceMaxAccuracyM: (await this.attendancePolicy()).maxAccuracyM,
       summonsMaxGpsAccuracyM: (await this.summonsPolicy()).maxGpsAccuracyM,
       summonsDefaultDueDays: (await this.summonsPolicy()).defaultDueDays,
+      securityEscalationThreshold: await this.securityEscalationThreshold(),
       fees: await this.currentFees(),
     };
   }
@@ -246,6 +254,13 @@ export class SettingsService {
         SETTING_KEYS.summonsDefaultDueDays,
         String(dto.summonsDefaultDueDays),
         'Default number of days until a summons is due',
+      ]);
+    }
+    if (dto.securityEscalationThreshold !== undefined) {
+      entries.push([
+        SETTING_KEYS.securityEscalationThreshold,
+        String(dto.securityEscalationThreshold),
+        'Refused admin-route attempts within 10 minutes that raise a security alert',
       ]);
     }
     if (dto.filingFeeRateModifier !== undefined) {

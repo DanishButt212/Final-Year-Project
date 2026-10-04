@@ -117,6 +117,12 @@ export class UpdateSettingsDto {
   summonsDefaultDueDays?: number;
 
   @IsOptional()
+  @IsInt({ message: 'The alert threshold must be a whole number.' })
+  @Min(1, { message: 'The alert threshold must be between 1 and 20.' })
+  @Max(20, { message: 'The alert threshold must be between 1 and 20.' })
+  securityEscalationThreshold?: number;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
   @ValidateNested({ each: true })

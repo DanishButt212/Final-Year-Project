@@ -16,6 +16,8 @@ export const Messages = {
   PROFILE_UPDATED: 'Profile details updated successfully.',
   UNAUTHORIZED: 'You must be logged in to access this resource.',
   FORBIDDEN: 'You do not have permission to access this resource.',
+  SESSION_TERMINATED: 'Your session was ended for security reasons. Please sign in again.',
+  ACCESS_DENIED: 'Access denied.',
   NOT_FOUND: 'The requested resource was not found.',
   TOO_MANY_REQUESTS: 'Too many attempts. Please wait a minute and try again.',
   INTERNAL: 'Something went wrong. Please try again later.',
