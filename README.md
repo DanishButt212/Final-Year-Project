@@ -120,6 +120,20 @@ New settings (System Policies): `attendance_default_radius_m` (default 300, 50 t
 
 Chamber desk login: after seeding, a verified lawyer finds the Chamber ID (format `CH-123456`) on Chamber Settings & Identity Profile. The seeded court coordinates for Multan are approximate placeholders. To test attendance, open Courts & Benches as an administrator, stand where you want the geo-fence and use "Use my current location". The browser asks for the location permission (localhost counts as a secure origin).
 
+**Summons and the Process Server console (Phase 4C).**
+
+| Area | Routes |
+|---|---|
+| Admin | `POST /admin/summons`, `GET /admin/summons`, `GET /admin/summons/:id`, `PATCH /admin/summons/:id/assign`, `POST /admin/summons/:id/cancel`, `GET /admin/summons/:id/proof/photo` and `/signature`, `POST /admin/summons/:id/verify-seal`, `GET /admin/process-servers`, `GET /admin/cases/:id/summons-parties` |
+| Process server (Bearer or cookie) | `GET /server/roster`, `GET /server/summary`, `GET /server/summons/:id`, `POST /server/summons/:id/attempts`, `POST /server/summons/:id/finalize` (multipart: photo, signature, latitude, longitude, accuracyM, notes, serviceMode), `GET` and `PATCH /server/profile`, `GET /server/profile/photo` |
+| Case side | `GET /cases/:id/summons`, `GET /summons/:id/proof.pdf`, `GET /summons/:id/proof/photo` and `/signature` (judge and admin) |
+
+New settings (System Policies): `summons_max_gps_accuracy_m` (default 100, 10 to 500) and `summons_default_due_days` (default 7, 1 to 90).
+
+**Environment variable `SUMMONS_SEAL_SECRET`** (required): 32 random bytes, base64, used for the HMAC seal of execution proofs. The summons module refuses to start without it. Generate one into your local `backend/.env` with the same `node -e` command as the evidence key; `.env.example` only holds a placeholder. Never commit it. Changing it makes older seals report "tampered".
+
+The Process Server console is a mobile-first web page at `/process-server` (Duty Roster and Profile with a bottom navigation). It asks the browser for the device location, so use `localhost` or HTTPS. The Expo mobile app (a later phase) will use the same `/server/*` API with a Bearer token.
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend
