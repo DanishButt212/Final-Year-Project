@@ -265,6 +265,9 @@ export const isWeekend = (iso: string) => {
 export function notificationLink(type: string, role: string): string | null {
   const portal = role.toLowerCase().replace('_', '-');
   if (type === 'CAUSE_LIST_PUBLISHED') return role === 'ADMIN' ? null : `/${portal}/cause-lists`;
+  if (type === 'CHAMBER_LOW_BALANCE') return '/lawyer/chamber/retainer';
+  if (type === 'RESEARCH_SUBMITTED') return '/lawyer/chamber/research-logs';
+  if (type === 'RESEARCH_REVIEWED') return '/intern/research-logs';
   if (type === 'PAYMENT_RECEIVED') return role === 'ADMIN' ? null : `/${portal}/payments`;
   if (type.startsWith('HEARING_')) {
     if (role === 'JUDGE') return '/judge/schedule';

@@ -68,6 +68,18 @@ const policySchema = z.object({
     .min(1, MESSAGES.fieldRequired)
     .regex(/^\d+$/, 'Enter a whole number of MB.')
     .refine((v) => Number(v) >= 1 && Number(v) <= 200, 'Enter a value from 1 to 200 MB.'),
+  attendanceDefaultRadiusM: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of metres.')
+    .refine((v) => Number(v) >= 50 && Number(v) <= 5000, 'Enter a value from 50 to 5000 metres.'),
+  attendanceMaxAccuracyM: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of metres.')
+    .refine((v) => Number(v) >= 10 && Number(v) <= 1000, 'Enter a value from 10 to 1000 metres.'),
   hearingSlotMinutes: z
     .string()
     .trim()
@@ -98,6 +110,8 @@ const toValues = (s: Settings): PolicyValues => ({
   adValoremCapPkr: s.adValoremCapPkr,
   challanDueDays: String(s.challanDueDays),
   maxEvidenceMb: String(s.maxEvidenceMb),
+  attendanceDefaultRadiusM: String(s.attendanceDefaultRadiusM),
+  attendanceMaxAccuracyM: String(s.attendanceMaxAccuracyM),
   fees: s.fees.map((f) => ({ caseType: f.caseType, amount: f.amount })),
 });
 
@@ -130,6 +144,8 @@ export default function PoliciesPage() {
       adValoremCapPkr: '50000',
       challanDueDays: '7',
       maxEvidenceMb: '100',
+      attendanceDefaultRadiusM: '300',
+      attendanceMaxAccuracyM: '150',
       fees: [],
     },
   });
@@ -150,6 +166,8 @@ export default function PoliciesPage() {
         adValoremCapPkr: v.adValoremCapPkr,
         challanDueDays: Number(v.challanDueDays),
         maxEvidenceMb: Number(v.maxEvidenceMb),
+        attendanceDefaultRadiusM: Number(v.attendanceDefaultRadiusM),
+        attendanceMaxAccuracyM: Number(v.attendanceMaxAccuracyM),
         fees: v.fees.map((f) => ({
           caseType: f.caseType as Settings['fees'][number]['caseType'],
           amount: f.amount,
@@ -304,6 +322,38 @@ export default function PoliciesPage() {
                 error={errors.maxEvidenceMb?.message}
               >
                 {(p) => <Input inputMode="numeric" {...register('maxEvidenceMb')} {...p} />}
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Intern attendance</CardTitle>
+              <p className="text-sm text-text-muted">
+                Attendance is verified on the server against each court geo-fence (set on Courts &
+                Benches). The default radius applies to courts without their own radius.
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Default geo-fence radius (m)"
+                required
+                hint="50 to 5000"
+                error={errors.attendanceDefaultRadiusM?.message}
+              >
+                {(p) => (
+                  <Input inputMode="numeric" {...register('attendanceDefaultRadiusM')} {...p} />
+                )}
+              </Field>
+              <Field
+                label="Maximum location accuracy (m)"
+                required
+                hint="10 to 1000. Check-ins reporting a worse accuracy are rejected."
+                error={errors.attendanceMaxAccuracyM?.message}
+              >
+                {(p) => (
+                  <Input inputMode="numeric" {...register('attendanceMaxAccuracyM')} {...p} />
+                )}
               </Field>
             </CardContent>
           </Card>

@@ -5,7 +5,11 @@ export interface AuthState {
   user: User | null;
   /** True while the first /auth/me check is running. */
   loading: boolean;
-  login: (identifier: string, password: string) => Promise<{ message: string; user: User }>;
+  login: (
+    identifier: string,
+    password: string,
+    chamberCode?: string,
+  ) => Promise<{ message: string; user: User }>;
   logout: () => Promise<void>;
   /** Replace the cached user (for example after a profile edit). */
   setUser: (user: User) => void;

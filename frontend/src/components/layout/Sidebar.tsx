@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { UserCircle, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { NavLink } from 'react-router';
+import { useAuth } from '@/auth/useAuth';
 import { adminApi } from '@/lib/admin-api';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import type { Role } from '@/lib/types';
@@ -43,6 +44,10 @@ export function Sidebar({
   onClose: () => void;
 }) {
   const portal = PORTALS[role];
+  const { user } = useAuth();
+  // Chamber features exist only for verified lawyers; others see a short note instead of the group.
+  const chamberLocked = role === 'LAWYER' && user?.lawyerProfile?.verificationStatus !== 'VERIFIED';
+  const items = portal.items.filter((i) => !(chamberLocked && i.group === 'Chamber'));
 
   useEffect(() => {
     if (!open) return;
@@ -80,8 +85,13 @@ export function Sidebar({
         </div>
         <nav aria-label="Portal navigation" className="px-2 pb-4">
           <ul className="space-y-0.5">
-            {portal.items.map((item) => (
+            {items.map((item, index) => (
               <li key={item.slug || 'home'}>
+                {item.group && items[index - 1]?.group !== item.group && (
+                  <p className="mb-1 mt-4 border-t border-border px-3 pt-3 text-xs font-bold uppercase tracking-wide text-text-muted">
+                    {item.group}
+                  </p>
+                )}
                 <NavLink
                   to={portalPath(portal, item.slug)}
                   end
@@ -97,6 +107,11 @@ export function Sidebar({
               </li>
             ))}
           </ul>
+          {chamberLocked && (
+            <p className="mx-3 mt-4 rounded-md border border-border bg-primary-soft p-2 text-xs">
+              The Chamber section opens once your lawyer account is verified.
+            </p>
+          )}
           <hr className="my-3 border-border" />
           <NavLink to="/profile" className={linkClass} onClick={onClose}>
             <UserCircle className="size-4 shrink-0" aria-hidden="true" />

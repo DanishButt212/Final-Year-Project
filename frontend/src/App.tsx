@@ -4,6 +4,16 @@ import { useAuth } from '@/auth/useAuth';
 import { AppShell } from '@/components/layout/AppShell';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
+import { ChamberGate } from '@/pages/chamber/shared';
+import ChamberDashboardPage from '@/pages/chamber/ChamberDashboardPage';
+import { ClientDetailPage, ClientsPage, NewClientPage } from '@/pages/chamber/ClientsPages';
+import BillablePage from '@/pages/chamber/BillablePage';
+import RetainerPage from '@/pages/chamber/RetainerPage';
+import ExpensesPage from '@/pages/chamber/ExpensesPage';
+import { InternDetailPage, InternsPage, ResearchReviewPage } from '@/pages/chamber/InternsPages';
+import ChamberSettingsPage from '@/pages/chamber/ChamberSettingsPage';
+import ResearchLogsPage from '@/pages/intern/ResearchLogsPage';
+import AttendancePage from '@/pages/intern/AttendancePage';
 import FeedbackAnalysisPage from '@/pages/admin/FeedbackAnalysisPage';
 import JudgeCaseDetailPage from '@/pages/judge/JudgeCaseDetailPage';
 import ChallanPrintPage from '@/pages/payments/ChallanPrintPage';
@@ -68,6 +78,25 @@ export default function App() {
             <Route path="admin/courts" element={<CourtsPage />} />
             <Route path="admin/policies" element={<PoliciesPage />} />
             <Route path="admin/feedback" element={<FeedbackAnalysisPage />} />
+          </Route>
+          <Route element={<RequireRole role="LAWYER" />}>
+            <Route element={<ChamberGate />}>
+              <Route path="lawyer/chamber" element={<ChamberDashboardPage />} />
+              <Route path="lawyer/chamber/clients" element={<ClientsPage />} />
+              <Route path="lawyer/chamber/clients/new" element={<NewClientPage />} />
+              <Route path="lawyer/chamber/clients/:clientId" element={<ClientDetailPage />} />
+              <Route path="lawyer/chamber/billable" element={<BillablePage />} />
+              <Route path="lawyer/chamber/retainer" element={<RetainerPage />} />
+              <Route path="lawyer/chamber/expenses" element={<ExpensesPage />} />
+              <Route path="lawyer/chamber/interns" element={<InternsPage />} />
+              <Route path="lawyer/chamber/interns/:internId" element={<InternDetailPage />} />
+              <Route path="lawyer/chamber/research-logs" element={<ResearchReviewPage />} />
+              <Route path="lawyer/chamber/settings" element={<ChamberSettingsPage />} />
+            </Route>
+          </Route>
+          <Route element={<RequireRole role="INTERN" />}>
+            <Route path="intern/research-logs" element={<ResearchLogsPage />} />
+            <Route path="intern/attendance" element={<AttendancePage />} />
           </Route>
           <Route element={<RequireRole role="JUDGE" />}>
             <Route path="judge/cases" element={<JudgeCasesPage />} />

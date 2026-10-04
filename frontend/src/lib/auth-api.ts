@@ -17,9 +17,13 @@ export const authApi = {
   async register(payload: RegisterPayload) {
     return (await api.post<{ message: string; user: User }>('/auth/register', payload)).data;
   },
-  async login(identifier: string, password: string) {
+  async login(identifier: string, password: string, chamberCode?: string) {
     return (
-      await api.post<{ message: string; user: User }>('/auth/login', { identifier, password })
+      await api.post<{ message: string; user: User }>('/auth/login', {
+        identifier,
+        password,
+        ...(chamberCode ? { chamberCode } : {}),
+      })
     ).data;
   },
   async logout() {

@@ -22,6 +22,9 @@ export const TableHeader = (props: React.HTMLAttributes<HTMLTableSectionElement>
 export const TableBody = (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
   <tbody className="[&>tr:nth-child(even)]:bg-row-alt" {...props} />
 );
+export const TableFooter = (props: React.HTMLAttributes<HTMLTableSectionElement>) => (
+  <tfoot className="border-t-2 border-border bg-primary-soft" {...props} />
+);
 export const TableRow = ({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
   <tr className={cn('border-b border-border last:border-0', className)} {...props} />
 );

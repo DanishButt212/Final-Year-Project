@@ -158,10 +158,18 @@ const staffSchema = z
       .regex(PHONE_REGEX, 'Phone must be in the format +92 3XX XXXXXXX.'),
     courtId: z.string().optional(),
     courtroomId: z.string().optional(),
+    supervisorLawyerId: z.string().optional(),
   })
   .superRefine((v, ctx) => {
     if (v.role === 'JUDGE' && !v.courtId) {
       ctx.addIssue({ code: 'custom', path: ['courtId'], message: 'Choose the judge’s court.' });
+    }
+    if (v.role === 'INTERN' && !v.supervisorLawyerId) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['supervisorLawyerId'],
+        message: 'Choose the verified lawyer who supervises this intern.',
+      });
     }
   });
 type StaffValues = z.infer<typeof staffSchema>;
@@ -173,6 +181,7 @@ const STAFF_FIELDS = [
   'email',
   'phone',
   'courtId',
+  'supervisorLawyerId',
   'courtroomId',
 ];
 
@@ -207,6 +216,7 @@ function AddStaffDialog({
       email: '',
       phone: '',
       courtId: '',
+      supervisorLawyerId: '',
       courtroomId: '',
     },
   });
@@ -218,6 +228,11 @@ function AddStaffDialog({
     queryFn: adminApi.courts,
     enabled: open,
   });
+  const lawyers = useQuery({
+    queryKey: ['admin', 'lawyers', 'verified-options'],
+    queryFn: () => adminApi.lawyers({ status: 'VERIFIED', page: 1, limit: 100 }),
+    enabled: open && role === 'INTERN',
+  });
   const rooms =
     courts.data?.find((c) => c.id === courtId)?.courtrooms.filter((r) => r.isActive) ?? [];
 
@@ -227,6 +242,8 @@ function AddStaffDialog({
         ...values,
         courtId: values.role === 'JUDGE' ? values.courtId || undefined : undefined,
         courtroomId: values.role === 'JUDGE' ? values.courtroomId || undefined : undefined,
+        supervisorLawyerId:
+          values.role === 'INTERN' ? values.supervisorLawyerId || undefined : undefined,
       }),
     onSuccess: async (res) => {
       setCreated({ name: fullName(res.user), email: res.user.email, link: res.resetLink });
@@ -361,6 +378,27 @@ function AddStaffDialog({
                   {(p) => <Input type="email" autoComplete="off" {...register('email')} {...p} />}
                 </Field>
               </div>
+              {role === 'INTERN' && (
+                <div className="sm:col-span-2">
+                  <Field
+                    label="Supervising lawyer"
+                    required
+                    hint="An intern works under the chamber of this verified lawyer."
+                    error={errors.supervisorLawyerId?.message}
+                  >
+                    {(p) => (
+                      <NativeSelect {...register('supervisorLawyerId')} {...p}>
+                        <option value="">Choose a verified lawyer</option>
+                        {lawyers.data?.data.map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.user.firstName} {l.user.lastName} ({l.barNumber ?? 'no bar number'})
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    )}
+                  </Field>
+                </div>
+              )}
               {role === 'JUDGE' && (
                 <>
                   <Field label="Court" required error={errors.courtId?.message}>

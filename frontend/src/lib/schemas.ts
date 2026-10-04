@@ -49,6 +49,13 @@ export const loginSchema = z.object({
 });
 export type LoginValues = z.infer<typeof loginSchema>;
 
+export const chamberLoginSchema = z.object({
+  chamberCode: required,
+  identifier: required,
+  password: z.string().min(1, MESSAGES.fieldRequired),
+});
+export type ChamberLoginValues = z.infer<typeof chamberLoginSchema>;
+
 export const registerSchema = z
   .object({
     role: z.enum(['LITIGANT', 'LAWYER']),

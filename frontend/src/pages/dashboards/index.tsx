@@ -3,12 +3,9 @@ import {
   ClipboardList,
   Clock,
   GraduationCap,
-  MapPin,
-  NotebookPen,
   Receipt,
   Smartphone,
   Users,
-  Award,
   Gavel,
 } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
@@ -77,7 +74,7 @@ export function LawyerDashboard() {
           emptyTitle="No clients yet"
           emptyText="Add the people your chamber represents."
           actionLabel="Manage clients"
-          actionTo="/lawyer/clients"
+          actionTo="/lawyer/chamber/clients"
         />
         <EmptyPanel
           title="Billable hours"
@@ -85,7 +82,7 @@ export function LawyerDashboard() {
           emptyTitle="No time recorded"
           emptyText="Record time against clients and cases to bill accurately."
           actionLabel="Billable hours"
-          actionTo="/lawyer/billable-hours"
+          actionTo="/lawyer/chamber/billable"
         />
         <EmptyPanel
           title="Interns"
@@ -93,7 +90,7 @@ export function LawyerDashboard() {
           emptyTitle="No interns assigned"
           emptyText="Legal interns supervised by you will appear here."
           actionLabel="View interns"
-          actionTo="/lawyer/interns"
+          actionTo="/lawyer/chamber/interns"
         />
         <NextHearingCard />
       </PanelGrid>
@@ -101,38 +98,7 @@ export function LawyerDashboard() {
   );
 }
 
-export function InternDashboard() {
-  return (
-    <DashboardFrame description="Your diary, attendance and progress.">
-      <PanelGrid>
-        <EmptyPanel
-          title="Daily diary"
-          icon={NotebookPen}
-          emptyTitle="No diary entries"
-          emptyText="Write a short entry each day for your supervisor to review."
-          actionLabel="Open diary"
-          actionTo="/intern/diary"
-        />
-        <EmptyPanel
-          title="Attendance"
-          icon={MapPin}
-          emptyTitle="No attendance recorded"
-          emptyText="Check in when you are within the chamber's geo-fence."
-          actionLabel="Mark attendance"
-          actionTo="/intern/attendance"
-        />
-        <EmptyPanel
-          title="Completion certificate"
-          icon={Award}
-          emptyTitle="Not available yet"
-          emptyText="Your certificate is issued after your internship is completed."
-          actionLabel="View certificate"
-          actionTo="/intern/certificate"
-        />
-      </PanelGrid>
-    </DashboardFrame>
-  );
-}
+export { default as InternDashboard } from '../intern/InternDashboardPage';
 
 export function JudgeDashboard() {
   return (

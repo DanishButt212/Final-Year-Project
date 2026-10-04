@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Building2, Gavel, Pencil, Plus } from 'lucide-react';
+import { Building2, Gavel, LocateFixed, MapPin, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -27,6 +27,146 @@ import { adminApi, type CourtRow } from '@/lib/admin-api';
 import { applyServerError } from '@/lib/form-errors';
 import { MESSAGES } from '@/lib/schemas';
 import { UserStatusBadge } from './shared';
+
+/** Geo-fence of a court complex, used to verify intern attendance on the server. */
+function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const [lat, setLat] = useState(court.latitude === null ? '' : String(court.latitude));
+  const [lng, setLng] = useState(court.longitude === null ? '' : String(court.longitude));
+  const [radius, setRadius] = useState(
+    court.geofenceRadiusM === null ? '' : String(court.geofenceRadiusM),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [locating, setLocating] = useState(false);
+
+  const save = useMutation({
+    mutationFn: () =>
+      adminApi.updateGeofence(court.id, {
+        latitude: lat.trim() === '' ? null : Number(lat),
+        longitude: lng.trim() === '' ? null : Number(lng),
+        geofenceRadiusM: radius.trim() === '' ? null : Number(radius),
+      }),
+    onSuccess: async (res) => {
+      toast.success(res.message);
+      await queryClient.invalidateQueries({ queryKey: ['admin'] });
+      onClose();
+    },
+    onError: (e) => setError(parseApiError(e).message),
+  });
+
+  function locateMe() {
+    if (!('geolocation' in navigator)) {
+      setError('This browser cannot provide your location.');
+      return;
+    }
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setLat(p.coords.latitude.toFixed(6));
+        setLng(p.coords.longitude.toFixed(6));
+        setLocating(false);
+      },
+      () => {
+        setError('Location access was denied or is unavailable.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 20_000 },
+    );
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const bad =
+      (lat.trim() === '') !== (lng.trim() === '')
+        ? 'Enter both latitude and longitude, or leave both empty.'
+        : lat.trim() !== '' && !(Math.abs(Number(lat)) <= 90 && Math.abs(Number(lng)) <= 180)
+          ? 'Latitude must be between -90 and 90 and longitude between -180 and 180.'
+          : radius.trim() !== '' && !(Number(radius) >= 50 && Number(radius) <= 5000)
+            ? 'Radius must be between 50 and 5000 metres.'
+            : null;
+    if (bad) return setError(bad);
+    setError(null);
+    save.mutate();
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
+      <DialogContent>
+        <form noValidate onSubmit={submit}>
+          <DialogHeader>
+            <DialogTitle>Attendance geo-fence</DialogTitle>
+            <DialogDescription>{court.name}</DialogDescription>
+          </DialogHeader>
+          {error && (
+            <Alert variant="error" className="mb-4">
+              {error}
+            </Alert>
+          )}
+          <p className="mb-4 text-sm text-text-muted">
+            The seeded coordinates are only approximate placeholders for Multan. To test attendance
+            where you are, stand at the spot and use your current location. Leave latitude and
+            longitude empty to remove the geo-fence (attendance cannot be verified at that court).
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Latitude">
+              {(p) => (
+                <Input
+                  inputMode="decimal"
+                  value={lat}
+                  onChange={(e) => setLat(e.target.value)}
+                  {...p}
+                />
+              )}
+            </Field>
+            <Field label="Longitude">
+              {(p) => (
+                <Input
+                  inputMode="decimal"
+                  value={lng}
+                  onChange={(e) => setLng(e.target.value)}
+                  {...p}
+                />
+              )}
+            </Field>
+            <div className="sm:col-span-2">
+              <Field
+                label="Radius (metres)"
+                hint="Empty uses the default radius from System Policies."
+              >
+                {(p) => (
+                  <Input
+                    inputMode="numeric"
+                    value={radius}
+                    onChange={(e) => setRadius(e.target.value)}
+                    {...p}
+                  />
+                )}
+              </Field>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="mt-4"
+            onClick={locateMe}
+            loading={locating}
+          >
+            <LocateFixed aria-hidden="true" /> Use my current location
+          </Button>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={onClose} disabled={save.isPending}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={save.isPending}>
+              Save geo-fence
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 const roomSchema = z.object({
   name: z.string().trim().min(1, MESSAGES.fieldRequired).max(60, 'Use 60 characters or fewer.'),
@@ -122,6 +262,7 @@ function RoomDialog({ target, onClose }: { target: RoomTarget; onClose: () => vo
 export default function CourtsPage() {
   const queryClient = useQueryClient();
   const [target, setTarget] = useState<RoomTarget | null>(null);
+  const [fence, setFence] = useState<CourtRow | null>(null);
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['admin', 'courts'],
     queryFn: adminApi.courts,
@@ -166,14 +307,25 @@ export default function CourtsPage() {
                     {court.city} ·{' '}
                     {court.type === 'HIGH_COURT' ? 'High Court' : 'District & Sessions'}
                   </p>
+                  <p className="text-sm text-text-muted">
+                    {court.latitude === null
+                      ? 'No attendance geo-fence set.'
+                      : `Geo-fence: ${court.latitude}, ${court.longitude} · ${court.geofenceRadiusM ?? 'default'} m`}
+                  </p>
                 </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setTarget({ mode: 'create', court })}
-                >
-                  <Plus aria-hidden="true" /> Add courtroom
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => setFence(court)}>
+                    <MapPin aria-hidden="true" />
+                    {court.latitude === null ? 'Set attendance geo-fence' : 'Edit geo-fence'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setTarget({ mode: 'create', court })}
+                  >
+                    <Plus aria-hidden="true" /> Add courtroom
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="grid gap-6 lg:grid-cols-2">
                 <div>
@@ -268,6 +420,7 @@ export default function CourtsPage() {
           ))}
         </div>
       )}
+      {fence && <GeofenceDialog key={fence.id} court={fence} onClose={() => setFence(null)} />}
       {target && (
         <RoomDialog
           key={target.mode === 'edit' ? target.room.id : 'new'}

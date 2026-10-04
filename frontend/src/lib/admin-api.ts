@@ -26,6 +26,8 @@ export interface Settings extends PublicSettings {
   adValoremCapPkr: string;
   challanDueDays: number;
   maxEvidenceMb: number;
+  attendanceDefaultRadiusM: number;
+  attendanceMaxAccuracyM: number;
   fees: FeeRow[];
 }
 
@@ -40,6 +42,8 @@ export interface UpdateSettingsPayload {
   adValoremCapPkr?: string;
   challanDueDays?: number;
   maxEvidenceMb?: number;
+  attendanceDefaultRadiusM?: number;
+  attendanceMaxAccuracyM?: number;
   fees?: { caseType: CaseType; amount: string }[];
 }
 
@@ -148,6 +152,7 @@ export interface CreateStaffPayload {
   phone: string;
   courtId?: string;
   courtroomId?: string;
+  supervisorLawyerId?: string;
 }
 
 // ---------------------------------------------------------------- lawyers
@@ -186,6 +191,9 @@ export interface CourtRow {
   type: string;
   city: string;
   isActive: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  geofenceRadiusM: number | null;
   courtrooms: { id: string; name: string; benchNo: number | null; isActive: boolean }[];
   judges: {
     id: string;
@@ -314,6 +322,12 @@ export const adminApi = {
 
   async courts() {
     return (await api.get<CourtRow[]>('/admin/courts')).data;
+  },
+  async updateGeofence(
+    id: string,
+    payload: { latitude: number | null; longitude: number | null; geofenceRadiusM: number | null },
+  ) {
+    return (await api.patch<{ message: string }>(`/admin/courts/${id}`, payload)).data;
   },
   async createCourtroom(payload: { name: string; benchNo?: number; courtId: string }) {
     return (await api.post<{ message: string }>('/admin/courtrooms', payload)).data;

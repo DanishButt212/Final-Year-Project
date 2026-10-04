@@ -24,6 +24,8 @@ import {
   Archive,
   Award,
   MapPin,
+  Building2,
+  UserPlus,
   NotebookPen,
   Shuffle,
 } from 'lucide-react';
@@ -35,6 +37,8 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   description: string;
+  /** Items sharing a group are listed under that heading (lawyers: Chamber). */
+  group?: string;
 }
 
 export interface Portal {
@@ -132,25 +136,6 @@ export const PORTALS: Record<Role, Portal> = {
         icon: Receipt,
         description: 'Court fee payments and downloadable receipts.',
       },
-      { slug: 'clients', label: 'Clients', icon: Users, description: 'Manage chamber clients.' },
-      {
-        slug: 'billable-hours',
-        label: 'Billable Hours',
-        icon: Clock,
-        description: 'Record and review billable time.',
-      },
-      {
-        slug: 'retainer',
-        label: 'Retainer & Expenses',
-        icon: Wallet,
-        description: 'Retainer balances and chamber expenses.',
-      },
-      {
-        slug: 'interns',
-        label: 'Interns',
-        icon: GraduationCap,
-        description: 'Review intern diaries and attendance.',
-      },
       {
         slug: 'hearings',
         label: 'Hearing Schedule',
@@ -163,6 +148,69 @@ export const PORTALS: Record<Role, Portal> = {
         icon: ClipboardList,
         description: 'The published court rosters for each day.',
       },
+      {
+        slug: 'chamber',
+        label: 'Chamber Dashboard',
+        icon: LayoutDashboard,
+        description: 'Clients, billing, retainers and interns at a glance.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/clients/new',
+        label: 'Register New Client',
+        icon: UserPlus,
+        description: 'Register New Chamber Client Account.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/clients',
+        label: 'Client Directory',
+        icon: Users,
+        description: 'Manage chamber clients.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/billable',
+        label: 'Billable Hours',
+        icon: Clock,
+        description: 'Billable Hours Ledger Matrix.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/retainer',
+        label: 'Retainer Accounts',
+        icon: Wallet,
+        description: 'Retainer Accounts & Trust Ledgers Summary.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/expenses',
+        label: 'Expenses',
+        icon: Receipt,
+        description: 'Chamber expenses.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/interns',
+        label: 'Interns',
+        icon: GraduationCap,
+        description: 'Intern accounts and attendance.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/research-logs',
+        label: 'Research Log Review',
+        icon: NotebookPen,
+        description: 'Review intern research logs.',
+        group: 'Chamber',
+      },
+      {
+        slug: 'chamber/settings',
+        label: 'Chamber Settings',
+        icon: Building2,
+        description: 'Chamber Settings & Identity Profile.',
+        group: 'Chamber',
+      },
     ],
   },
   INTERN: {
@@ -172,10 +220,10 @@ export const PORTALS: Record<Role, Portal> = {
     items: [
       dash('Your diary, attendance and progress.'),
       {
-        slug: 'diary',
-        label: 'Daily Diary',
+        slug: 'research-logs',
+        label: 'Research Logs',
         icon: NotebookPen,
-        description: 'Record what you learned each day.',
+        description: 'Apprentice Diary / Research Logs.',
       },
       {
         slug: 'attendance',
