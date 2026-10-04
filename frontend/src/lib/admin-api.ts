@@ -19,6 +19,9 @@ export interface FeeRow {
 
 export interface Settings extends PublicSettings {
   filingFeeRateModifier: string;
+  courtDayStart: string;
+  courtDayEnd: string;
+  hearingSlotMinutes: number;
   fees: FeeRow[];
 }
 
@@ -26,6 +29,9 @@ export interface UpdateSettingsPayload {
   maxAttachmentMb?: number;
   caseRegistrationOpen?: boolean;
   filingFeeRateModifier?: string;
+  courtDayStart?: string;
+  courtDayEnd?: string;
+  hearingSlotMinutes?: number;
   fees?: { caseType: CaseType; amount: string }[];
 }
 

@@ -2,9 +2,34 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
+import { useAuth } from '@/auth/useAuth';
 import { notificationsApi } from '@/lib/admin-api';
+import { notificationLink } from '@/lib/scheduling-api';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+
+/** A notification row: a link when the notice leads somewhere (hearing schedule, cause lists), else a button. */
+function NotificationRow({
+  link,
+  className,
+  onActivate,
+  children,
+}: {
+  link: string | null;
+  className: string;
+  onActivate: () => void;
+  children: React.ReactNode;
+}) {
+  return link ? (
+    <Link to={link} className={className} onClick={onActivate}>
+      {children}
+    </Link>
+  ) : (
+    <button type="button" className={className} onClick={onActivate}>
+      {children}
+    </button>
+  );
+}
 
 export const NOTIFICATIONS_KEY = ['notifications'];
 const POLL_MS = 60_000;
@@ -12,6 +37,7 @@ const POLL_MS = 60_000;
 /** Header bell: unread badge, latest notifications, mark as read. Polls every 60 seconds. */
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -79,13 +105,16 @@ export function NotificationBell() {
             <ul className="max-h-96 divide-y divide-border overflow-y-auto">
               {data.data.map((n) => (
                 <li key={n.id}>
-                  <button
-                    type="button"
-                    onClick={() => !n.readAt && markRead.mutate(n.id)}
+                  <NotificationRow
+                    link={user ? notificationLink(n.type, user.role) : null}
                     className={cn(
-                      'block w-full px-4 py-3 text-left hover:bg-primary-soft',
+                      'block w-full px-4 py-3 text-left text-text no-underline hover:bg-primary-soft',
                       !n.readAt && 'bg-row-alt',
                     )}
+                    onActivate={() => {
+                      if (!n.readAt) markRead.mutate(n.id);
+                      setOpen(false);
+                    }}
                   >
                     <span className="flex items-start gap-2">
                       {!n.readAt && (
@@ -102,7 +131,7 @@ export function NotificationBell() {
                         </span>
                       </span>
                     </span>
-                  </button>
+                  </NotificationRow>
                 </li>
               ))}
             </ul>

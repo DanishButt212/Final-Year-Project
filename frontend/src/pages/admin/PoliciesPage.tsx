@@ -35,6 +35,22 @@ const policySchema = z.object({
     .min(1, MESSAGES.fieldRequired)
     .regex(/^\d{1,3}(\.\d{1,2})?$/, 'Enter a percentage with at most two decimals.')
     .refine((v) => Number(v) >= 0 && Number(v) <= 100, 'Enter a percentage from 0 to 100.'),
+  courtDayStart: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Enter a time like 09:00 (24-hour).'),
+  courtDayEnd: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Enter a time like 14:00 (24-hour).'),
+  hearingSlotMinutes: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of minutes.')
+    .refine((v) => Number(v) >= 10 && Number(v) <= 240, 'Enter a value from 10 to 240 minutes.'),
   fees: z.array(
     z.object({
       caseType: z.string(),
@@ -52,6 +68,9 @@ const toValues = (s: Settings): PolicyValues => ({
   maxAttachmentMb: String(s.maxAttachmentMb),
   caseRegistrationOpen: s.caseRegistrationOpen,
   filingFeeRateModifier: s.filingFeeRateModifier,
+  courtDayStart: s.courtDayStart,
+  courtDayEnd: s.courtDayEnd,
+  hearingSlotMinutes: String(s.hearingSlotMinutes),
   fees: s.fees.map((f) => ({ caseType: f.caseType, amount: f.amount })),
 });
 
@@ -77,6 +96,9 @@ export default function PoliciesPage() {
       maxAttachmentMb: '25',
       caseRegistrationOpen: true,
       filingFeeRateModifier: '0',
+      courtDayStart: '09:00',
+      courtDayEnd: '14:00',
+      hearingSlotMinutes: '30',
       fees: [],
     },
   });
@@ -90,6 +112,9 @@ export default function PoliciesPage() {
         maxAttachmentMb: Number(v.maxAttachmentMb),
         caseRegistrationOpen: v.caseRegistrationOpen,
         filingFeeRateModifier: v.filingFeeRateModifier,
+        courtDayStart: v.courtDayStart,
+        courtDayEnd: v.courtDayEnd,
+        hearingSlotMinutes: Number(v.hearingSlotMinutes),
         fees: v.fees.map((f) => ({
           caseType: f.caseType as Settings['fees'][number]['caseType'],
           amount: f.amount,
@@ -206,6 +231,42 @@ export default function PoliciesPage() {
                   )}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Court hours and hearing slots</CardTitle>
+              <p className="text-sm text-text-muted">
+                Courts sit Monday to Friday. Hearings are booked in consecutive slots inside these
+                hours. These cannot be changed while upcoming hearings exist.
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-3">
+              <Field
+                label="Court day start"
+                required
+                hint="24-hour, for example 09:00"
+                error={errors.courtDayStart?.message}
+              >
+                {(p) => <Input placeholder="09:00" {...register('courtDayStart')} {...p} />}
+              </Field>
+              <Field
+                label="Court day end"
+                required
+                hint="24-hour, for example 14:00"
+                error={errors.courtDayEnd?.message}
+              >
+                {(p) => <Input placeholder="14:00" {...register('courtDayEnd')} {...p} />}
+              </Field>
+              <Field
+                label="Hearing slot length (minutes)"
+                required
+                hint="10 to 240"
+                error={errors.hearingSlotMinutes?.message}
+              >
+                {(p) => <Input inputMode="numeric" {...register('hearingSlotMinutes')} {...p} />}
+              </Field>
             </CardContent>
           </Card>
 

@@ -271,6 +271,11 @@ export default function CaseDetailPage() {
                 <Detail label="Court">
                   {data.court ? `${data.court.name}, ${data.court.city}` : 'Not yet assigned'}
                 </Detail>
+                <Detail label="Next hearing">
+                  {data.nextHearing
+                    ? `${formatDate(data.nextHearing.date)} at ${data.nextHearing.startTime ?? ''}, ${data.nextHearing.courtroom ?? ''}`
+                    : 'No hearing scheduled yet'}
+                </Detail>
                 <Detail label="Judge bench">
                   {judgeBench({ judge: data.judge, courtroom: data.courtroom?.name ?? null })}
                 </Detail>

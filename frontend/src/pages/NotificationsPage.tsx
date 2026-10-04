@@ -14,6 +14,8 @@ import { parseApiError } from '@/lib/api';
 import { notificationsApi } from '@/lib/admin-api';
 import { formatDateTime } from '@/lib/format';
 import { roleHome } from '@/lib/navigation';
+import { notificationLink } from '@/lib/scheduling-api';
+import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 15;
@@ -92,6 +94,16 @@ export default function NotificationsPage() {
                       </p>
                       <p className="break-words text-text-muted">{n.body}</p>
                       <p className="mt-1 text-sm text-text-muted">{formatDateTime(n.createdAt)}</p>
+                      {notificationLink(n.type, user.role) && (
+                        <Link
+                          to={notificationLink(n.type, user.role) as string}
+                          className="mt-1 inline-block text-sm font-semibold"
+                        >
+                          {n.type === 'CAUSE_LIST_PUBLISHED'
+                            ? 'Open cause lists'
+                            : 'Open hearing schedule'}
+                        </Link>
+                      )}
                     </div>
                     {!n.readAt && (
                       <Button

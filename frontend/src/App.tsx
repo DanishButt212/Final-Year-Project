@@ -11,6 +11,7 @@ import CourtsPage from '@/pages/admin/CourtsPage';
 import LawyerVerificationPage from '@/pages/admin/LawyerVerificationPage';
 import PoliciesPage from '@/pages/admin/PoliciesPage';
 import JudgeCasesPage from '@/pages/judge/JudgeCasesPage';
+import { ScheduleFeatureRoute } from '@/pages/scheduling/ScheduleRoutes';
 import NotificationsPage from '@/pages/NotificationsPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import LandingPage from '@/pages/LandingPage';
@@ -82,6 +83,12 @@ export default function App() {
               </CaseRoute>
             }
           />
+          <Route path=":portal/hearings" element={<ScheduleFeatureRoute feature="hearings" />} />
+          <Route
+            path=":portal/cause-lists"
+            element={<ScheduleFeatureRoute feature="cause-lists" />}
+          />
+          <Route path=":portal/schedule" element={<ScheduleFeatureRoute feature="schedule" />} />
           <Route path=":portal/:feature" element={<ComingSoonPage />} />
         </Route>
       </Route>

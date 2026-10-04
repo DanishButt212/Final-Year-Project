@@ -43,10 +43,26 @@ export interface CaseDocument {
 
 export interface CaseEvent {
   id: string;
-  type: 'CASE_SUBMITTED' | 'DOCUMENT_ATTACHED' | 'CASE_ALLOCATED';
+  type:
+    | 'CASE_SUBMITTED'
+    | 'DOCUMENT_ATTACHED'
+    | 'CASE_ALLOCATED'
+    | 'HEARING_SCHEDULED'
+    | 'HEARING_RESCHEDULED'
+    | 'HEARING_CANCELLED';
   description: string;
   createdAt: string;
   actor: string | null;
+}
+
+export interface CaseHearing {
+  id: string;
+  date: string;
+  startTime: string | null;
+  status: 'SCHEDULED' | 'HELD' | 'ADJOURNED' | 'CANCELLED';
+  purpose: string | null;
+  courtroom: string | null;
+  judge: string;
 }
 
 export interface CaseDetail {
@@ -67,6 +83,8 @@ export interface CaseDetail {
   parties: CaseParty[];
   documents: CaseDocument[];
   events: CaseEvent[];
+  hearings?: CaseHearing[];
+  nextHearing?: CaseHearing | null;
 }
 
 export interface CreateCasePayload {

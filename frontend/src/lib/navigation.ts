@@ -72,9 +72,15 @@ export const PORTALS: Record<Role, Portal> = {
       },
       {
         slug: 'hearings',
-        label: 'Hearings & Cause List',
+        label: 'Hearing Schedule',
         icon: CalendarDays,
-        description: 'Upcoming hearings and the daily cause list.',
+        description: 'Upcoming hearing dates, rooms, timings and benches.',
+      },
+      {
+        slug: 'cause-lists',
+        label: 'Daily Cause Lists',
+        icon: ClipboardList,
+        description: 'The published court rosters for each day.',
       },
       {
         slug: 'payments',
@@ -141,9 +147,15 @@ export const PORTALS: Record<Role, Portal> = {
       },
       {
         slug: 'hearings',
-        label: 'Hearings & Cause List',
+        label: 'Hearing Schedule',
         icon: CalendarDays,
-        description: 'Your hearing calendar and daily cause list.',
+        description: 'Your upcoming hearings, rooms, timings and benches.',
+      },
+      {
+        slug: 'cause-lists',
+        label: 'Daily Cause Lists',
+        icon: ClipboardList,
+        description: 'The published court rosters for each day.',
       },
     ],
   },
@@ -193,10 +205,16 @@ export const PORTALS: Record<Role, Portal> = {
     items: [
       dash('Today’s cause list and your caseload.'),
       {
-        slug: 'cause-list',
-        label: 'Cause List',
+        slug: 'schedule',
+        label: 'My Schedule',
+        icon: CalendarDays,
+        description: 'Your hearings for the week.',
+      },
+      {
+        slug: 'cause-lists',
+        label: 'Daily Cause Lists',
         icon: ClipboardList,
-        description: 'Cases listed before you.',
+        description: 'The published court rosters for each day.',
       },
       {
         slug: 'cases',
@@ -257,9 +275,9 @@ export const PORTALS: Record<Role, Portal> = {
       { slug: 'reports', label: 'Reports', icon: FileText, description: 'PDF and Excel reports.' },
       {
         slug: 'hearings',
-        label: 'Hearings',
+        label: 'Bench Scheduling',
         icon: CalendarClock,
-        description: 'Hearing scheduling, cause lists and anti-clash checks.',
+        description: 'Master board, anti-clash checks and cause lists.',
       },
     ],
   },

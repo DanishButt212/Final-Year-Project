@@ -1,6 +1,5 @@
 import {
   Archive,
-  CalendarDays,
   ClipboardList,
   Clock,
   GraduationCap,
@@ -19,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { LAWYER_PENDING_MESSAGE } from '@/hooks/use-filing-gate';
 import { DashboardFrame, EmptyPanel, PanelGrid } from './parts';
 import AnalyticsBoard from '../admin/AnalyticsBoard';
+import { NextHearingCard } from '../scheduling/UserSchedulePages';
 import { MyAllocatedCases } from '../judge/JudgeCasesPage';
 import CaseOverview from './CaseOverview';
 
@@ -27,14 +27,7 @@ export function LitigantDashboard() {
     <DashboardFrame description="Your cases, hearings and payments at a glance.">
       <CaseOverview />
       <PanelGrid>
-        <EmptyPanel
-          title="Upcoming hearings"
-          icon={CalendarDays}
-          emptyTitle="No hearings scheduled"
-          emptyText="When a hearing is fixed in your case, the date will show here."
-          actionLabel="View cause list"
-          actionTo="/litigant/hearings"
-        />
+        <NextHearingCard />
         <EmptyPanel
           title="Court fee challans"
           icon={Receipt}
@@ -102,14 +95,7 @@ export function LawyerDashboard() {
           actionLabel="View interns"
           actionTo="/lawyer/interns"
         />
-        <EmptyPanel
-          title="Hearings"
-          icon={CalendarDays}
-          emptyTitle="No upcoming hearings"
-          emptyText="Your hearing calendar. A lawyer is never double-booked on a day."
-          actionLabel="Cause list"
-          actionTo="/lawyer/hearings"
-        />
+        <NextHearingCard />
       </PanelGrid>
     </DashboardFrame>
   );
@@ -161,7 +147,7 @@ export function JudgeDashboard() {
           emptyTitle="No cases listed today"
           emptyText="Cases fixed before you for today will appear here."
           actionLabel="Open cause list"
-          actionTo="/judge/cause-list"
+          actionTo="/judge/cause-lists"
         />
         <EmptyPanel
           title="Recent orders"
