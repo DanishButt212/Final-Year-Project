@@ -31,6 +31,7 @@ import {
   addDaysIso,
   isoToDdMmYyyy,
   mondayIso,
+  slotPassed,
   schedulingApi,
   todayIso,
   weekdayName,
@@ -519,7 +520,7 @@ export default function BoardPage() {
                             ) : (
                               <button
                                 type="button"
-                                disabled={!bookable}
+                                disabled={!bookable || slotPassed(b.date, s.start)}
                                 onClick={() =>
                                   setScheduling({ courtroomId: room.id, slot: cell.slot })
                                 }
@@ -574,7 +575,7 @@ export default function BoardPage() {
                                 <Button
                                   variant="secondary"
                                   size="sm"
-                                  disabled={!bookable}
+                                  disabled={!bookable || slotPassed(b.date, s.start)}
                                   className="justify-start"
                                   onClick={() =>
                                     setScheduling({ courtroomId: room.id, slot: cell.slot })

@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Messages } from '../common/messages';
 import type { SchedulePolicy } from '../settings/settings.service';
 
@@ -89,6 +89,15 @@ export const ddmmyyyy = (d: Date) => {
 /** Key for pg_advisory_xact_lock: one lock per calendar day. */
 export const dayLockKey = (d: Date) => Math.floor(d.getTime() / DAY_MS);
 
+export const SLOT_PASSED_MESSAGE = 'Cannot schedule a hearing in a time slot that has already passed.';
+
+/** True when the date is today (server local time) and the slot has already started. */
+export function slotHasPassed(date: Date, slot: Slot, now: Date = new Date()): boolean {
+  const local = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (isoDate(date) !== local) return false;
+  return toMinutes(slot.start) <= now.getHours() * 60 + now.getMinutes();
+}
+
 function bad(field: string, text: string) {
   return new BadRequestException({
     code: 'VALIDATION_ERROR',
@@ -101,7 +110,9 @@ function bad(field: string, text: string) {
 export function assertBookable(date: Date, slot: number, slots: Slot[]) {
   if (!isWorkingDay(date)) throw bad('date', 'Hearings can only be scheduled Monday to Friday.');
   if (date.getTime() < todayUtc().getTime()) throw bad('date', 'Choose today or a later date.');
-  if (!slots.some((s) => s.slot === slot)) {
-    throw bad('slot', 'Choose a time slot within court hours.');
+  const found = slots.find((s) => s.slot === slot);
+  if (!found) throw bad('slot', 'Choose a time slot within court hours.');
+  if (slotHasPassed(date, found)) {
+    throw new ConflictException({ code: 'SLOT_PASSED', message: SLOT_PASSED_MESSAGE });
   }
 }

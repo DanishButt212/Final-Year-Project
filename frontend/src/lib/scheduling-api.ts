@@ -234,6 +234,13 @@ export const mondayIso = (iso: string) => {
   return addDaysIso(iso, day === 0 ? -6 : 1 - day);
 };
 
+/** True when the date is today (local time) and the slot start time has already passed. */
+export function slotPassed(iso: string, start: string, now: Date = new Date()): boolean {
+  const local = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  if (iso !== local) return false;
+  return Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) <= now.getHours() * 60 + now.getMinutes();
+}
+
 export const WEEKDAYS = [
   'Sunday',
   'Monday',

@@ -20,6 +20,7 @@ import { parseApiError } from '@/lib/api';
 import {
   isoToDdMmYyyy,
   schedulingApi,
+  slotPassed,
   todayIso,
   weekdayName,
   type Board,
@@ -208,11 +209,13 @@ export function ScheduleHearingDialog({
             <Field label="Time slot" required>
               {(p) => (
                 <NativeSelect value={slot} onChange={(e) => setSlot(Number(e.target.value))} {...p}>
-                  {board.slots.map((s) => (
-                    <option key={s.slot} value={s.slot}>
-                      {s.start}–{s.end}
-                    </option>
-                  ))}
+                  {board.slots
+                    .filter((s) => s.slot === slot || !slotPassed(date, s.start))
+                    .map((s) => (
+                      <option key={s.slot} value={s.slot}>
+                        {s.start}–{s.end}
+                      </option>
+                    ))}
                 </NativeSelect>
               )}
             </Field>
@@ -417,11 +420,13 @@ export function RescheduleDialog({
             <Field label="Time slot">
               {(p) => (
                 <NativeSelect value={slot} onChange={(e) => setSlot(Number(e.target.value))} {...p}>
-                  {board.slots.map((s) => (
-                    <option key={s.slot} value={s.slot}>
-                      {s.start}–{s.end}
-                    </option>
-                  ))}
+                  {board.slots
+                    .filter((s) => s.slot === slot || !slotPassed(date, s.start))
+                    .map((s) => (
+                      <option key={s.slot} value={s.slot}>
+                        {s.start}–{s.end}
+                      </option>
+                    ))}
                 </NativeSelect>
               )}
             </Field>

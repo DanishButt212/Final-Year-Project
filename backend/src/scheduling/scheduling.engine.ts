@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client';
 import { fullName } from '../admin/constants';
-import { addDays, isoDate, isWorkingDay, Slot, todayUtc } from './slots';
+import { addDays, isoDate, isWorkingDay, Slot, slotHasPassed, todayUtc } from './slots';
 
 export type Db = Prisma.TransactionClient;
 
@@ -232,6 +232,7 @@ export class SchedulingEngine {
       const key = isoDate(day);
       const slots = [];
       for (const s of input.slots) {
+        if (slotHasPassed(day, s)) continue;
         const hits = busy.filter((b) => isoDate(b.date) === key && b.timeSlot === s.slot);
         const judgeBusy = hits.some((b) => b.judgeId === input.judgeId);
         const lawyerBusy = hits.some((b) =>

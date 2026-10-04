@@ -101,6 +101,10 @@ My design where the report is silent or I added to it.
 ### Phase 4 (next, not built)
 Challans and payments, evidence vault, summons and the process-server app, lawyer chamber, internship, reports, audit-log screens, virtual courtroom, and judge decisions that set `decidedAt` (which also feeds the "decided per day" chart).
 
+## Phase 4A step 0: Phase 3B follow-ups (05-10-2026)
+- Accepted decisions: conflict messages use the courtroom name exactly as stored; court hours and slot length cannot be edited while upcoming hearings exist.
+- Slots that have already started today are not offered in the UI and are refused by the server with 409 "Cannot schedule a hearing in a time slot that has already passed." (server local time; a slot counts as passed once its start time is reached). Vacancy mapping and the board also skip them.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).
 
