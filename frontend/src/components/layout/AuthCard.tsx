@@ -1,4 +1,6 @@
+import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { Card } from '@/components/ui/card';
 import { ScalesIcon } from './Logo';
 
@@ -18,6 +20,14 @@ export function AuthCard({
 }) {
   return (
     <div className="px-4 py-8 sm:py-12">
+      <div className={`mx-auto mb-3 w-full ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
+        <Link
+          to="/"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md px-1 text-sm font-medium text-primary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <ArrowLeft className="size-4" aria-hidden="true" /> Back to home page
+        </Link>
+      </div>
       <Card className={`mx-auto w-full ${wide ? 'max-w-2xl' : 'max-w-md'}`}>
         <div className="border-b border-border px-6 py-5 text-center">
           <span className="mx-auto mb-2 flex size-11 items-center justify-center rounded-full bg-primary-soft text-primary">
