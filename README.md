@@ -134,6 +134,21 @@ New settings (System Policies): `summons_max_gps_accuracy_m` (default 100, 10 to
 
 The Process Server console is a mobile-first web page at `/process-server` (Duty Roster and Profile with a bottom navigation). It asks the browser for the device location, so use `localhost` or HTTPS. The Expo mobile app (a later phase) will use the same `/server/*` API with a Bearer token.
 
+**Judge decisions, audit vault, security alerts and reports (Phase 4E).**
+
+| Area | Routes |
+|---|---|
+| Judge | `POST /judge/hearings/:id/outcome` (COMPLETED or ADJOURNED with order notes, hearing dated today or earlier), `POST /judge/cases/:id/decide` (JUDGMENT, DISMISSED or DISPOSED with the order text), `GET /judge/cases/:id` (now with hearing outcomes and the decision) |
+| Audit vault (read-only) | `GET /admin/audit-logs`, `GET /admin/audit-logs/facets`, `GET /admin/audit-logs/verify?from&to`, `GET /admin/audit-logs/:id` |
+| Security | `GET /admin/security/summary`, `GET /admin/security/alerts?status`, `GET /admin/security/alerts/:id`, `POST /admin/security/alerts/:id/blacklist`, `POST /admin/security/alerts/:id/dismiss`, `GET /admin/security/blocked-hosts`, `DELETE /admin/security/blocked-hosts/:id`, `GET /admin/security/events` |
+| Reports | `GET /admin/reports/options`, `GET /admin/reports/performance`, `POST /admin/reports/export` (streams the PDF or Excel file), `GET /admin/reports/history`, `GET /admin/reports/:id/download`, `POST /admin/reports/:id/verify` |
+
+New setting (System Policies): `security_escalation_threshold` (default 3, range 1 to 20).
+
+**Environment variables.** `REPORT_SEAL_SECRET` (required): 32 random bytes, base64, the HMAC key of the report verification seal; generate it into your local `backend/.env` with the same `node -e` command as the evidence key. The reports module refuses to start without it. Never commit it. `TRUST_PROXY` (optional): set it (for example `1`) only when the API runs behind a reverse proxy, so `req.ip` is the real client address; without it the security alerts and host blocking would see the proxy address. Exported reports are stored under `backend/uploads/reports` (git-ignored).
+
+**Run the backend from the build if the watcher is unreliable** (`npm run build`, then `node dist/main`): `npm run start:dev` deletes `dist` while it recompiles, and a login attempt in that moment shows "Cannot reach the server".
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend

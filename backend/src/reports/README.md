@@ -1,5 +1,5 @@
 # reports
 
-Analytics dashboard data and PDF/Excel report exports.
+Judicial performance statistics and sealed PDF / Excel exports (performance and audit trail), with report history and verification.
 
-Status: planned for a later phase, no code yet.
+Status: built in Phase 4E.
