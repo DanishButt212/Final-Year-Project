@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, LogIn } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
@@ -11,7 +11,7 @@ import { Field } from '@/components/ui/field';
 import { Input, PasswordInput } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toaster';
-import { parseApiError } from '@/lib/api';
+import { parseApiError, peekSessionNotice, takeSessionNotice } from '@/lib/api';
 import { CHAMBER_LOGIN_FAILED, loginToast } from '@/lib/login-messages';
 import { roleHome } from '@/lib/navigation';
 import {
@@ -87,6 +87,11 @@ export default function LoginPage() {
   const location = useLocation();
   const state = location.state as { from?: string; notice?: string } | null;
   const [formError, setFormError] = useState<string | null>(null);
+  // Left behind when the security engine ended this session (read once).
+  const [sessionNotice] = useState<string | null>(() => peekSessionNotice());
+  useEffect(() => {
+    takeSessionNotice(); // shown once: clear it after the first render
+  }, []);
 
   const {
     register,
@@ -132,6 +137,7 @@ export default function LoginPage() {
             onSubmit={handleSubmit(onValid, (e) => setFormError(summaryFor(e)))}
             className="space-y-4"
           >
+            {sessionNotice && <Alert variant="error">{sessionNotice}</Alert>}
             {state?.notice && <Alert variant="success">{state.notice}</Alert>}
             {formError && <Alert variant="error">{formError}</Alert>}
 

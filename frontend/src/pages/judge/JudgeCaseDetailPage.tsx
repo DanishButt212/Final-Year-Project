@@ -20,7 +20,9 @@ import { caseTypeLabel } from '@/lib/case-status';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { evidenceApi } from '@/lib/phase4-api';
 import { NotFoundPage } from '@/pages/ErrorPages';
+import { DecisionBlock } from '@/pages/cases/DecisionBlock';
 import SummonsPanel from '@/pages/cases/SummonsPanel';
+import { DecideDialog, OutcomeDialog } from './JudgeActions';
 import VaultPanel, { vaultKey } from '@/pages/cases/VaultPanel';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -40,6 +42,8 @@ export default function JudgeCaseDetailPage() {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [outcomeFor, setOutcomeFor] = useState<{ id: string; date: string } | null>(null);
+  const [deciding, setDeciding] = useState(false);
 
   const { data, isPending, error } = useQuery({
     queryKey: ['judge', 'case', caseId],
@@ -77,6 +81,12 @@ export default function JudgeCaseDetailPage() {
     );
   }
 
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const isDecided = data.status === 'DECIDED';
+  const hasHeldHearing = (data.hearings ?? []).some(
+    (h) => h.status !== 'CANCELLED' && h.date <= todayIso,
+  );
+
   const toggle = (id: string) => {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id);
@@ -100,7 +110,23 @@ export default function JudgeCaseDetailPage() {
         </span>
         <StatusBadge status={data.status} />
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
+        {!isDecided && (
+          <Button
+            className="ml-auto"
+            onClick={() => setDeciding(true)}
+            disabled={!hasHeldHearing}
+            title={hasHeldHearing ? undefined : 'Available after a hearing has taken place'}
+          >
+            <Gavel aria-hidden="true" /> Decide case
+          </Button>
+        )}
       </div>
+      {!isDecided && !hasHeldHearing && (
+        <p className="-mt-3 mb-6 text-sm text-text-muted">
+          A case can be decided only after at least one hearing has taken place.
+        </p>
+      )}
+      <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue="overview">
         <TabsList aria-label="Case sections">
@@ -164,16 +190,45 @@ export default function JudgeCaseDetailPage() {
               ) : (
                 <ul className="divide-y divide-border">
                   {data.hearings?.map((h) => (
-                    <li
-                      key={h.id}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2"
-                    >
-                      <span>
-                        {formatDate(h.date)} at {h.startTime} · {h.courtroom}
-                      </span>
-                      <Badge variant={h.status === 'CANCELLED' ? 'rejected' : 'hearing'}>
-                        {h.status}
-                      </Badge>
+                    <li key={h.id} className="space-y-1 py-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          {formatDate(h.date)} at {h.startTime} · {h.courtroom}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Badge
+                            variant={
+                              h.status === 'CANCELLED'
+                                ? 'rejected'
+                                : h.status === 'HELD'
+                                  ? 'decided'
+                                  : h.status === 'ADJOURNED'
+                                    ? 'pending'
+                                    : 'hearing'
+                            }
+                          >
+                            {h.status === 'HELD'
+                              ? 'Completed'
+                              : h.status === 'ADJOURNED'
+                                ? 'Adjourned'
+                                : h.status === 'CANCELLED'
+                                  ? 'Cancelled'
+                                  : 'Scheduled'}
+                          </Badge>
+                          {!isDecided && h.status === 'SCHEDULED' && h.date <= todayIso && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => setOutcomeFor({ id: h.id, date: h.date })}
+                            >
+                              Record outcome
+                            </Button>
+                          )}
+                        </span>
+                      </div>
+                      {h.orderNotes && (
+                        <p className="text-sm text-text-muted">Order notes: {h.orderNotes}</p>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -233,6 +288,10 @@ export default function JudgeCaseDetailPage() {
         </TabsContent>
       </Tabs>
 
+      {outcomeFor && <OutcomeDialog hearing={outcomeFor} onClose={() => setOutcomeFor(null)} />}
+      {deciding && (
+        <DecideDialog caseId={data.id} ucn={data.ucn} onClose={() => setDeciding(false)} />
+      )}
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}

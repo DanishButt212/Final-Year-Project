@@ -92,6 +92,12 @@ const policySchema = z.object({
     .min(1, MESSAGES.fieldRequired)
     .regex(/^\d+$/, 'Enter a whole number of days.')
     .refine((v) => Number(v) >= 1 && Number(v) <= 90, 'Enter a value from 1 to 90 days.'),
+  securityEscalationThreshold: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of attempts.')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 20, 'Enter a value from 1 to 20 attempts.'),
   hearingSlotMinutes: z
     .string()
     .trim()
@@ -126,6 +132,7 @@ const toValues = (s: Settings): PolicyValues => ({
   attendanceMaxAccuracyM: String(s.attendanceMaxAccuracyM),
   summonsMaxGpsAccuracyM: String(s.summonsMaxGpsAccuracyM),
   summonsDefaultDueDays: String(s.summonsDefaultDueDays),
+  securityEscalationThreshold: String(s.securityEscalationThreshold),
   fees: s.fees.map((f) => ({ caseType: f.caseType, amount: f.amount })),
 });
 
@@ -162,6 +169,7 @@ export default function PoliciesPage() {
       attendanceMaxAccuracyM: '150',
       summonsMaxGpsAccuracyM: '100',
       summonsDefaultDueDays: '7',
+      securityEscalationThreshold: '3',
       fees: [],
     },
   });
@@ -186,6 +194,7 @@ export default function PoliciesPage() {
         attendanceMaxAccuracyM: Number(v.attendanceMaxAccuracyM),
         summonsMaxGpsAccuracyM: Number(v.summonsMaxGpsAccuracyM),
         summonsDefaultDueDays: Number(v.summonsDefaultDueDays),
+        securityEscalationThreshold: Number(v.securityEscalationThreshold),
         fees: v.fees.map((f) => ({
           caseType: f.caseType as Settings['fees'][number]['caseType'],
           amount: f.amount,
@@ -403,6 +412,28 @@ export default function PoliciesPage() {
                 error={errors.summonsDefaultDueDays?.message}
               >
                 {(p) => <Input inputMode="numeric" {...register('summonsDefaultDueDays')} {...p} />}
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+              <p className="text-sm text-text-muted">
+                An account or address refused this many times on admin routes within 10 minutes
+                raises a Security Alert and its sessions are ended.
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label="Escalation alert threshold (attempts)"
+                required
+                hint="1 to 20"
+                error={errors.securityEscalationThreshold?.message}
+              >
+                {(p) => (
+                  <Input inputMode="numeric" {...register('securityEscalationThreshold')} {...p} />
+                )}
               </Field>
             </CardContent>
           </Card>

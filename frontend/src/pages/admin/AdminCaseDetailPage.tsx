@@ -25,6 +25,7 @@ import type { CaseDetail, CaseDocument } from '@/lib/cases-api';
 import { caseTypeLabel, judgeBench } from '@/lib/case-status';
 import { formatDate, formatDateTime, formatFileSize } from '@/lib/format';
 import { NotFoundPage } from '@/pages/ErrorPages';
+import { DecisionBlock } from '@/pages/cases/DecisionBlock';
 import { AllocateDialog } from './AllocateDialog';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -135,6 +136,8 @@ export default function AdminCaseDetailPage() {
         <StatusBadge status={data.status} />
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
       </div>
+
+      <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue="overview">
         <TabsList aria-label="Case sections">

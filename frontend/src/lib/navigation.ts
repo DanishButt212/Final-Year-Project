@@ -28,6 +28,7 @@ import {
   NotebookPen,
   Shuffle,
   ScrollText,
+  ShieldAlert,
   UserCircle,
 } from 'lucide-react';
 import type { Role } from './types';
@@ -345,7 +346,18 @@ export const PORTALS: Record<Role, Portal> = {
         icon: History,
         description: 'Immutable record of system activity.',
       },
-      { slug: 'reports', label: 'Reports', icon: FileText, description: 'PDF and Excel reports.' },
+      {
+        slug: 'security',
+        label: 'Security Alerts',
+        icon: ShieldAlert,
+        description: 'Privilege escalation threats and blocked hosts.',
+      },
+      {
+        slug: 'reports',
+        label: 'Reports',
+        icon: FileText,
+        description: 'Judicial performance statistics with PDF and Excel export.',
+      },
       {
         slug: 'hearings',
         label: 'Bench Scheduling',

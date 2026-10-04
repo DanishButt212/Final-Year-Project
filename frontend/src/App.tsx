@@ -5,6 +5,9 @@ import { AppShell } from '@/components/layout/AppShell';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
 import SummonsRegistryPage from '@/pages/admin/SummonsRegistryPage';
+import AuditVaultPage from '@/pages/admin/AuditVaultPage';
+import PerformancePage from '@/pages/admin/PerformancePage';
+import SecurityAlertsPage from '@/pages/admin/SecurityAlertsPage';
 import { ServerShell } from '@/pages/server/ServerShell';
 import { RosterPage, ServerProfilePage, SummonsPage } from '@/pages/server/ServerPages';
 import { AttemptPage, FinalizePage } from '@/pages/server/ProgressPages';
@@ -92,6 +95,9 @@ export default function App() {
             <Route path="admin/policies" element={<PoliciesPage />} />
             <Route path="admin/feedback" element={<FeedbackAnalysisPage />} />
             <Route path="admin/summons" element={<SummonsRegistryPage />} />
+            <Route path="admin/audit-logs" element={<AuditVaultPage />} />
+            <Route path="admin/security" element={<SecurityAlertsPage />} />
+            <Route path="admin/reports" element={<PerformancePage />} />
           </Route>
           <Route element={<RequireRole role="LAWYER" />}>
             <Route element={<ChamberGate />}>

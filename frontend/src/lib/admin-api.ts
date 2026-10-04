@@ -30,6 +30,7 @@ export interface Settings extends PublicSettings {
   attendanceMaxAccuracyM: number;
   summonsMaxGpsAccuracyM: number;
   summonsDefaultDueDays: number;
+  securityEscalationThreshold: number;
   fees: FeeRow[];
 }
 
@@ -48,6 +49,7 @@ export interface UpdateSettingsPayload {
   attendanceMaxAccuracyM?: number;
   summonsMaxGpsAccuracyM?: number;
   summonsDefaultDueDays?: number;
+  securityEscalationThreshold?: number;
   fees?: { caseType: CaseType; amount: string }[];
 }
 

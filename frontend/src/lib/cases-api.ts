@@ -58,7 +58,10 @@ export interface CaseEvent {
     | 'SUMMONS_ATTEMPT'
     | 'SUMMONS_EXECUTED'
     | 'SUMMONS_REASSIGNED'
-    | 'SUMMONS_CANCELLED';
+    | 'SUMMONS_CANCELLED'
+    | 'HEARING_COMPLETED'
+    | 'HEARING_ADJOURNED'
+    | 'CASE_DECIDED';
   description: string;
   createdAt: string;
   actor: string | null;
@@ -70,8 +73,25 @@ export interface CaseHearing {
   startTime: string | null;
   status: 'SCHEDULED' | 'HELD' | 'ADJOURNED' | 'CANCELLED';
   purpose: string | null;
+  orderNotes?: string | null;
+  outcomeAt?: string | null;
   courtroom: string | null;
   judge: string;
+}
+
+export type DecisionType = 'JUDGMENT' | 'DISMISSED' | 'DISPOSED';
+
+export const DECISION_LABEL: Record<DecisionType, string> = {
+  JUDGMENT: 'Judgment',
+  DISMISSED: 'Dismissed',
+  DISPOSED: 'Disposed',
+};
+
+export interface CaseDecision {
+  type: DecisionType | null;
+  orderText: string | null;
+  decidedAt: string;
+  judge: string | null;
 }
 
 export interface CaseDetail {
@@ -95,6 +115,7 @@ export interface CaseDetail {
   events: CaseEvent[];
   hearings?: CaseHearing[];
   nextHearing?: CaseHearing | null;
+  decision?: CaseDecision | null;
 }
 
 export interface CreateCasePayload {

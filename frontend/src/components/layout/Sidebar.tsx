@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { NavLink } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { adminApi } from '@/lib/admin-api';
+import { securityApi } from '@/lib/phase4e-api';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import type { Role } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,22 @@ function PendingLawyersBadge() {
   return (
     <span className="ml-auto min-w-6 rounded-full bg-accent px-2 text-center text-xs font-bold leading-6 text-text">
       <span className="sr-only">Pending approvals: </span>
+      {data}
+    </span>
+  );
+}
+
+/** Number of open security alerts, shown next to the Security Alerts link. */
+function OpenAlertsBadge() {
+  const { data } = useQuery({
+    queryKey: ['admin', 'security', 'summary'],
+    queryFn: async () => (await securityApi.summary()).openCount,
+    refetchInterval: 30_000,
+  });
+  if (!data) return null;
+  return (
+    <span className="ml-auto min-w-6 rounded-full bg-destructive px-2 text-center text-xs font-bold leading-6 text-white">
+      <span className="sr-only">Open alerts: </span>
       {data}
     </span>
   );
@@ -103,6 +120,7 @@ export function Sidebar({
                   {role === 'ADMIN' && item.slug === 'lawyer-verification' && (
                     <PendingLawyersBadge />
                   )}
+                  {role === 'ADMIN' && item.slug === 'security' && <OpenAlertsBadge />}
                 </NavLink>
               </li>
             ))}

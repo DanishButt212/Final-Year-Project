@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { toast } from '@/components/ui/toaster';
-import { setUnauthorizedHandler } from '@/lib/api';
+import { peekSessionNotice, setUnauthorizedHandler } from '@/lib/api';
 import { authApi } from '@/lib/auth-api';
 import type { User } from '@/lib/types';
 import { AuthContext, type AuthState } from './context';
@@ -39,7 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => {
       if (queryClient.getQueryData(ME_KEY)) {
         endSession(queryClient);
-        toast.info('Your session has ended. Please log in again.');
+        const notice = peekSessionNotice();
+        // A session ended by the security engine shows its own message on the login page.
+        if (!notice) toast.info('Your session has ended. Please log in again.');
       }
     });
     return () => setUnauthorizedHandler(null);

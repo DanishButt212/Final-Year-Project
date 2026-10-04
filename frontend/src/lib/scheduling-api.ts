@@ -266,11 +266,14 @@ export function notificationLink(type: string, role: string): string | null {
   const portal = role.toLowerCase().replace('_', '-');
   if (type === 'CAUSE_LIST_PUBLISHED') return role === 'ADMIN' ? null : `/${portal}/cause-lists`;
   if (type === 'SUMMONS_ASSIGNED') return '/process-server';
+  if (type === 'SECURITY_ALERT') return role === 'ADMIN' ? '/admin/security' : null;
+  if (type === 'CASE_DECIDED') return role === 'ADMIN' ? '/admin/cases' : `/${portal}/cases`;
   if (type === 'SUMMONS_EXECUTED') return role === 'ADMIN' ? '/admin/summons' : `/${portal}/cases`;
   if (type === 'CHAMBER_LOW_BALANCE') return '/lawyer/chamber/retainer';
   if (type === 'RESEARCH_SUBMITTED') return '/lawyer/chamber/research-logs';
   if (type === 'RESEARCH_REVIEWED') return '/intern/research-logs';
   if (type === 'PAYMENT_RECEIVED') return role === 'ADMIN' ? null : `/${portal}/payments`;
+  if (type === 'HEARING_ADJOURNED' && role === 'ADMIN') return '/admin/hearings';
   if (type.startsWith('HEARING_')) {
     if (role === 'JUDGE') return '/judge/schedule';
     return `/${portal}/hearings`;

@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { DecisionBlock } from './DecisionBlock';
 import SummonsPanel from './SummonsPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { parseApiError } from '@/lib/api';
@@ -105,6 +106,8 @@ export default function CaseDetailPage() {
         <StatusBadge status={data.status} />
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
       </div>
+
+      <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue={initialTab}>
         <TabsList aria-label="Case sections">
