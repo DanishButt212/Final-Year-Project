@@ -69,9 +69,15 @@ export class CreateCaseDto {
   /** Optional claim value in PKR (Civil Suits only), 0 or more with at most two decimals. */
   @IsOptional()
   @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'number' ? String(value) : typeof value === 'string' ? value.trim() || undefined : value,
+    typeof value === 'number'
+      ? String(value)
+      : typeof value === 'string'
+        ? value.trim() || undefined
+        : value,
   )
-  @Matches(/^\d{1,12}(\.\d{1,2})?$/, { message: 'Claim value must be an amount of 0 or more in PKR.' })
+  @Matches(/^\d{1,12}(\.\d{1,2})?$/, {
+    message: 'Claim value must be an amount of 0 or more in PKR.',
+  })
   claimAmountPkr?: string;
 
   @IsArray()

@@ -89,7 +89,8 @@ export const ddmmyyyy = (d: Date) => {
 /** Key for pg_advisory_xact_lock: one lock per calendar day. */
 export const dayLockKey = (d: Date) => Math.floor(d.getTime() / DAY_MS);
 
-export const SLOT_PASSED_MESSAGE = 'Cannot schedule a hearing in a time slot that has already passed.';
+export const SLOT_PASSED_MESSAGE =
+  'Cannot schedule a hearing in a time slot that has already passed.';
 
 /** True when the date is today (server local time) and the slot has already started. */
 export function slotHasPassed(date: Date, slot: Slot, now: Date = new Date()): boolean {

@@ -39,7 +39,12 @@ export class NotificationsService {
     const now = new Date();
     const resolve = (id: string) => (typeof payload === 'function' ? payload(id) : payload);
     await db.notification.createMany({
-      data: ids.map((userId) => ({ userId, ...resolve(userId), channel: 'IN_APP' as const, sentAt: now })),
+      data: ids.map((userId) => ({
+        userId,
+        ...resolve(userId),
+        channel: 'IN_APP' as const,
+        sentAt: now,
+      })),
     });
     const users = await this.prisma.user.findMany({
       where: { id: { in: ids } },

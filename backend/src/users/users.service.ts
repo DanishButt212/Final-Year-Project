@@ -4,7 +4,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { ListUsersQueryDto, UpdateProfileDto } from './dto/users.dto';
+import { ListUsersQueryDto, NotificationPreferencesDto, UpdateProfileDto } from './dto/users.dto';
 import { toPublicUser } from './user.mapper';
 
 @Injectable()
@@ -54,6 +54,47 @@ export class UsersService {
       ...meta,
     });
     return { message: Messages.PROFILE_UPDATED, user: toPublicUser(user) };
+  }
+
+  async getPreferences(userId: string) {
+    const p = await this.prisma.notificationPreference.findUnique({ where: { userId } });
+    // Defaults when nothing was saved yet: email on, SMS and mobile off.
+    return {
+      sms: p?.smsEnabled ?? false,
+      mobilePush: p?.pushEnabled ?? false,
+      email: p?.emailEnabled ?? true,
+      inApp: true,
+    };
+  }
+
+  async savePreferences(
+    actor: AuthUser,
+    dto: NotificationPreferencesDto,
+    meta: { ip?: string; userAgent?: string },
+  ) {
+    await this.prisma.notificationPreference.upsert({
+      where: { userId: actor.id },
+      update: { smsEnabled: dto.sms, pushEnabled: dto.mobilePush, emailEnabled: dto.email },
+      create: {
+        userId: actor.id,
+        smsEnabled: dto.sms,
+        pushEnabled: dto.mobilePush,
+        emailEnabled: dto.email,
+      },
+    });
+    await this.audit.log({
+      action: AuditAction.NOTIFICATION_PREFERENCES_SAVED,
+      actorId: actor.id,
+      actorRole: actor.role,
+      entity: 'User',
+      entityId: actor.id,
+      metadata: { sms: dto.sms, mobilePush: dto.mobilePush, email: dto.email },
+      ...meta,
+    });
+    return {
+      message: 'Notification Preferences Saved.',
+      preferences: await this.getPreferences(actor.id),
+    };
   }
 
   async list(query: ListUsersQueryDto) {

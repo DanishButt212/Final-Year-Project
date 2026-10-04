@@ -13,6 +13,8 @@ import { dirname, resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { CaseType, PartyRole, PrismaClient, Role } from '../src/generated/prisma/client';
 import { generateUcn } from '../src/cases/ucn';
+import { nextChallanNo, nextReceiptNo } from '../src/common/counters';
+import { calculateLedger, feeInputHash } from '../src/fees/fee-calculator';
 
 config({ quiet: true });
 
@@ -502,6 +504,8 @@ async function seedSampleData(
       amount: '300.00',
       status: 'PAID',
       dueDate: utcDate(-25),
+      ledger: [],
+      inputHash: '',
     },
   });
   await prisma.payment.create({
@@ -598,7 +602,7 @@ async function seedSampleData(
     data: {
       userId: ids.litigant,
       rating: 5,
-      category: 'Usability',
+      category: 'USABILITY',
       message: 'Filing was clear and quick.',
     },
   });
@@ -1032,6 +1036,192 @@ async function seedScheduling(
   }
 }
 
+/** Phase 4A demo data: fee policy defaults, challans and payments for the sample cases, feedback. */
+async function seedPhase4(ids: Record<string, string>) {
+  const policy: [string, string, string][] = [
+    ['ad_valorem_percent', '1', 'Ad valorem percentage for Civil Suits'],
+    ['ad_valorem_cap_pkr', '50000', 'Cap on the ad valorem fee (PKR)'],
+    ['challan_due_days', '7', 'Days until a challan is due'],
+    ['max_evidence_mb', '100', 'Maximum evidence file size in MB'],
+    ['filing_fee_rate_modifier', '0', 'Filing fee rate modifier (percent)'],
+  ];
+  for (const [key, value, description] of policy) {
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value, description },
+    });
+  }
+
+  // Legacy sample challans (CH-2026-000001) predate the counter: move the counter past them.
+  const year = new Date().getUTCFullYear();
+  const known = await prisma.challan.findMany({
+    where: { challanNo: { startsWith: `CH-${year}-` } },
+    select: { challanNo: true },
+  });
+  const highest = Math.max(0, ...known.map((c) => Number(c.challanNo.slice(-6))));
+  const counter = await prisma.caseCounter.findUnique({
+    where: { year_typeCode: { year, typeCode: 'CH' } },
+  });
+  if (!counter || counter.lastValue < highest) {
+    await prisma.caseCounter.upsert({
+      where: { year_typeCode: { year, typeCode: 'CH' } },
+      update: { lastValue: highest },
+      create: { year, typeCode: 'CH', lastValue: highest },
+    });
+  }
+
+  // Claim values for two civil suits.
+  await prisma.case.updateMany({
+    where: { title: 'Sana Noreen vs. Bilal Ahmed', claimAmountPkr: null },
+    data: { claimAmountPkr: '1850000' },
+  });
+  await prisma.case.updateMany({
+    where: { title: 'Ayesha Siddiqui vs. Kamran Siddiqui', claimAmountPkr: null },
+    data: { claimAmountPkr: '500000' },
+  });
+
+  const rate = async (key: string, fallback: string) =>
+    (await prisma.systemSetting.findUnique({ where: { key } }))?.value ?? fallback;
+  const percent = await rate('ad_valorem_percent', '1');
+  const cap = await rate('ad_valorem_cap_pkr', '50000');
+  const modifier = await rate('filing_fee_rate_modifier', '0');
+  const dueDays = Number(await rate('challan_due_days', '7'));
+
+  const cases = await prisma.case.findMany({
+    where: { status: { not: 'DRAFT' } },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    include: { challans: true },
+  });
+  // Pending cases: the first two are PAID (so they can be allocated), the rest stay UNPAID.
+  let paidPending = 0;
+  for (const c of cases) {
+    const fee = await prisma.feeStructure.findFirst({
+      where: { caseType: c.caseType, isActive: true },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    const inputs = {
+      caseType: c.caseType,
+      baseFee: fee?.amount.toString() ?? '0',
+      claimAmountPkr: c.claimAmountPkr?.toString() ?? null,
+      adValoremPercent: percent,
+      adValoremCapPkr: cap,
+      rateModifierPercent: modifier,
+    };
+    const { lines, total } = calculateLedger(inputs);
+    const hash = feeInputHash(inputs);
+    const existing = c.challans[0];
+    if (existing) {
+      // Challans from earlier seeds get a ledger.
+      if (existing.inputHash === '') {
+        await prisma.challan.update({
+          where: { id: existing.id },
+          data: { amount: total, ledger: lines as never, inputHash: hash },
+        });
+      }
+      continue;
+    }
+    const pending = c.status === 'PENDING_ASSIGNMENT';
+    const paid = !pending || paidPending++ < 2;
+    await prisma.$transaction(async (tx) => {
+      const challan = await tx.challan.create({
+        data: {
+          challanNo: await nextChallanNo(tx),
+          caseId: c.id,
+          payerId: c.filedById,
+          amount: total,
+          status: paid ? 'PAID' : 'UNPAID',
+          dueDate: utcDate(paid ? -20 : dueDays),
+          ledger: lines as never,
+          inputHash: hash,
+        },
+      });
+      if (paid) {
+        await tx.payment.create({
+          data: {
+            challanId: challan.id,
+            payerId: c.filedById,
+            amount: total,
+            method: 'MOCK_CARD',
+            status: 'SUCCESS',
+            gatewayRef: `MOCK-SEED-${challan.challanNo.slice(-6)}`,
+            receiptNo: await nextReceiptNo(tx),
+            cardBrand: 'VISA',
+            cardLast4: '4242',
+            paidAt: utcDate(-20),
+          },
+        });
+        await tx.caseEvent.create({
+          data: {
+            caseId: c.id,
+            type: 'PAYMENT_RECEIVED',
+            description: `Court fee of PKR ${total.toFixed(2)} received (challan ${challan.challanNo}).`,
+            actorId: c.filedById,
+            createdAt: utcDate(-20),
+          },
+        });
+      }
+    });
+  }
+
+  const samples = [
+    [
+      'litigant',
+      4,
+      'USABILITY',
+      'NEW',
+      false,
+      'The filing wizard is clear, but the PDF size message could say how large my file was.',
+    ],
+    [
+      'lawyer',
+      5,
+      'SUGGESTION',
+      'PROCESSED',
+      true,
+      'Please add a calendar view of all my hearings for the month in the lawyer portal.',
+    ],
+    [
+      'litigant2',
+      2,
+      'TECHNICAL_ISSUE',
+      'NEW',
+      false,
+      'The page froze for a few seconds after I uploaded two pleadings together.',
+    ],
+    [
+      'lawyer2',
+      null,
+      'OTHER',
+      'ARCHIVED',
+      false,
+      'Thank you for the quick verification of my bar credentials this week.',
+    ],
+    [
+      'litigant',
+      3,
+      'SUGGESTION',
+      'NEW',
+      false,
+      'It would help to get a text message the day before a hearing as well.',
+    ],
+  ] as const;
+  for (const [user, rating, category, status, forward, message] of samples) {
+    if (await prisma.feedback.findFirst({ where: { message } })) continue;
+    await prisma.feedback.create({
+      data: {
+        userId: ids[user],
+        rating,
+        category,
+        status,
+        forwardToMaintenance: forward,
+        message,
+        ...(status === 'NEW' ? {} : { reviewedById: ids.admin, reviewedAt: new Date() }),
+      },
+    });
+  }
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -1064,6 +1254,7 @@ async function main() {
   await seedSampleData(ids, lawyerProfileIds, reference);
   await seedAllocationSamples(ids, lawyerProfileIds, reference);
   await seedScheduling(ids, lawyerProfileIds, reference);
+  await seedPhase4(ids);
   const file = writeAccountsFile(credentials);
 
   console.log(

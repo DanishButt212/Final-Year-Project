@@ -34,9 +34,7 @@ const pkr = (v: DecInput) => `PKR ${D(v).toDecimalPlaces(0).toNumber().toLocaleS
  */
 export function calculateLedger(input: FeeInputs): { lines: LedgerLine[]; total: Dec } {
   const base = money(D(input.baseFee));
-  const lines: LedgerLine[] = [
-    { code: 'BASE_FEE', label: 'Base filing fee', amount: fmt(base) },
-  ];
+  const lines: LedgerLine[] = [{ code: 'BASE_FEE', label: 'Base filing fee', amount: fmt(base) }];
   let sum = base;
 
   if (input.caseType === 'CIVIL_SUIT' && input.claimAmountPkr != null) {
@@ -68,7 +66,10 @@ export function feeInputHash(input: FeeInputs): string {
   const norm = {
     t: input.caseType,
     b: fmt(D(input.baseFee)),
-    c: input.caseType === 'CIVIL_SUIT' && input.claimAmountPkr != null ? fmt(D(input.claimAmountPkr)) : null,
+    c:
+      input.caseType === 'CIVIL_SUIT' && input.claimAmountPkr != null
+        ? fmt(D(input.claimAmountPkr))
+        : null,
     p: pct(input.adValoremPercent),
     k: fmt(D(input.adValoremCapPkr)),
     m: pct(input.rateModifierPercent),

@@ -75,7 +75,9 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   @Transform(toStringValue)
-  @Matches(DECIMAL, { message: 'Ad valorem cap must be an amount of 0 or more with at most two decimals.' })
+  @Matches(DECIMAL, {
+    message: 'Ad valorem cap must be an amount of 0 or more with at most two decimals.',
+  })
   adValoremCapPkr?: string;
 
   @IsOptional()

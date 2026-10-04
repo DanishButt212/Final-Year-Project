@@ -122,7 +122,10 @@ export class AdminCasesService {
     if (target.status === 'PENDING_ASSIGNMENT') {
       const paid = await this.prisma.challan.count({ where: { caseId, status: 'PAID' } });
       if (paid === 0) {
-        throw new ConflictException({ code: 'FEE_UNPAID', message: 'Court fee is unpaid for this case.' });
+        throw new ConflictException({
+          code: 'FEE_UNPAID',
+          message: 'Court fee is unpaid for this case.',
+        });
       }
     }
     if (target.status !== 'PENDING_ASSIGNMENT' && !isReallocation) {

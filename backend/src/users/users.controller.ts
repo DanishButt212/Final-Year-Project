@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Patch, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Put, Query, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
-import { ListUsersQueryDto, UpdateProfileDto } from './dto/users.dto';
+import { ListUsersQueryDto, NotificationPreferencesDto, UpdateProfileDto } from './dto/users.dto';
 import { UsersService } from './users.service';
 
 @ApiTags('users')
@@ -22,6 +22,24 @@ export class UsersController {
   @Patch('me')
   updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto, @Req() req: Request) {
     return this.users.updateMe(user, dto, { ip: req.ip, userAgent: req.headers['user-agent'] });
+  }
+
+  @Get('me/notification-preferences')
+  getPreferences(@CurrentUser() user: AuthUser) {
+    return this.users.getPreferences(user.id);
+  }
+
+  /** "Notification Preferences Saved." */
+  @Put('me/notification-preferences')
+  savePreferences(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: NotificationPreferencesDto,
+    @Req() req: Request,
+  ) {
+    return this.users.savePreferences(user, dto, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   }
 
   /** Paginated user list. ADMIN only. */

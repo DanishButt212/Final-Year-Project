@@ -125,7 +125,11 @@ export class ChallansService {
       if (existing) {
         await tx.challan.update({
           where: { id: existing.id },
-          data: { amount: total, ledger: lines as unknown as Prisma.InputJsonValue, inputHash: hash },
+          data: {
+            amount: total,
+            ledger: lines as unknown as Prisma.InputJsonValue,
+            inputHash: hash,
+          },
         });
         await this.audit.logWithin(tx, {
           action: AuditAction.CHALLAN_RECALCULATED,

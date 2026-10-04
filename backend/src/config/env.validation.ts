@@ -50,7 +50,9 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     FORGOT_THROTTLE_LIMIT: Number(raw.FORGOT_THROTTLE_LIMIT ?? 10),
     UPLOAD_THROTTLE_LIMIT: Number(raw.UPLOAD_THROTTLE_LIMIT ?? 20),
     UPLOAD_DIR: resolve(String(raw.UPLOAD_DIR ?? join(process.cwd(), 'uploads'))),
-    EVIDENCE_ENCRYPTION_KEY: raw.EVIDENCE_ENCRYPTION_KEY ? String(raw.EVIDENCE_ENCRYPTION_KEY) : undefined,
+    EVIDENCE_ENCRYPTION_KEY: raw.EVIDENCE_ENCRYPTION_KEY
+      ? String(raw.EVIDENCE_ENCRYPTION_KEY)
+      : undefined,
     UPLOAD_TMP_DIR: resolve(String(raw.UPLOAD_TMP_DIR ?? join(tmpdir(), 'digitaladaalat-uploads'))),
   };
 }

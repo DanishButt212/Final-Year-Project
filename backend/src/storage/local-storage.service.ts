@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createReadStream } from 'node:fs';
+import { createReadStream, createWriteStream } from 'node:fs';
 import { access, copyFile, mkdir, rename, rm, unlink } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import type { Readable } from 'node:stream';
 import { StorageService } from './storage.service';
 
@@ -39,6 +40,21 @@ export class LocalStorageService extends StorageService {
       await copyFile(tempPath, target);
       await unlink(tempPath);
     }
+  }
+
+  async saveFromStream(stream: Readable, key: string): Promise<void> {
+    const target = this.pathFor(key);
+    await mkdir(dirname(target), { recursive: true });
+    try {
+      await pipeline(stream, createWriteStream(target, { flags: 'wx' }));
+    } catch (error) {
+      await rm(target, { force: true });
+      throw error;
+    }
+  }
+
+  async remove(key: string): Promise<void> {
+    await rm(this.pathFor(key), { force: true });
   }
 
   createReadStream(key: string): Readable {

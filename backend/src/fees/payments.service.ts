@@ -59,9 +59,16 @@ function decide(dto: AuthorizeDto): Decision {
   const brand = brandOf(digits);
   const [mm, yy] = dto.expiry.split('/').map(Number);
   const now = new Date();
-  const expired = 2000 + yy < now.getFullYear() || (2000 + yy === now.getFullYear() && mm < now.getMonth() + 1);
-  const fail = (reason: Decision['reason']): Decision => ({ approved: false, reason, brand, last4 });
-  if (!/^\d{12,19}$/.test(digits) || dto.cardholderName.trim().length < 2) return fail('INVALID_DETAILS');
+  const expired =
+    2000 + yy < now.getFullYear() || (2000 + yy === now.getFullYear() && mm < now.getMonth() + 1);
+  const fail = (reason: Decision['reason']): Decision => ({
+    approved: false,
+    reason,
+    brand,
+    last4,
+  });
+  if (!/^\d{12,19}$/.test(digits) || dto.cardholderName.trim().length < 2)
+    return fail('INVALID_DETAILS');
   if (expired) return fail('EXPIRED_CARD');
   if (digits === INSUFFICIENT_FUNDS_CARD) return fail('INSUFFICIENT_FUNDS');
   if (digits !== APPROVE_CARD && !luhn(digits)) return fail('INVALID_CARD');
@@ -84,10 +91,16 @@ export class PaymentsService {
     });
     if (!challan) throw new NotFoundException(Messages.NOT_FOUND);
     if (challan.status === 'PAID') {
-      throw new ConflictException({ code: 'ALREADY_PAID', message: 'This challan is already paid.' });
+      throw new ConflictException({
+        code: 'ALREADY_PAID',
+        message: 'This challan is already paid.',
+      });
     }
     if (challan.status !== 'UNPAID') {
-      throw new ConflictException({ code: 'NOT_PAYABLE', message: 'This challan can no longer be paid.' });
+      throw new ConflictException({
+        code: 'NOT_PAYABLE',
+        message: 'This challan can no longer be paid.',
+      });
     }
     const pending = await this.prisma.payment.findFirst({
       where: { challanId: challan.id, payerId: user.id, status: 'PENDING' },
@@ -114,7 +127,11 @@ export class PaymentsService {
   async authorize(user: AuthUser, dto: AuthorizeDto, meta: RequestMeta) {
     const payment = await this.prisma.payment.findFirst({
       where: { id: dto.paymentId, payerId: user.id },
-      include: { challan: { select: { id: true, caseId: true, challanNo: true, case: { select: { ucn: true } } } } },
+      include: {
+        challan: {
+          select: { id: true, caseId: true, challanNo: true, case: { select: { ucn: true } } },
+        },
+      },
     });
     if (!payment) throw new NotFoundException(Messages.NOT_FOUND);
     if (payment.status !== 'PENDING') {
@@ -129,7 +146,12 @@ export class PaymentsService {
     if (!decision.approved) {
       await this.prisma.payment.update({
         where: { id: payment.id },
-        data: { status: 'FAILED', failureReason: decision.reason, cardBrand: decision.brand, cardLast4: decision.last4 },
+        data: {
+          status: 'FAILED',
+          failureReason: decision.reason,
+          cardBrand: decision.brand,
+          cardLast4: decision.last4,
+        },
       });
       await this.audit.log({
         action: AuditAction.PAYMENT_FAILED,
@@ -152,7 +174,10 @@ export class PaymentsService {
         data: { status: 'PAID' },
       });
       if (flipped.count !== 1) {
-        throw new ConflictException({ code: 'ALREADY_PAID', message: 'This challan is already paid.' });
+        throw new ConflictException({
+          code: 'ALREADY_PAID',
+          message: 'This challan is already paid.',
+        });
       }
       const receiptNo = await nextReceiptNo(tx);
       const paidAt = new Date();
@@ -219,7 +244,9 @@ export class PaymentsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: (q.page - 1) * q.limit,
         take: q.limit,
-        include: { challan: { select: { challanNo: true, caseId: true, case: { select: { ucn: true } } } } },
+        include: {
+          challan: { select: { challanNo: true, caseId: true, case: { select: { ucn: true } } } },
+        },
       }),
     ]);
     return {

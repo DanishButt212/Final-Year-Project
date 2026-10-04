@@ -1,5 +1,15 @@
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { PHONE_MESSAGE, PHONE_REGEX } from '../../common/patterns';
 import { Trim } from '../../common/validators';
 import { Role, UserStatus } from '../../generated/prisma/client';
@@ -49,4 +59,16 @@ export class ListUsersQueryDto {
   @IsString()
   @MaxLength(100)
   search?: string;
+}
+
+/** UC-5.3 Set Notification Channels. In-app notifications are always on. */
+export class NotificationPreferencesDto {
+  @IsBoolean()
+  sms: boolean;
+
+  @IsBoolean()
+  mobilePush: boolean;
+
+  @IsBoolean()
+  email: boolean;
 }

@@ -191,7 +191,8 @@ export class CasesService {
             status: 'PENDING_ASSIGNMENT',
             title,
             reliefSought: dto.reliefSought,
-            claimAmountPkr: dto.caseType === 'CIVIL_SUIT' && dto.claimAmountPkr ? dto.claimAmountPkr : null,
+            claimAmountPkr:
+              dto.caseType === 'CIVIL_SUIT' && dto.claimAmountPkr ? dto.claimAmountPkr : null,
             filingDate: todayUtc(),
             filedById: user.id,
             parties: {

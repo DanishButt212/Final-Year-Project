@@ -165,16 +165,32 @@ export class SettingsService {
       ]);
     }
     if (dto.adValoremPercent !== undefined) {
-      entries.push([SETTING_KEYS.adValoremPercent, dto.adValoremPercent, 'Ad valorem percentage for Civil Suits']);
+      entries.push([
+        SETTING_KEYS.adValoremPercent,
+        dto.adValoremPercent,
+        'Ad valorem percentage for Civil Suits',
+      ]);
     }
     if (dto.adValoremCapPkr !== undefined) {
-      entries.push([SETTING_KEYS.adValoremCapPkr, dto.adValoremCapPkr, 'Cap on the ad valorem fee (PKR)']);
+      entries.push([
+        SETTING_KEYS.adValoremCapPkr,
+        dto.adValoremCapPkr,
+        'Cap on the ad valorem fee (PKR)',
+      ]);
     }
     if (dto.challanDueDays !== undefined) {
-      entries.push([SETTING_KEYS.challanDueDays, String(dto.challanDueDays), 'Days until a challan is due']);
+      entries.push([
+        SETTING_KEYS.challanDueDays,
+        String(dto.challanDueDays),
+        'Days until a challan is due',
+      ]);
     }
     if (dto.maxEvidenceMb !== undefined) {
-      entries.push([SETTING_KEYS.maxEvidenceMb, String(dto.maxEvidenceMb), 'Maximum evidence file size in MB']);
+      entries.push([
+        SETTING_KEYS.maxEvidenceMb,
+        String(dto.maxEvidenceMb),
+        'Maximum evidence file size in MB',
+      ]);
     }
     if (dto.filingFeeRateModifier !== undefined) {
       entries.push([

@@ -8,6 +8,10 @@ import type { Readable } from 'node:stream';
 export abstract class StorageService {
   /** Moves a finished temp file into storage under `key`. */
   abstract saveFromPath(tempPath: string, key: string): Promise<void>;
+  /** Writes a stream (for example an encrypting stream) into storage under `key`. */
+  abstract saveFromStream(stream: Readable, key: string): Promise<void>;
+  /** Deletes one stored file; a missing file is not an error. */
+  abstract remove(key: string): Promise<void>;
   abstract createReadStream(key: string): Readable;
   abstract exists(key: string): Promise<boolean>;
   /** Deletes every file whose key starts with `prefix` (used to roll back a failed submission). */

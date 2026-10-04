@@ -17,8 +17,16 @@ function start(title: string, subtitle: string) {
   const doc = new PDFDocument({ size: 'A4', margin: 56, info: { Title: title } });
   const out = new PassThrough();
   doc.pipe(out);
-  doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(20).text('DigitalAdaalat', { align: 'left' });
-  doc.fillColor('#4A524C').font('Helvetica').fontSize(10).text('Judicial ERP, Islamic Republic of Pakistan');
+  doc
+    .fillColor(GREEN)
+    .font('Helvetica-Bold')
+    .fontSize(20)
+    .text('DigitalAdaalat', { align: 'left' });
+  doc
+    .fillColor('#4A524C')
+    .font('Helvetica')
+    .fontSize(10)
+    .text('Judicial ERP, Islamic Republic of Pakistan');
   doc.moveDown(0.5);
   doc.moveTo(56, doc.y).lineTo(539, doc.y).strokeColor(GREEN).lineWidth(1.5).stroke();
   doc.moveDown(1);
@@ -74,18 +82,30 @@ export function challanPdf(d: ChallanPdfData) {
     const y = doc.y;
     const total = line.code === 'TOTAL';
     if (total) {
-      doc.moveTo(56, y - 2).lineTo(539, y - 2).strokeColor('#D9DED9').lineWidth(1).stroke();
+      doc
+        .moveTo(56, y - 2)
+        .lineTo(539, y - 2)
+        .strokeColor('#D9DED9')
+        .lineWidth(1)
+        .stroke();
     }
-    doc.font(total ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor('#1A1A1A');
+    doc
+      .font(total ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(10)
+      .fillColor('#1A1A1A');
     doc.text(line.label, 56, y + 2, { width: 340 });
     doc.text(pkr(line.amount), 400, y + 2, { width: 139, align: 'right' });
     doc.moveDown(0.5);
   }
   doc.moveDown(2);
-  doc.font('Helvetica').fontSize(9).fillColor('#4A524C').text(
-    'This is a computer generated challan. Pay it online through the DigitalAdaalat portal. Payment is accepted until the due date shown.',
-    { width: 483 },
-  );
+  doc
+    .font('Helvetica')
+    .fontSize(9)
+    .fillColor('#4A524C')
+    .text(
+      'This is a computer generated challan. Pay it online through the DigitalAdaalat portal. Payment is accepted until the due date shown.',
+      { width: 483 },
+    );
   doc.end();
   return file(out, `${d.challanNo}.pdf`);
 }
@@ -115,12 +135,20 @@ export function receiptPdf(d: ReceiptPdfData) {
     ['Gateway reference', d.gatewayRef ?? '-'],
   ]);
   doc.moveDown(1);
-  doc.font('Helvetica-Bold').fontSize(14).fillColor(GREEN).text(`Amount received: ${pkr(d.amount)}`);
+  doc
+    .font('Helvetica-Bold')
+    .fontSize(14)
+    .fillColor(GREEN)
+    .text(`Amount received: ${pkr(d.amount)}`);
   doc.moveDown(2);
-  doc.font('Helvetica').fontSize(9).fillColor('#4A524C').text(
-    'Payment received through the simulated demonstration gateway. This receipt is computer generated and valid without a signature.',
-    { width: 483 },
-  );
+  doc
+    .font('Helvetica')
+    .fontSize(9)
+    .fillColor('#4A524C')
+    .text(
+      'Payment received through the simulated demonstration gateway. This receipt is computer generated and valid without a signature.',
+      { width: 483 },
+    );
   doc.end();
   return file(out, `${d.receiptNo}.pdf`);
 }

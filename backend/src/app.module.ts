@@ -5,6 +5,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { EvidenceModule } from './evidence/evidence.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { FeesModule } from './fees/fees.module';
 import { CasesModule } from './cases/cases.module';
 import { StorageModule } from './storage/storage.module';
@@ -46,6 +48,8 @@ import { UsersModule } from './users/users.module';
     JudgeModule,
     SchedulingModule,
     FeesModule,
+    EvidenceModule,
+    FeedbackModule,
     HealthModule,
   ],
   providers: [

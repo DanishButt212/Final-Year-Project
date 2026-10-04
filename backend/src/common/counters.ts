@@ -21,11 +21,17 @@ export async function nextSequence(
 const pad = (n: number) => String(n).padStart(6, '0');
 
 /** CH-<YYYY>-<6 digits> */
-export async function nextChallanNo(tx: Prisma.TransactionClient, year = new Date().getUTCFullYear()) {
+export async function nextChallanNo(
+  tx: Prisma.TransactionClient,
+  year = new Date().getUTCFullYear(),
+) {
   return `CH-${year}-${pad(await nextSequence(tx, 'CH', year))}`;
 }
 
 /** RCPT-<YYYY>-<6 digits> */
-export async function nextReceiptNo(tx: Prisma.TransactionClient, year = new Date().getUTCFullYear()) {
+export async function nextReceiptNo(
+  tx: Prisma.TransactionClient,
+  year = new Date().getUTCFullYear(),
+) {
   return `RCPT-${year}-${pad(await nextSequence(tx, 'RCPT', year))}`;
 }
