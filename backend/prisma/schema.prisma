@@ -65,6 +65,9 @@ enum CaseEventType {
   CASE_SUBMITTED
   DOCUMENT_ATTACHED
   CASE_ALLOCATED
+  HEARING_SCHEDULED
+  HEARING_RESCHEDULED
+  HEARING_CANCELLED
 }
 
 enum PartyRole {
@@ -454,7 +457,9 @@ model Hearing {
   causeListEntry CauseListEntry?
   session        CourtSession?
 
-  @@unique([judgeId, date, timeSlot])
+  // One judge / one courtroom per date and slot is enforced by PARTIAL unique indexes that ignore
+  // CANCELLED hearings (hand-written SQL in migration hearing_scheduling; Prisma cannot express them).
+  @@index([judgeId, date, timeSlot])
   @@index([caseId])
   @@index([date, status])
   @@index([courtroomId, date])
