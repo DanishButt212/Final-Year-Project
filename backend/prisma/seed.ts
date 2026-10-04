@@ -752,6 +752,286 @@ async function seedAllocationSamples(
   }
 }
 
+/** The n-th working day (Monday to Friday) strictly after today. */
+function workingDayAfterToday(n: number): Date {
+  let d = utcDate(0);
+  let left = n;
+  while (left > 0) {
+    d = new Date(d.getTime() + 86_400_000);
+    if (d.getUTCDay() >= 1 && d.getUTCDay() <= 5) left--;
+  }
+  return d;
+}
+
+/** Phase 3B demo data: schedule policies, hearings on working days, one deliberate lawyer clash and cause lists. */
+async function seedScheduling(
+  ids: Record<string, string>,
+  lawyers: Record<string, string>,
+  courts: {
+    sessions: { id: string };
+    lhc: { id: string };
+    courtrooms: Record<string, string>;
+  },
+) {
+  const policy: [string, string, string][] = [
+    ['court_day_start', '09:00', 'Court day start (HH:mm)'],
+    ['court_day_end', '14:00', 'Court day end (HH:mm)'],
+    ['hearing_slot_minutes', '30', 'Hearing slot length in minutes'],
+  ];
+  for (const [key, value, description] of policy) {
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value, description },
+    });
+  }
+
+  const MARKER = 'Phase 3B demo';
+  if (await prisma.hearing.findFirst({ where: { purpose: { startsWith: MARKER } } })) {
+    console.log('Scheduling demo data already exists, skipping.');
+    return;
+  }
+
+  const slotTime = (slot: number) => {
+    const m = 9 * 60 + (slot - 1) * 30;
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  };
+  const courtOf = (key: 'sessions' | 'lhc') =>
+    key === 'sessions' ? courts.sessions.id : courts.lhc.id;
+
+  // Extra allocated cases so every judge has something to schedule.
+  const extra = [
+    [
+      'c1',
+      'CIVIL_SUIT',
+      'Imtiaz Ahmed vs. Punjab Revenue Authority',
+      'litigant',
+      'lawyer',
+      'sessions',
+      'judge',
+      'Court Room 1',
+    ],
+    [
+      'c2',
+      'BAIL_APPLICATION',
+      'Adeel Raza vs. The State',
+      'lawyer2',
+      'lawyer2',
+      'sessions',
+      'judge2',
+      'Court Room 2',
+    ],
+    [
+      'c3',
+      'CIVIL_SUIT',
+      'Nazia Parveen vs. Haseeb Ullah',
+      'lawyer5',
+      'lawyer5',
+      'sessions',
+      'judge4',
+      'Court Room 3',
+    ],
+    [
+      'c4',
+      'BAIL_APPLICATION',
+      'Salman Khan vs. The State',
+      'lawyer2',
+      'lawyer2',
+      'sessions',
+      'judge',
+      'Court Room 1',
+    ],
+    [
+      'c5',
+      'WRIT_PETITION',
+      'Al-Noor Mills vs. Federation of Pakistan',
+      'lawyer5',
+      'lawyer5',
+      'lhc',
+      'judge3',
+      'Bench I',
+    ],
+    [
+      'c6',
+      'WRIT_PETITION',
+      'Sheikh Textiles vs. Provincial Government',
+      'lawyer',
+      'lawyer',
+      'lhc',
+      'judge5',
+      'Bench II',
+    ],
+    [
+      'c7',
+      'CRIMINAL_APPEAL',
+      'Rafiq Ahmed vs. The State',
+      'litigant',
+      null,
+      'lhc',
+      'judge6',
+      'Bench III',
+    ],
+    [
+      'c8',
+      'CIVIL_SUIT',
+      'Mehwish Tariq vs. Danish Enterprises',
+      'litigant2',
+      null,
+      'sessions',
+      'judge2',
+      'Court Room 2',
+    ],
+    [
+      'cx',
+      'BAIL_APPLICATION',
+      'Hamid Nawaz vs. The State',
+      'lawyer2',
+      'lawyer2',
+      'sessions',
+      'judge4',
+      'Court Room 3',
+    ],
+  ] as const;
+  const caseIds: Record<string, string> = {};
+  for (const [key, type, title, filer, counsel, court, judge, room] of extra) {
+    const found = await prisma.case.findFirst({ where: { title } });
+    if (found) {
+      caseIds[key] = found.id;
+      continue;
+    }
+    const filingDate = utcDate(-8);
+    const row = await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, type as CaseType, filingDate.getUTCFullYear());
+      return tx.case.create({
+        data: {
+          ucn,
+          caseType: type as CaseType,
+          status: 'ALLOCATED',
+          title,
+          reliefSought: 'Relief as set out in the petition filed before this court (demo case).',
+          filingDate,
+          filedById: ids[filer],
+          courtId: courtOf(court),
+          courtroomId: courts.courtrooms[room],
+          judgeId: ids[judge],
+          allocatedAt: utcDate(-6),
+          parties: {
+            create: [
+              {
+                role: type === 'CRIMINAL_APPEAL' ? 'APPELLANT' : 'PETITIONER',
+                name: title.split(' vs. ')[0],
+                lawyerId: counsel ? lawyers[counsel] : null,
+              },
+              { role: 'RESPONDENT', name: title.split(' vs. ')[1] },
+            ],
+          },
+          events: {
+            create: [
+              {
+                type: 'CASE_SUBMITTED',
+                description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+                actorId: ids[filer],
+                createdAt: filingDate,
+              },
+              {
+                type: 'CASE_ALLOCATED',
+                description: `Case allocated to ${title.split(' vs. ')[0]}'s bench (demo).`,
+                actorId: ids.admin,
+                createdAt: utcDate(-6),
+              },
+            ],
+          },
+        },
+      });
+    });
+    caseIds[key] = row.id;
+  }
+  const byTitle = async (title: string) =>
+    (await prisma.case.findFirstOrThrow({ where: { title } })).id;
+  caseIds.n1 = await byTitle('Muhammad Ali vs. The State');
+  caseIds.n2 = await byTitle('Sana Noreen vs. Bilal Ahmed');
+  caseIds.n3 = await byTitle('Zubair Traders vs. Federation of Pakistan');
+  caseIds.bashir = await byTitle('Bashir Hussain vs. Multan Electric Supply Company');
+  await prisma.case.update({
+    where: { id: caseIds.n3 },
+    data: { courtroomId: courts.courtrooms['Bench I'] },
+  });
+
+  // The two Phase 1 sample hearings fell on arbitrary days: remove them, they are re-created below.
+  await prisma.hearing.deleteMany({ where: { caseId: { in: [caseIds.n1, caseIds.n2] } } });
+
+  // [case, judge, room, working day after today, slot]
+  const plan = [
+    ['n1', 'judge', 'Court Room 1', 1, 1],
+    ['n2', 'judge2', 'Court Room 2', 1, 2],
+    ['c3', 'judge4', 'Court Room 3', 1, 1],
+    ['c5', 'judge3', 'Bench I', 1, 2],
+    ['c1', 'judge', 'Court Room 1', 2, 1],
+    ['c2', 'judge2', 'Court Room 2', 2, 2],
+    ['c4', 'judge', 'Court Room 1', 3, 3],
+    ['c6', 'judge5', 'Bench II', 3, 3],
+    ['c7', 'judge6', 'Bench III', 4, 4],
+    ['n3', 'judge3', 'Bench I', 4, 2],
+    ['c8', 'judge2', 'Court Room 2', 5, 1],
+    ['bashir', 'judge2', 'Court Room 2', 6, 1],
+    // Deliberate clash (inserted directly, bypassing the check): lawyer2 is also in Court Room 1 at this time.
+    ['cx', 'judge4', 'Court Room 3', 3, 3],
+  ] as const;
+  for (const [key, judge, room, day, slot] of plan) {
+    const date = workingDayAfterToday(day);
+    await prisma.hearing.create({
+      data: {
+        caseId: caseIds[key],
+        judgeId: ids[judge],
+        courtroomId: courts.courtrooms[room],
+        date,
+        timeSlot: slot,
+        startTime: slotTime(slot),
+        purpose: key === 'cx' ? `${MARKER} (deliberate lawyer clash)` : `${MARKER}`,
+      },
+    });
+    await prisma.case.update({ where: { id: caseIds[key] }, data: { status: 'HEARING_FIXED' } });
+    await prisma.caseEvent.create({
+      data: {
+        caseId: caseIds[key],
+        type: 'HEARING_SCHEDULED',
+        description: `Hearing scheduled for ${date.toISOString().slice(8, 10)}-${date.toISOString().slice(5, 7)}-${date.getUTCFullYear()} at ${slotTime(slot)} in ${room}.`,
+        actorId: ids.admin,
+      },
+    });
+  }
+
+  // Published cause list for the next working day, an unpublished one for the day after.
+  const published = workingDayAfterToday(1);
+  const draft = workingDayAfterToday(2);
+  for (const courtId of [courts.sessions.id, courts.lhc.id]) {
+    const list = await prisma.causeList.upsert({
+      where: { courtId_date: { courtId, date: published } },
+      update: {},
+      create: {
+        courtId,
+        date: published,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        createdById: ids.admin,
+      },
+    });
+    const hearings = await prisma.hearing.findMany({
+      where: { date: published, status: { not: 'CANCELLED' }, courtroom: { courtId } },
+      orderBy: [{ courtroom: { name: 'asc' } }, { timeSlot: 'asc' }],
+    });
+    await prisma.causeListEntry.deleteMany({ where: { causeListId: list.id } });
+    await prisma.causeListEntry.createMany({
+      data: hearings.map((h, i) => ({ causeListId: list.id, hearingId: h.id, serialNo: i + 1 })),
+    });
+    await prisma.causeList.upsert({
+      where: { courtId_date: { courtId, date: draft } },
+      update: {},
+      create: { courtId, date: draft, status: 'DRAFT', createdById: ids.admin },
+    });
+  }
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -783,6 +1063,7 @@ async function main() {
   const { ids, lawyerProfileIds, credentials } = await seedUsers(reference);
   await seedSampleData(ids, lawyerProfileIds, reference);
   await seedAllocationSamples(ids, lawyerProfileIds, reference);
+  await seedScheduling(ids, lawyerProfileIds, reference);
   const file = writeAccountsFile(credentials);
 
   console.log(
