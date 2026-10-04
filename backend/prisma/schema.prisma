@@ -1,0 +1,794 @@
+// DigitalAdaalat database schema.
+// Money is always Decimal(12,2) PKR, never Float.
+// AuditLog is append-only: a PostgreSQL trigger (see migrations) blocks UPDATE and DELETE.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------- enums
+
+enum Role {
+  LITIGANT
+  LAWYER
+  INTERN
+  PROCESS_SERVER
+  JUDGE
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum CourtType {
+  DISTRICT_SESSIONS
+  HIGH_COURT
+}
+
+enum CaseType {
+  CIVIL_SUIT
+  CRIMINAL_APPEAL
+  WRIT_PETITION
+  BAIL_APPLICATION
+}
+
+enum CaseStatus {
+  DRAFT
+  PENDING_ASSIGNMENT
+  FILED
+  UNDER_SCRUTINY
+  ALLOCATED
+  PENDING
+  HEARING_FIXED
+  DECIDED
+  REJECTED
+  DISMISSED
+}
+
+enum CaseEventType {
+  CASE_SUBMITTED
+  DOCUMENT_ATTACHED
+}
+
+enum PartyRole {
+  PETITIONER
+  RESPONDENT
+  APPELLANT
+  ACCUSED
+  COMPLAINANT
+  WITNESS
+}
+
+enum DocumentType {
+  PLEADING
+  ORDER
+  JUDGMENT
+  ANNEXURE
+  OTHER
+}
+
+enum HearingType {
+  PHYSICAL
+  VIRTUAL
+}
+
+enum HearingStatus {
+  SCHEDULED
+  HELD
+  ADJOURNED
+  CANCELLED
+}
+
+enum CauseListStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ChallanStatus {
+  UNPAID
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  MOCK_CARD
+  MOCK_WALLET
+  MOCK_BANK_TRANSFER
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum SummonsStatus {
+  PENDING
+  ASSIGNED
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+enum RetainerTxType {
+  DEPOSIT
+  DEDUCTION
+  REFUND
+}
+
+enum DiaryReviewStatus {
+  SUBMITTED
+  APPROVED
+  RETURNED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+enum SessionStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum ParticipantRole {
+  JUDGE
+  LAWYER
+  LITIGANT
+  OBSERVER
+}
+
+// ---------------------------------------------------------------- identity
+
+/// FR: registration, login, user management (UC: Register, Login, Manage Users)
+model User {
+  id           String     @id @default(uuid())
+  role         Role
+  firstName    String
+  lastName     String
+  cnic         String     @unique
+  email        String     @unique
+  username     String?    @unique // used by admin accounts to log in
+  phone        String
+  passwordHash String
+  status       UserStatus @default(ACTIVE)
+  profileImage String?
+  courtId      String? // judges are attached to a court
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  court                  Court?                    @relation(fields: [courtId], references: [id])
+  lawyerProfile          LawyerProfile?
+  internProfile          InternProfile?
+  passwordResetTokens    PasswordResetToken[]
+  notificationPreference NotificationPreference?
+  notifications          Notification[]
+  feedbacks              Feedback[]
+  filedCases             Case[]                    @relation("CaseFiledBy")
+  judgeCases             Case[]                    @relation("CaseJudge")
+  judgeHearings          Hearing[]                 @relation("HearingJudge")
+  uploadedDocuments      CaseDocument[]
+  uploadedEvidence       Evidence[]
+  challansPaid           Challan[]
+  payments               Payment[]
+  summonsServed          Summons[]                 @relation("SummonsServer")
+  reviewedDiaryEntries   InternDiaryEntry[]        @relation("DiaryReviewer")
+  verifiedLawyers        LawyerProfile[]           @relation("LawyerVerifier")
+  sessionParticipation   CourtSessionParticipant[]
+  createdSessions        CourtSession[]
+  createdCauseLists      CauseList[]
+  caseEvents             CaseEvent[]
+
+  @@index([role, status])
+  @@index([courtId])
+}
+
+/// FR: lawyer verification via Bar Council (UC: Verify Lawyer)
+model LawyerProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  barNumber          String?            @unique
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  user        User             @relation(fields: [userId], references: [id])
+  verifiedBy  User?            @relation("LawyerVerifier", fields: [verifiedById], references: [id])
+  interns     InternProfile[]
+  caseParties CaseParty[]
+  clients     ChamberClient[]
+  billable    BillableEntry[]
+  expenses    ChamberExpense[]
+
+  @@index([verificationStatus])
+}
+
+/// FR: legal intern tracking (UC: Manage Intern, Review Diary)
+model InternProfile {
+  id                  String    @id @default(uuid())
+  userId              String    @unique
+  supervisorId        String
+  startDate           DateTime  @db.Date
+  endDate             DateTime? @db.Date
+  certificateIssuedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user       User               @relation(fields: [userId], references: [id])
+  supervisor LawyerProfile      @relation(fields: [supervisorId], references: [id])
+  diary      InternDiaryEntry[]
+  attendance Attendance[]
+
+  @@index([supervisorId])
+}
+
+/// FR: forgot/reset password (UC: Reset Password); only the SHA-256 hash is stored
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------- courts
+
+/// FR: court and bench management (UC: Manage Courts)
+model Court {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  type      CourtType
+  city      String
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  courtrooms Courtroom[]
+  judges     User[]
+  cases      Case[]
+  causeLists CauseList[]
+
+  @@index([city])
+}
+
+/// FR: courtroom/bench allocation and scheduling (UC: Build Cause List)
+model Courtroom {
+  id        String   @id @default(uuid())
+  courtId   String
+  name      String
+  benchNo   Int?
+  capacity  Int?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  court    Court     @relation(fields: [courtId], references: [id])
+  cases    Case[]
+  hearings Hearing[]
+
+  @@unique([courtId, name])
+}
+
+// ---------------------------------------------------------------- cases
+
+/// FR 3-1, FR 3-3: electronic filing and Unique Case Number (UC-2.1 Submit New Case, UC-2.3 View Case Portfolio)
+model Case {
+  id           String     @id @default(uuid())
+  ucn          String     @unique
+  caseType     CaseType
+  status       CaseStatus @default(DRAFT)
+  title        String
+  reliefSought String
+  filingDate   DateTime?  @db.Date
+  filedById    String
+  courtId      String?
+  courtroomId  String?
+  judgeId      String?
+  allocatedAt  DateTime?
+  decidedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  filedBy   User            @relation("CaseFiledBy", fields: [filedById], references: [id])
+  judge     User?           @relation("CaseJudge", fields: [judgeId], references: [id])
+  court     Court?          @relation(fields: [courtId], references: [id])
+  courtroom Courtroom?      @relation(fields: [courtroomId], references: [id])
+  parties   CaseParty[]
+  documents CaseDocument[]
+  evidence  Evidence[]
+  hearings  Hearing[]
+  challans  Challan[]
+  summons   Summons[]
+  billable  BillableEntry[]
+  events    CaseEvent[]
+
+  @@index([filedById])
+  @@index([judgeId, status])
+  @@index([courtId, status])
+  @@index([caseType, status])
+  @@index([filingDate])
+}
+
+/// FR: parties and their counsel on a case (UC: File Case); lawyerId drives lawyer anti-clash checks
+model CaseParty {
+  id        String    @id @default(uuid())
+  caseId    String
+  role      PartyRole
+  name      String
+  cnic      String?
+  phone     String?
+  address   String?
+  lawyerId  String?
+  position  Int       @default(0) // order within its side (petitioners / respondents)
+  createdAt DateTime  @default(now())
+
+  case    Case           @relation(fields: [caseId], references: [id])
+  lawyer  LawyerProfile? @relation(fields: [lawyerId], references: [id])
+  summons Summons[]
+
+  @@index([caseId])
+  @@index([lawyerId, caseId]) // supports lawyer double-booking lookups
+}
+
+/// FR 3-2: PDF pleading upload, max 25 MB, locked once attached (UC-2.2 Upload Legal Pleadings)
+model CaseDocument {
+  id           String       @id @default(uuid())
+  caseId       String
+  type         DocumentType @default(PLEADING)
+  title        String
+  originalName String // file name as uploaded by the user (never used as a path)
+  filePath     String // storage key, e.g. cases/<caseId>/<uuid>.pdf
+  sha256       String
+  mimeType     String       @default("application/pdf")
+  sizeBytes    Int
+  uploadedById String
+  createdAt    DateTime     @default(now())
+
+  case       Case @relation(fields: [caseId], references: [id])
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([caseId, type])
+}
+
+/// FR: evidence vault (UC: Manage Evidence)
+model Evidence {
+  id           String   @id @default(uuid())
+  caseId       String
+  title        String
+  description  String?
+  filePath     String
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  case       Case @relation(fields: [caseId], references: [id])
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([caseId])
+}
+
+/// FR 3-3: lifecycle history shown on the case page (UC-2.3). Append-only by convention: no update or delete code paths.
+model CaseEvent {
+  id          String        @id @default(uuid())
+  caseId      String
+  type        CaseEventType
+  description String
+  actorId     String?
+  createdAt   DateTime      @default(now())
+
+  case  Case  @relation(fields: [caseId], references: [id])
+  actor User? @relation(fields: [actorId], references: [id])
+
+  @@index([caseId, createdAt])
+}
+
+/// FR 3-3: atomic sequence per year and case-type code, used to build the UCN (DA-YYYY-CODE-000001)
+model CaseCounter {
+  year      Int
+  typeCode  String
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year, typeCode])
+}
+
+// ---------------------------------------------------------------- hearings
+
+/// FR: hearing scheduling with anti-clash (UC: Schedule Hearing); one hearing per judge per date per slot
+model Hearing {
+  id           String        @id @default(uuid())
+  caseId       String
+  courtroomId  String?
+  judgeId      String
+  date         DateTime      @db.Date
+  timeSlot     Int // 1..N slot of the day
+  startTime    String? // HH:mm
+  type         HearingType   @default(PHYSICAL)
+  status       HearingStatus @default(SCHEDULED)
+  purpose      String?
+  orderSummary String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  case           Case            @relation(fields: [caseId], references: [id])
+  courtroom      Courtroom?      @relation(fields: [courtroomId], references: [id])
+  judge          User            @relation("HearingJudge", fields: [judgeId], references: [id])
+  causeListEntry CauseListEntry?
+  session        CourtSession?
+
+  @@unique([judgeId, date, timeSlot])
+  @@index([caseId])
+  @@index([date, status])
+  @@index([courtroomId, date])
+}
+
+/// FR: daily cause list builder and publishing (UC: Build Cause List, View Cause List)
+model CauseList {
+  id          String          @id @default(uuid())
+  courtId     String
+  date        DateTime        @db.Date
+  status      CauseListStatus @default(DRAFT)
+  createdById String
+  publishedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  court     Court            @relation(fields: [courtId], references: [id])
+  createdBy User             @relation(fields: [createdById], references: [id])
+  entries   CauseListEntry[]
+
+  @@unique([courtId, date])
+}
+
+/// FR: ordered entries of a cause list (UC: Build Cause List)
+model CauseListEntry {
+  id          String @id @default(uuid())
+  causeListId String
+  hearingId   String @unique
+  serialNo    Int
+
+  causeList CauseList @relation(fields: [causeListId], references: [id])
+  hearing   Hearing   @relation(fields: [hearingId], references: [id])
+
+  @@unique([causeListId, serialNo])
+}
+
+// ---------------------------------------------------------------- fees and payments
+
+/// FR: court fee configuration in PKR (UC: Manage System Settings)
+model FeeStructure {
+  id            String   @id @default(uuid())
+  caseType      CaseType
+  description   String
+  amount        Decimal  @db.Decimal(12, 2)
+  effectiveFrom DateTime @db.Date
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([caseType, effectiveFrom])
+}
+
+/// FR: system-wide settings, e.g. geofence radius (UC: Manage System Settings)
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// FR: court fee challan generation (UC: Generate Challan)
+model Challan {
+  id        String        @id @default(uuid())
+  challanNo String        @unique
+  caseId    String
+  payerId   String
+  amount    Decimal       @db.Decimal(12, 2)
+  status    ChallanStatus @default(UNPAID)
+  dueDate   DateTime      @db.Date
+  issuedAt  DateTime      @default(now())
+
+  case     Case      @relation(fields: [caseId], references: [id])
+  payer    User      @relation(fields: [payerId], references: [id])
+  payments Payment[]
+
+  @@index([caseId])
+  @@index([payerId, status])
+}
+
+/// FR: mock online payment and receipt (UC: Pay Fee, View Receipt)
+model Payment {
+  id         String        @id @default(uuid())
+  challanId  String
+  payerId    String
+  amount     Decimal       @db.Decimal(12, 2)
+  method     PaymentMethod
+  status     PaymentStatus @default(PENDING)
+  gatewayRef String?       @unique
+  receiptNo  String?       @unique
+  paidAt     DateTime?
+  createdAt  DateTime      @default(now())
+
+  challan Challan @relation(fields: [challanId], references: [id])
+  payer   User    @relation(fields: [payerId], references: [id])
+
+  @@index([challanId])
+  @@index([payerId, status])
+}
+
+// ---------------------------------------------------------------- summons
+
+/// FR: summons delivery by process server with GPS, photo, signature (UC: Serve Summons)
+model Summons {
+  id            String        @id @default(uuid())
+  caseId        String
+  partyId       String?
+  serverId      String?
+  status        SummonsStatus @default(PENDING)
+  issuedAt      DateTime      @default(now())
+  dueBy         DateTime?     @db.Date
+  deliveredAt   DateTime?
+  gpsLat        Decimal?      @db.Decimal(9, 6)
+  gpsLng        Decimal?      @db.Decimal(9, 6)
+  photoPath     String?
+  recipientName String?
+  signaturePath String?
+  remarks       String?
+  attempts      Int           @default(0)
+  updatedAt     DateTime      @updatedAt
+
+  case   Case       @relation(fields: [caseId], references: [id])
+  party  CaseParty? @relation(fields: [partyId], references: [id])
+  server User?      @relation("SummonsServer", fields: [serverId], references: [id])
+
+  @@index([caseId])
+  @@index([serverId, status])
+}
+
+// ---------------------------------------------------------------- internship
+
+/// FR: intern daily diary and supervisor review (UC: Write Diary, Review Diary)
+model InternDiaryEntry {
+  id            String            @id @default(uuid())
+  internId      String
+  entryDate     DateTime          @db.Date
+  content       String
+  reviewStatus  DiaryReviewStatus @default(SUBMITTED)
+  reviewerId    String?
+  reviewComment String?
+  reviewedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  intern   InternProfile @relation(fields: [internId], references: [id])
+  reviewer User?         @relation("DiaryReviewer", fields: [reviewerId], references: [id])
+
+  @@unique([internId, entryDate])
+}
+
+/// FR: geo-fenced attendance (UC: Mark Attendance)
+model Attendance {
+  id             String    @id @default(uuid())
+  internId       String
+  date           DateTime  @db.Date
+  checkInAt      DateTime
+  checkOutAt     DateTime?
+  lat            Decimal   @db.Decimal(9, 6)
+  lng            Decimal   @db.Decimal(9, 6)
+  distanceMeters Int?
+  withinGeofence Boolean
+
+  intern InternProfile @relation(fields: [internId], references: [id])
+
+  @@unique([internId, date])
+}
+
+// ---------------------------------------------------------------- lawyer chamber
+
+/// FR: chamber client management (UC: Manage Clients). Retainer balance is derived from RetainerTransaction rows.
+model ChamberClient {
+  id        String   @id @default(uuid())
+  lawyerId  String
+  name      String
+  cnic      String?
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lawyer       LawyerProfile         @relation(fields: [lawyerId], references: [id])
+  billable     BillableEntry[]
+  transactions RetainerTransaction[]
+  expenses     ChamberExpense[]
+
+  @@index([lawyerId])
+}
+
+/// FR: billable hours tracking (UC: Record Billable Hours)
+model BillableEntry {
+  id          String   @id @default(uuid())
+  lawyerId    String
+  clientId    String
+  caseId      String?
+  workedOn    DateTime @db.Date
+  hours       Decimal  @db.Decimal(5, 2)
+  hourlyRate  Decimal  @db.Decimal(12, 2)
+  description String?
+  createdAt   DateTime @default(now())
+
+  lawyer               LawyerProfile         @relation(fields: [lawyerId], references: [id])
+  client               ChamberClient         @relation(fields: [clientId], references: [id])
+  case                 Case?                 @relation(fields: [caseId], references: [id])
+  retainerTransactions RetainerTransaction[]
+
+  @@index([lawyerId, workedOn])
+  @@index([clientId])
+}
+
+/// FR: retainer deposits, deductions and refunds (UC: Manage Retainer); balance = deposits - deductions - refunds
+model RetainerTransaction {
+  id              String         @id @default(uuid())
+  clientId        String
+  type            RetainerTxType
+  amount          Decimal        @db.Decimal(12, 2)
+  billableEntryId String?
+  note            String?
+  createdAt       DateTime       @default(now())
+
+  client        ChamberClient  @relation(fields: [clientId], references: [id])
+  billableEntry BillableEntry? @relation(fields: [billableEntryId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+/// FR: chamber expense tracking (UC: Record Expense)
+model ChamberExpense {
+  id          String   @id @default(uuid())
+  lawyerId    String
+  clientId    String?
+  category    String
+  amount      Decimal  @db.Decimal(12, 2)
+  spentOn     DateTime @db.Date
+  description String?
+  createdAt   DateTime @default(now())
+
+  lawyer LawyerProfile  @relation(fields: [lawyerId], references: [id])
+  client ChamberClient? @relation(fields: [clientId], references: [id])
+
+  @@index([lawyerId, spentOn])
+}
+
+// ---------------------------------------------------------------- platform
+
+/// FR: in-app / email / SMS notifications (UC: View Notifications)
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  channel   NotificationChannel @default(IN_APP)
+  type      String
+  title     String
+  body      String
+  readAt    DateTime?
+  sentAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+/// FR: notification settings (UC: Manage Notification Settings)
+model NotificationPreference {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  emailEnabled Boolean  @default(true)
+  smsEnabled   Boolean  @default(false)
+  inAppEnabled Boolean  @default(true)
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+/// FR: user feedback (UC: Submit Feedback)
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String?
+  rating    Int
+  category  String?
+  message   String
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+}
+
+/// FR: immutable audit logs (UC: View Audit Logs). Append-only: UPDATE/DELETE blocked by trigger.
+/// actorId is intentionally not a foreign key so the log never depends on other rows.
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actorRole Role?
+  action    String
+  entity    String?
+  entityId  String?
+  success   Boolean  @default(true)
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([entity, entityId])
+}
+
+// ---------------------------------------------------------------- virtual hearings
+
+/// FR: virtual courtroom control via Jitsi embed (UC: Control Virtual Courtroom)
+model CourtSession {
+  id          String        @id @default(uuid())
+  hearingId   String        @unique
+  roomName    String        @unique
+  status      SessionStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdById String
+  createdAt   DateTime      @default(now())
+
+  hearing      Hearing                   @relation(fields: [hearingId], references: [id])
+  createdBy    User                      @relation(fields: [createdById], references: [id])
+  participants CourtSessionParticipant[]
+}
+
+/// FR: participants of a virtual hearing (UC: Join Virtual Hearing)
+model CourtSessionParticipant {
+  id        String          @id @default(uuid())
+  sessionId String
+  userId    String
+  role      ParticipantRole
+  joinedAt  DateTime?
+  leftAt    DateTime?
+
+  session CourtSession @relation(fields: [sessionId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+}
