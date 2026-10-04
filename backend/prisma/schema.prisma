@@ -163,7 +163,12 @@ enum RetainerTxType {
 enum DiaryReviewStatus {
   SUBMITTED
   APPROVED
-  RETURNED
+  NEEDS_REVISION
+}
+
+enum ChamberLicenseStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum NotificationChannel {
@@ -248,13 +253,15 @@ model LawyerProfile {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  user        User             @relation(fields: [userId], references: [id])
-  verifiedBy  User?            @relation("LawyerVerifier", fields: [verifiedById], references: [id])
+  user        User              @relation(fields: [userId], references: [id])
+  verifiedBy  User?             @relation("LawyerVerifier", fields: [verifiedById], references: [id])
   interns     InternProfile[]
   caseParties CaseParty[]
   clients     ChamberClient[]
   billable    BillableEntry[]
   expenses    ChamberExpense[]
+  chamber     ChamberProfile?
+  alertLogs   ChamberAlertLog[]
 
   @@index([verificationStatus])
 }
@@ -297,18 +304,23 @@ model PasswordResetToken {
 
 /// FR: court and bench management (UC: Manage Courts)
 model Court {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  type      CourtType
-  city      String
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  name            String    @unique
+  type            CourtType
+  city            String
+  isActive        Boolean   @default(true)
+  /// Court complex geo-fence for intern attendance (null = attendance cannot be verified here)
+  latitude        Decimal?  @db.Decimal(9, 6)
+  longitude       Decimal?  @db.Decimal(9, 6)
+  geofenceRadiusM Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   courtrooms Courtroom[]
   judges     User[]
   cases      Case[]
   causeLists CauseList[]
+  attendance Attendance[]
 
   @@index([city])
 }
@@ -353,18 +365,19 @@ model Case {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  filedBy   User            @relation("CaseFiledBy", fields: [filedById], references: [id])
-  judge     User?           @relation("CaseJudge", fields: [judgeId], references: [id])
-  court     Court?          @relation(fields: [courtId], references: [id])
-  courtroom Courtroom?      @relation(fields: [courtroomId], references: [id])
-  parties   CaseParty[]
-  documents CaseDocument[]
-  evidence  Evidence[]
-  hearings  Hearing[]
-  challans  Challan[]
-  summons   Summons[]
-  billable  BillableEntry[]
-  events    CaseEvent[]
+  filedBy      User               @relation("CaseFiledBy", fields: [filedById], references: [id])
+  judge        User?              @relation("CaseJudge", fields: [judgeId], references: [id])
+  court        Court?             @relation(fields: [courtId], references: [id])
+  courtroom    Courtroom?         @relation(fields: [courtroomId], references: [id])
+  parties      CaseParty[]
+  documents    CaseDocument[]
+  evidence     Evidence[]
+  hearings     Hearing[]
+  challans     Challan[]
+  summons      Summons[]
+  billable     BillableEntry[]
+  diaryEntries InternDiaryEntry[]
+  events       CaseEvent[]
 
   @@index([filedById])
   @@index([judgeId, status])
@@ -635,7 +648,11 @@ model Summons {
 model InternDiaryEntry {
   id            String            @id @default(uuid())
   internId      String
+  caseId        String?
   entryDate     DateTime          @db.Date
+  keywords      String[]
+  citation      String
+  /// Relevant law notes
   content       String
   reviewStatus  DiaryReviewStatus @default(SUBMITTED)
   reviewerId    String?
@@ -645,9 +662,11 @@ model InternDiaryEntry {
   updatedAt     DateTime          @updatedAt
 
   intern   InternProfile @relation(fields: [internId], references: [id])
+  case     Case?         @relation(fields: [caseId], references: [id])
   reviewer User?         @relation("DiaryReviewer", fields: [reviewerId], references: [id])
 
-  @@unique([internId, entryDate])
+  @@index([internId, createdAt])
+  @@index([caseId])
 }
 
 /// FR: geo-fenced attendance (UC: Mark Attendance)
@@ -661,8 +680,11 @@ model Attendance {
   lng            Decimal   @db.Decimal(9, 6)
   distanceMeters Int?
   withinGeofence Boolean
+  courtId        String?
+  accuracyM      Int?
 
   intern InternProfile @relation(fields: [internId], references: [id])
+  court  Court?        @relation(fields: [courtId], references: [id])
 
   @@unique([internId, date])
 }
@@ -671,23 +693,68 @@ model Attendance {
 
 /// FR: chamber client management (UC: Manage Clients). Retainer balance is derived from RetainerTransaction rows.
 model ChamberClient {
-  id        String   @id @default(uuid())
-  lawyerId  String
-  name      String
-  cnic      String?
-  phone     String?
-  email     String?
-  address   String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  lawyerId    String
+  /// CL-<6 digits>, unique inside one chamber
+  clientCode  String
+  caseType    String?
+  onboardedOn DateTime @default(now()) @db.Date
+  name        String
+  cnic        String?
+  phone       String?
+  email       String?
+  address     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   lawyer       LawyerProfile         @relation(fields: [lawyerId], references: [id])
   billable     BillableEntry[]
   transactions RetainerTransaction[]
   expenses     ChamberExpense[]
+  alertLogs    ChamberAlertLog[]
 
+  @@unique([lawyerId, clientCode])
+  @@unique([lawyerId, cnic])
   @@index([lawyerId])
+}
+
+/// One per verified lawyer, created on first access. The "silo": everything under /chamber is scoped to it.
+model ChamberProfile {
+  id                     String               @id @default(uuid())
+  lawyerId               String               @unique
+  /// CH-<6 digits>
+  chamberCode            String               @unique
+  name                   String
+  officeAddress          String?
+  partnerNames           String[]
+  barMembershipIds       String[]
+  practiceVerticals      String[]
+  phone                  String?
+  email                  String?
+  licenseStatus          ChamberLicenseStatus @default(ACTIVE)
+  defaultHourlyRatePkr   Decimal              @default(15000) @db.Decimal(12, 2)
+  lowBalanceThresholdPkr Decimal              @default(20000) @db.Decimal(12, 2)
+  lowBalanceNotifiedIds  String[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  lawyer LawyerProfile @relation(fields: [lawyerId], references: [id])
+}
+
+/// Record of "Issue Low Balance Alert Notification" (mock SMS)
+model ChamberAlertLog {
+  id         String   @id @default(uuid())
+  lawyerId   String
+  clientId   String
+  balancePkr Decimal  @db.Decimal(14, 2)
+  channel    String   @default("SMS")
+  sentAt     DateTime @default(now())
+
+  lawyer LawyerProfile @relation(fields: [lawyerId], references: [id])
+  client ChamberClient @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, sentAt])
 }
 
 /// FR: billable hours tracking (UC: Record Billable Hours)
@@ -699,6 +766,8 @@ model BillableEntry {
   workedOn    DateTime @db.Date
   hours       Decimal  @db.Decimal(5, 2)
   hourlyRate  Decimal  @db.Decimal(12, 2)
+  /// hours x hourlyRate, fixed when the entry is recorded
+  amountPkr   Decimal  @db.Decimal(14, 2)
   description String?
   createdAt   DateTime @default(now())
 
@@ -719,6 +788,7 @@ model RetainerTransaction {
   amount          Decimal        @db.Decimal(12, 2)
   billableEntryId String?
   note            String?
+  reference       String?
   createdAt       DateTime       @default(now())
 
   client        ChamberClient  @relation(fields: [clientId], references: [id])
