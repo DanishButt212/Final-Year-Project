@@ -1,13 +1,14 @@
 import { FileText, UploadCloud, X } from 'lucide-react';
 import { useRef, useState, type DragEvent } from 'react';
 import { formatFileSize } from '@/lib/format';
+import { usePublicSettings } from '@/hooks/use-public-settings';
 import { checkPdfFiles } from '@/lib/pdf-files';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
 /**
  * Drag-and-drop or click-to-choose PDF picker with a per-file list (name, size, remove).
- * Files are checked here (extension, 25 MB, count); the server checks the real content again.
+ * Files are checked here (extension, active size limit, count); the server checks the real content again.
  */
 export function PdfDropZone({
   files,
@@ -22,13 +23,14 @@ export function PdfDropZone({
   serverError?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { maxAttachmentMb } = usePublicSettings();
   const [dragging, setDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const error = localError ?? serverError ?? null;
 
   function addFiles(list: FileList | File[] | null) {
     if (!list || disabled) return;
-    const { accepted, error: problem } = checkPdfFiles(Array.from(list), files);
+    const { accepted, error: problem } = checkPdfFiles(Array.from(list), files, maxAttachmentMb);
     setLocalError(problem);
     if (accepted.length > 0) onFilesChange([...files, ...accepted]);
   }
@@ -57,7 +59,8 @@ export function PdfDropZone({
         <UploadCloud className="size-8 text-primary" aria-hidden="true" />
         <p className="font-semibold">Drag PDF files here</p>
         <p className="text-sm text-text-muted">
-          or choose them from your device. PDF only, up to 25 MB each, at most 10 files.
+          or choose them from your device. PDF only, up to {maxAttachmentMb} MB each, at most 10
+          files.
         </p>
         <input
           ref={inputRef}

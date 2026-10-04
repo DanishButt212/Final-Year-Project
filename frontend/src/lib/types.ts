@@ -1,5 +1,5 @@
 export type Role = 'LITIGANT' | 'LAWYER' | 'INTERN' | 'PROCESS_SERVER' | 'JUDGE' | 'ADMIN';
-export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED';
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'BLOCKED' | 'DEACTIVATED';
 export type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface User {

@@ -1,6 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { UserCircle, X } from 'lucide-react';
 import { useEffect } from 'react';
 import { NavLink } from 'react-router';
+import { adminApi } from '@/lib/admin-api';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import type { Role } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -12,6 +14,23 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
       ? 'border-accent bg-primary-soft font-semibold text-primary'
       : 'border-transparent text-text hover:bg-primary-soft',
   );
+
+/** Number of lawyers waiting for approval, shown next to the Lawyer Verification link. */
+function PendingLawyersBadge() {
+  const { data } = useQuery({
+    queryKey: ['admin', 'lawyers', 'pending-count'],
+    queryFn: async () =>
+      (await adminApi.lawyers({ status: 'PENDING', page: 1, limit: 1 })).counts.PENDING,
+    refetchInterval: 60_000,
+  });
+  if (!data) return null;
+  return (
+    <span className="ml-auto min-w-6 rounded-full bg-accent px-2 text-center text-xs font-bold leading-6 text-text">
+      <span className="sr-only">Pending approvals: </span>
+      {data}
+    </span>
+  );
+}
 
 /** Role-based navigation. A fixed column on desktop, a slide-in drawer below 1024px. */
 export function Sidebar({
@@ -71,6 +90,9 @@ export function Sidebar({
                 >
                   <item.icon className="size-4 shrink-0" aria-hidden="true" />
                   <span>{item.label}</span>
+                  {role === 'ADMIN' && item.slug === 'lawyer-verification' && (
+                    <PendingLawyersBadge />
+                  )}
                 </NavLink>
               </li>
             ))}

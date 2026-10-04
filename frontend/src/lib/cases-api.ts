@@ -43,7 +43,7 @@ export interface CaseDocument {
 
 export interface CaseEvent {
   id: string;
-  type: 'CASE_SUBMITTED' | 'DOCUMENT_ATTACHED';
+  type: 'CASE_SUBMITTED' | 'DOCUMENT_ATTACHED' | 'CASE_ALLOCATED';
   description: string;
   createdAt: string;
   actor: string | null;
@@ -62,6 +62,8 @@ export interface CaseDetail {
   court: { id: string; name: string; city: string } | null;
   courtroom: { id: string; name: string } | null;
   judge: string | null;
+  judgeId?: string | null;
+  allocatedAt?: string | null;
   parties: CaseParty[];
   documents: CaseDocument[];
   events: CaseEvent[];

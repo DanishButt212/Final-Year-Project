@@ -4,6 +4,7 @@ import { toast } from '@/components/ui/toaster';
 import { useAuth } from '@/auth/useAuth';
 import { ROLE_LABEL, roleHome } from '@/lib/navigation';
 import { Logo } from './Logo';
+import { NotificationBell } from './NotificationBell';
 
 /** Thin green top bar shared by every signed-in page. */
 export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; menuOpen: boolean }) {
@@ -34,6 +35,7 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
         </div>
         {user && (
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <div className="hidden text-right leading-tight sm:block">
               <p className="text-sm font-semibold">
                 {user.firstName} {user.lastName}
