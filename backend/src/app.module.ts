@@ -16,6 +16,7 @@ import { JudgeModule } from './judge/judge.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SettingsModule } from './settings/settings.module';
+import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -42,6 +43,7 @@ import { UsersModule } from './users/users.module';
     CasesModule,
     AdminModule,
     JudgeModule,
+    SchedulingModule,
     HealthModule,
   ],
   providers: [

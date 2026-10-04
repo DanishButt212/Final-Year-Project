@@ -69,10 +69,27 @@ export const caseDetailInclude = {
   parties: { orderBy: [{ role: 'asc' }, { position: 'asc' }] },
   documents: { orderBy: { createdAt: 'asc' }, include: { uploadedBy: personName } },
   events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { actor: personName } },
+  hearings: {
+    orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
+    include: { courtroom: { select: { id: true, name: true } }, judge: personName },
+  },
 } satisfies Prisma.CaseInclude;
 
 export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDetailInclude }>) {
+  const hearings = c.hearings.map((h) => ({
+    id: h.id,
+    date: h.date.toISOString().slice(0, 10),
+    startTime: h.startTime,
+    status: h.status,
+    purpose: h.purpose,
+    courtroom: h.courtroom?.name ?? null,
+    judge: `${h.judge.firstName} ${h.judge.lastName}`,
+  }));
+  const today = new Date().toISOString().slice(0, 10);
+  const nextHearing = hearings.find((h) => h.status === 'SCHEDULED' && h.date >= today) ?? null;
   return {
+    hearings,
+    nextHearing,
     id: c.id,
     ucn: c.ucn,
     title: c.title,

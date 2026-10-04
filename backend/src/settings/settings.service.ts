@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, BadRequestException, Injectable } from '@nestjs/common';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
@@ -9,9 +9,20 @@ export const SETTING_KEYS = {
   maxAttachmentMb: 'max_attachment_mb',
   caseRegistrationOpen: 'case_registration_open',
   filingFeeRateModifier: 'filing_fee_rate_modifier',
+  courtDayStart: 'court_day_start',
+  courtDayEnd: 'court_day_end',
+  hearingSlotMinutes: 'hearing_slot_minutes',
 } as const;
 
 const DEFAULT_MAX_ATTACHMENT_MB = 25;
+
+export interface SchedulePolicy {
+  courtDayStart: string;
+  courtDayEnd: string;
+  hearingSlotMinutes: number;
+}
+
+const toMinutes = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
 
 /** Global application constants (UC-2.3). Values live in SystemSetting and FeeStructure. */
 @Injectable()
@@ -36,6 +47,18 @@ export class SettingsService {
     return v === undefined ? true : v.trim().toLowerCase() !== 'false';
   }
 
+  /** Court hours and slot length (UC-3.x scheduling). */
+  async schedulePolicy(): Promise<SchedulePolicy> {
+    const start = await this.raw(SETTING_KEYS.courtDayStart);
+    const end = await this.raw(SETTING_KEYS.courtDayEnd);
+    const mins = Number(await this.raw(SETTING_KEYS.hearingSlotMinutes));
+    return {
+      courtDayStart: start && /^\d{2}:\d{2}$/.test(start) ? start : '09:00',
+      courtDayEnd: end && /^\d{2}:\d{2}$/.test(end) ? end : '14:00',
+      hearingSlotMinutes: Number.isInteger(mins) && mins >= 10 && mins <= 240 ? mins : 30,
+    };
+  }
+
   async publicSettings() {
     return {
       maxAttachmentMb: await this.maxAttachmentMb(),
@@ -47,6 +70,7 @@ export class SettingsService {
     return {
       ...(await this.publicSettings()),
       filingFeeRateModifier: (await this.raw(SETTING_KEYS.filingFeeRateModifier)) ?? '0',
+      ...(await this.schedulePolicy()),
       fees: await this.currentFees(),
     };
   }
@@ -85,12 +109,73 @@ export class SettingsService {
         'Whether new case registration is open',
       ]);
     }
+    if (dto.courtDayStart !== undefined) {
+      entries.push([SETTING_KEYS.courtDayStart, dto.courtDayStart, 'Court day start (HH:mm)']);
+    }
+    if (dto.courtDayEnd !== undefined) {
+      entries.push([SETTING_KEYS.courtDayEnd, dto.courtDayEnd, 'Court day end (HH:mm)']);
+    }
+    if (dto.hearingSlotMinutes !== undefined) {
+      entries.push([
+        SETTING_KEYS.hearingSlotMinutes,
+        String(dto.hearingSlotMinutes),
+        'Hearing slot length in minutes',
+      ]);
+    }
     if (dto.filingFeeRateModifier !== undefined) {
       entries.push([
         SETTING_KEYS.filingFeeRateModifier,
         dto.filingFeeRateModifier,
         'Filing fee rate modifier (percent)',
       ]);
+    }
+
+    const scheduleChange =
+      dto.courtDayStart !== undefined ||
+      dto.courtDayEnd !== undefined ||
+      dto.hearingSlotMinutes !== undefined;
+    if (scheduleChange) {
+      const next = {
+        courtDayStart: dto.courtDayStart ?? before.courtDayStart,
+        courtDayEnd: dto.courtDayEnd ?? before.courtDayEnd,
+        hearingSlotMinutes: dto.hearingSlotMinutes ?? before.hearingSlotMinutes,
+      };
+      const span = toMinutes(next.courtDayEnd) - toMinutes(next.courtDayStart);
+      if (span < next.hearingSlotMinutes || span % next.hearingSlotMinutes !== 0) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: Messages.INVALID_FIELDS,
+          details: [
+            {
+              field: 'courtDayEnd',
+              messages: ['Court hours must fit a whole number of hearing slots (end after start).'],
+            },
+          ],
+        });
+      }
+      const changed = (Object.keys(next) as (keyof SchedulePolicy)[]).some(
+        (k) => next[k] !== before[k],
+      );
+      if (changed) {
+        const today = new Date();
+        const upcoming = await this.prisma.hearing.count({
+          where: {
+            status: { not: 'CANCELLED' },
+            date: {
+              gte: new Date(
+                Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+              ),
+            },
+          },
+        });
+        if (upcoming > 0) {
+          throw new ConflictException({
+            code: 'SCHEDULE_POLICY_LOCKED',
+            message:
+              'Court hours and slot length cannot be changed while upcoming hearings exist. Cancel or complete them first.',
+          });
+        }
+      }
     }
 
     await this.prisma.$transaction(async (tx) => {
