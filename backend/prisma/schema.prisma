@@ -26,7 +26,8 @@ enum Role {
 enum UserStatus {
   ACTIVE
   SUSPENDED
-  DEACTIVATED
+  BLOCKED // access revoked by an administrator
+  DEACTIVATED // soft-deleted
 }
 
 enum VerificationStatus {
@@ -63,6 +64,7 @@ enum CaseStatus {
 enum CaseEventType {
   CASE_SUBMITTED
   DOCUMENT_ATTACHED
+  CASE_ALLOCATED
 }
 
 enum PartyRole {
@@ -175,11 +177,13 @@ model User {
   status       UserStatus @default(ACTIVE)
   profileImage String?
   courtId      String? // judges are attached to a court
+  courtroomId  String? // and optionally to a courtroom
   lastLoginAt  DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   court                  Court?                    @relation(fields: [courtId], references: [id])
+  courtroom              Courtroom?                @relation(fields: [courtroomId], references: [id])
   lawyerProfile          LawyerProfile?
   internProfile          InternProfile?
   passwordResetTokens    PasswordResetToken[]
@@ -296,6 +300,7 @@ model Courtroom {
   court    Court     @relation(fields: [courtId], references: [id])
   cases    Case[]
   hearings Hearing[]
+  judges   User[]
 
   @@unique([courtId, name])
 }
