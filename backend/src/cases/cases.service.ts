@@ -11,10 +11,11 @@ import { validate } from 'class-validator';
 import { randomUUID } from 'node:crypto';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
-import { Messages } from '../common/messages';
+import { invalidFileMessage, Messages } from '../common/messages';
 import { buildValidationException } from '../common/validation';
 import { CaseEventType, CaseStatus, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
 import { CreateCaseDto, ListCasesQueryDto, PartyDto } from './dto/create-case.dto';
 import { removeFiles, sanitizeFileName, sha256OfFile, startsWithPdfMagic } from './pdf-files';
@@ -25,7 +26,6 @@ export interface RequestMeta {
   userAgent?: string;
 }
 
-export const REGISTRATION_SETTING = 'case_registration_open';
 const CLOSED_STATUSES: CaseStatus[] = ['DECIDED', 'REJECTED', 'DISMISSED'];
 
 const personName = { select: { firstName: true, lastName: true } } as const;
@@ -60,6 +60,61 @@ function toListItem(c: ListRow) {
   };
 }
 
+/** Shared by the portfolio detail and the admin case detail. */
+export const caseDetailInclude = {
+  court: { select: { id: true, name: true, city: true } },
+  courtroom: { select: { id: true, name: true } },
+  judge: personName,
+  filedBy: personName,
+  parties: { orderBy: [{ role: 'asc' }, { position: 'asc' }] },
+  documents: { orderBy: { createdAt: 'asc' }, include: { uploadedBy: personName } },
+  events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { actor: personName } },
+} satisfies Prisma.CaseInclude;
+
+export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDetailInclude }>) {
+  return {
+    id: c.id,
+    ucn: c.ucn,
+    title: c.title,
+    caseType: c.caseType,
+    status: c.status,
+    reliefSought: c.reliefSought,
+    filingDate: c.filingDate,
+    createdAt: c.createdAt,
+    allocatedAt: c.allocatedAt,
+    filedBy: `${c.filedBy.firstName} ${c.filedBy.lastName}`,
+    court: c.court,
+    courtroom: c.courtroom,
+    judgeId: c.judgeId,
+    judge: c.judge ? `${c.judge.firstName} ${c.judge.lastName}` : null,
+    parties: c.parties.map((p) => ({
+      id: p.id,
+      role: p.role,
+      name: p.name,
+      cnic: p.cnic,
+      phone: p.phone,
+      address: p.address,
+      hasCounsel: Boolean(p.lawyerId),
+    })),
+    documents: c.documents.map((d) => ({
+      id: d.id,
+      name: d.originalName,
+      sizeBytes: d.sizeBytes,
+      mimeType: d.mimeType,
+      sha256: d.sha256,
+      uploadedAt: d.createdAt,
+      uploadedBy: `${d.uploadedBy.firstName} ${d.uploadedBy.lastName}`,
+    })),
+    events: c.events.map((e) => ({
+      id: e.id,
+      type: e.type,
+      description: e.description,
+      createdAt: e.createdAt,
+      actor: e.actor ? `${e.actor.firstName} ${e.actor.lastName}` : null,
+    })),
+  };
+}
+
 interface PreparedFile {
   tempPath: string;
   originalName: string;
@@ -74,6 +129,7 @@ export class CasesService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly audit: AuditService,
+    private readonly settings: SettingsService,
   ) {}
 
   // ------------------------------------------------------------------ submit
@@ -84,7 +140,7 @@ export class CasesService {
     files: Express.Multer.File[],
     meta: RequestMeta,
   ) {
-    if (!(await this.registrationOpen())) {
+    if (!(await this.settings.caseRegistrationOpen())) {
       throw new ForbiddenException({
         code: 'REGISTRATION_CLOSED',
         message: Messages.CASE_REGISTRATION_CLOSED,
@@ -259,57 +315,10 @@ export class CasesService {
   async detail(user: AuthUser, id: string) {
     const c = await this.prisma.case.findFirst({
       where: { AND: [{ id }, await this.scopeFor(user)] },
-      include: {
-        court: { select: { id: true, name: true, city: true } },
-        courtroom: { select: { id: true, name: true } },
-        judge: personName,
-        filedBy: personName,
-        parties: { orderBy: [{ role: 'asc' }, { position: 'asc' }] },
-        documents: { orderBy: { createdAt: 'asc' }, include: { uploadedBy: personName } },
-        events: { orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { actor: personName } },
-      },
+      include: caseDetailInclude,
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
-
-    return {
-      id: c.id,
-      ucn: c.ucn,
-      title: c.title,
-      caseType: c.caseType,
-      status: c.status,
-      reliefSought: c.reliefSought,
-      filingDate: c.filingDate,
-      createdAt: c.createdAt,
-      filedBy: `${c.filedBy.firstName} ${c.filedBy.lastName}`,
-      court: c.court,
-      courtroom: c.courtroom,
-      judge: c.judge ? `${c.judge.firstName} ${c.judge.lastName}` : null,
-      parties: c.parties.map((p) => ({
-        id: p.id,
-        role: p.role,
-        name: p.name,
-        cnic: p.cnic,
-        phone: p.phone,
-        address: p.address,
-        hasCounsel: Boolean(p.lawyerId),
-      })),
-      documents: c.documents.map((d) => ({
-        id: d.id,
-        name: d.originalName,
-        sizeBytes: d.sizeBytes,
-        mimeType: d.mimeType,
-        sha256: d.sha256,
-        uploadedAt: d.createdAt,
-        uploadedBy: `${d.uploadedBy.firstName} ${d.uploadedBy.lastName}`,
-      })),
-      events: c.events.map((e) => ({
-        id: e.id,
-        type: e.type,
-        description: e.description,
-        createdAt: e.createdAt,
-        actor: e.actor ? `${e.actor.firstName} ${e.actor.lastName}` : null,
-      })),
-    };
+    return toCaseDetail(c);
   }
 
   // ------------------------------------------------------------------ documents
@@ -328,6 +337,7 @@ export class CasesService {
     if (CLOSED_STATUSES.includes(target.status)) {
       throw new ConflictException({ code: 'CASE_CLOSED', message: Messages.CASE_CLOSED });
     }
+    await this.counselIdFor(user);
     if (!files || files.length === 0) {
       throw new BadRequestException({ code: 'NO_FILE', message: Messages.MISSING_FILE });
     }
@@ -408,16 +418,9 @@ export class CasesService {
 
   // ------------------------------------------------------------------ helpers
 
-  private async registrationOpen(): Promise<boolean> {
-    const setting = await this.prisma.systemSetting.findUnique({
-      where: { key: REGISTRATION_SETTING },
-    });
-    // Missing setting means open (the default).
-    return setting ? setting.value.trim().toLowerCase() !== 'false' : true;
-  }
-
   /** Cases the user may see: filed by them, or where they are the lawyer on a party. */
   private async scopeFor(user: AuthUser): Promise<Prisma.CaseWhereInput> {
+    if (user.role === 'ADMIN') return {};
     const or: Prisma.CaseWhereInput[] = [{ filedById: user.id }];
     if (user.role === 'LAWYER') {
       const profile = await this.prisma.lawyerProfile.findUnique({
@@ -434,9 +437,15 @@ export class CasesService {
     if (user.role !== 'LAWYER') return null;
     const profile = await this.prisma.lawyerProfile.findUnique({
       where: { userId: user.id },
-      select: { id: true },
+      select: { id: true, verificationStatus: true },
     });
     if (!profile) throw new ForbiddenException(Messages.FORBIDDEN);
+    if (profile.verificationStatus !== 'VERIFIED') {
+      throw new ForbiddenException({
+        code: 'LAWYER_NOT_VERIFIED',
+        message: Messages.LAWYER_NOT_VERIFIED,
+      });
+    }
     return profile.id;
   }
 
@@ -469,10 +478,11 @@ export class CasesService {
     caseId: string,
     files: Express.Multer.File[] = [],
   ): Promise<PreparedFile[]> {
+    const maxMb = await this.settings.maxAttachmentMb();
     const invalid = () =>
-      new BadRequestException({ code: 'INVALID_FILE', message: Messages.INVALID_FILE });
+      new BadRequestException({ code: 'INVALID_FILE', message: invalidFileMessage(maxMb) });
     for (const f of files) {
-      if (f.size === 0 || !(await startsWithPdfMagic(f.path))) {
+      if (f.size === 0 || f.size > maxMb * 1024 * 1024 || !(await startsWithPdfMagic(f.path))) {
         await removeFiles(files.map((x) => x.path));
         throw invalid();
       }

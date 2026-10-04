@@ -3,7 +3,8 @@ import { createReadStream } from 'node:fs';
 import { open, unlink } from 'node:fs/promises';
 import { extname } from 'node:path';
 
-export const MAX_PDF_BYTES = 25 * 1024 * 1024;
+/** multer's absolute cap; the real limit is the max_attachment_mb policy (1 to 100 MB). */
+export const HARD_CAP_BYTES = 100 * 1024 * 1024;
 export const MAX_FILES_PER_REQUEST = 10;
 const PDF_MAGIC = Buffer.from('%PDF-');
 

@@ -25,5 +25,14 @@ export const Messages = {
   MISSING_FILE: 'Please choose at least one PDF file.',
   TOO_MANY_FILES: 'You can attach at most 10 files at a time.',
   CASE_CLOSED: 'Documents cannot be attached to a closed case.',
+  LAWYER_NOT_VERIFIED:
+    'Your lawyer profile is pending verification. You can file cases once the registrar approves your bar credentials.',
+  USER_PERMISSIONS_UPDATED: 'User account permissions successfully updated.',
+  LAWYER_VERIFIED: 'Lawyer verification process complete. Credentials locked.',
+  SETTINGS_UPDATED: 'Global application configuration updated.',
   CNIC_NOT_VERIFIED: 'The CNIC could not be verified with NADRA. Please check the number.',
 } as const;
+
+/** The upload rejection message shows the limit currently set by the administrator. */
+export const invalidFileMessage = (maxMb: number) =>
+  `Only PDF format files under ${maxMb}MB are allowed.`;

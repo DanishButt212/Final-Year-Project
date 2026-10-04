@@ -11,22 +11,26 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import multer from 'multer';
 import { finalize, Observable } from 'rxjs';
-import { Messages } from '../common/messages';
-import { hasPdfExtension, MAX_FILES_PER_REQUEST, MAX_PDF_BYTES, removeFiles } from './pdf-files';
+import { invalidFileMessage, Messages } from '../common/messages';
+import { SettingsService } from '../settings/settings.service';
+import { hasPdfExtension, HARD_CAP_BYTES, MAX_FILES_PER_REQUEST, removeFiles } from './pdf-files';
 
-const invalidFile = (message: string = Messages.INVALID_FILE) =>
-  new BadRequestException({ code: 'INVALID_FILE', message });
+const invalidFile = (message: string) => new BadRequestException({ code: 'INVALID_FILE', message });
 
 /**
- * Receives multipart uploads (field `files`, up to 10 PDFs of at most 25 MB) into a temp folder.
- * It rejects wrong extensions and oversize files while streaming, and deletes every temp file
+ * Receives multipart uploads (field `files`, up to 10 PDFs) into a temp folder. multer enforces only the
+ * 100 MB hard cap; the administrator's policy limit (max_attachment_mb) is checked in the service.
+ * It rejects wrong extensions and absurdly large files while streaming, and deletes every temp file
  * when the request ends, whether it succeeded or failed. Content checks happen in the service.
  */
 @Injectable()
 export class PdfUploadInterceptor implements NestInterceptor {
   private readonly handler: RequestHandler;
 
-  constructor(config: ConfigService) {
+  constructor(
+    config: ConfigService,
+    private readonly settings: SettingsService,
+  ) {
     const tmpDir = config.getOrThrow<string>('UPLOAD_TMP_DIR');
     mkdirSync(tmpDir, { recursive: true });
     this.handler = multer({
@@ -36,13 +40,17 @@ export class PdfUploadInterceptor implements NestInterceptor {
         filename: (_req, _file, cb) => cb(null, `${randomUUID()}.upload`),
       }),
       limits: {
-        fileSize: MAX_PDF_BYTES,
+        fileSize: HARD_CAP_BYTES,
         files: MAX_FILES_PER_REQUEST,
         fields: 20,
         fieldSize: 512 * 1024, // the JSON `data` field
       },
       fileFilter: (_req, file, cb) => {
-        if (!hasPdfExtension(file.originalname)) return cb(invalidFile());
+        if (!hasPdfExtension(file.originalname)) {
+          return void this.settings
+            .maxAttachmentMb()
+            .then((mb) => cb(invalidFile(invalidFileMessage(mb))));
+        }
         cb(null, true);
       },
     }).array('files', MAX_FILES_PER_REQUEST);
@@ -59,7 +67,10 @@ export class PdfUploadInterceptor implements NestInterceptor {
         if (error instanceof multer.MulterError) {
           if (error.code === 'LIMIT_FILE_COUNT')
             return reject(invalidFile(Messages.TOO_MANY_FILES));
-          return reject(invalidFile()); // LIMIT_FILE_SIZE, unexpected field, malformed parts ...
+          // LIMIT_FILE_SIZE, unexpected field, malformed parts ...
+          return void this.settings
+            .maxAttachmentMb()
+            .then((mb) => reject(invalidFile(invalidFileMessage(mb))));
         }
         reject(error);
       });
