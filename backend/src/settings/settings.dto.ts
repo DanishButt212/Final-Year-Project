@@ -105,6 +105,18 @@ export class UpdateSettingsDto {
   attendanceMaxAccuracyM?: number;
 
   @IsOptional()
+  @IsInt({ message: 'Maximum GPS accuracy must be a whole number of metres.' })
+  @Min(10, { message: 'Maximum GPS accuracy must be between 10 and 500 metres.' })
+  @Max(500, { message: 'Maximum GPS accuracy must be between 10 and 500 metres.' })
+  summonsMaxGpsAccuracyM?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'Default due days must be a whole number.' })
+  @Min(1, { message: 'Default due days must be between 1 and 90.' })
+  @Max(90, { message: 'Default due days must be between 1 and 90.' })
+  summonsDefaultDueDays?: number;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
   @ValidateNested({ each: true })

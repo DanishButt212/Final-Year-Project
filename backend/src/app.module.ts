@@ -7,6 +7,7 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { EvidenceModule } from './evidence/evidence.module';
 import { ChamberModule } from './chamber/chamber.module';
+import { SummonsModule } from './summons/summons.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { FeesModule } from './fees/fees.module';
 import { CasesModule } from './cases/cases.module';
@@ -52,6 +53,7 @@ import { UsersModule } from './users/users.module';
     EvidenceModule,
     FeedbackModule,
     ChamberModule,
+    SummonsModule,
     HealthModule,
   ],
   providers: [

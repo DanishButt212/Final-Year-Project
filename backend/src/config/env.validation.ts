@@ -20,6 +20,8 @@ export interface Env {
   UPLOAD_TMP_DIR: string;
   /** Base64 of 32 random bytes; the evidence vault refuses to start without it. */
   EVIDENCE_ENCRYPTION_KEY?: string;
+  /** Base64 of 32 random bytes; the summons module refuses to start without it. */
+  SUMMONS_SEAL_SECRET?: string;
 }
 
 const REQUIRED = ['DATABASE_URL', 'JWT_SECRET'] as const;
@@ -53,6 +55,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     EVIDENCE_ENCRYPTION_KEY: raw.EVIDENCE_ENCRYPTION_KEY
       ? String(raw.EVIDENCE_ENCRYPTION_KEY)
       : undefined,
+    SUMMONS_SEAL_SECRET: raw.SUMMONS_SEAL_SECRET ? String(raw.SUMMONS_SEAL_SECRET) : undefined,
     UPLOAD_TMP_DIR: resolve(String(raw.UPLOAD_TMP_DIR ?? join(tmpdir(), 'digitaladaalat-uploads'))),
   };
 }

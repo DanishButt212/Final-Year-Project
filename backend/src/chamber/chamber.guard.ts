@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AuthUser } from '../common/decorators';
-import { nextSequence } from '../common/counters';
+import { ensureChamber } from './ensure-chamber';
 import { ChamberProfile } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -61,20 +61,7 @@ export class ChamberGuard implements CanActivate {
 
     let chamber = profile.chamber;
     if (!chamber) {
-      chamber = await this.prisma.$transaction(async (tx) => {
-        const n = await nextSequence(tx, 'CHAMBER', 0);
-        return tx.chamberProfile.upsert({
-          where: { lawyerId: profile.id },
-          update: {},
-          create: {
-            lawyerId: profile.id,
-            chamberCode: `CH-${String(n).padStart(6, '0')}`,
-            name: `${profile.user.lastName} & Associates`,
-            email: profile.user.email,
-            phone: profile.user.phone,
-          },
-        });
-      });
+      chamber = await this.prisma.$transaction((tx) => ensureChamber(tx, profile));
     }
     if (chamber.licenseStatus !== 'ACTIVE') {
       throw deny('CHAMBER_SUSPENDED', 'This chamber license is suspended.');

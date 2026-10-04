@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ensureChamber } from '../chamber/ensure-chamber';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
@@ -144,6 +145,7 @@ export class AdminLawyersService {
           message: 'This lawyer is already verified. Credentials are locked.',
         });
       }
+      await ensureChamber(tx, lawyer);
       await this.audit.logWithin(tx, {
         action: AuditAction.LAWYER_VERIFIED,
         actorId: actor.id,

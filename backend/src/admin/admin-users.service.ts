@@ -86,6 +86,7 @@ export class AdminUsersService {
   async provision(actor: AuthUser, dto: CreateStaffDto, meta: RequestMeta) {
     let courtId: string | null = null;
     let courtroomId: string | null = null;
+    let serverCourtId: string | null = null;
     if (dto.role === 'JUDGE') {
       if (!dto.courtId) {
         throw new BadRequestException({
@@ -95,6 +96,28 @@ export class AdminUsersService {
         });
       }
       courtId = dto.courtId;
+    } else if (dto.role === 'PROCESS_SERVER') {
+      const missing = (field: string, text: string) =>
+        new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: Messages.INVALID_FIELDS,
+          details: [{ field, messages: [text] }],
+        });
+      if (!dto.badgeNumber) throw missing('badgeNumber', 'Enter the badge number.');
+      if (!dto.courtId) throw missing('courtId', 'Choose the precinct court.');
+      if (!dto.sector) throw missing('sector', 'Enter the assigned sector.');
+      if (dto.courtroomId) throw missing('courtroomId', 'Process servers have no courtroom.');
+      serverCourtId = dto.courtId;
+      const court = await this.prisma.court.findFirst({
+        where: { id: dto.courtId, isActive: true },
+        select: { id: true },
+      });
+      if (!court) throw new NotFoundException(Messages.NOT_FOUND);
+      const badge = await this.prisma.processServerProfile.findUnique({
+        where: { badgeNumber: dto.badgeNumber },
+        select: { id: true },
+      });
+      if (badge) throw missing('badgeNumber', 'This badge number is already in use.');
     } else if (dto.courtId || dto.courtroomId) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
@@ -187,6 +210,18 @@ export class AdminUsersService {
             courtroomId,
             notificationPreference: { create: {} },
             passwordResetTokens: { create: { tokenHash: hashToken(token), expiresAt } },
+            ...(serverCourtId
+              ? {
+                  serverProfile: {
+                    create: {
+                      badgeNumber: dto.badgeNumber as string,
+                      courtId: serverCourtId,
+                      sector: dto.sector as string,
+                      phone: dto.phone,
+                    },
+                  },
+                }
+              : {}),
             ...(supervisorId
               ? { internProfile: { create: { supervisorId, startDate: new Date() } } }
               : {}),
@@ -253,6 +288,10 @@ export class AdminUsersService {
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { status: next } });
       // A suspended, blocked or deleted lawyer suspends the chamber licence; reactivation restores it.
+      await tx.processServerProfile.updateMany({
+        where: { userId: id },
+        data: { status: next === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED' },
+      });
       await tx.chamberProfile.updateMany({
         where: { lawyer: { userId: id } },
         data: { licenseStatus: next === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED' },

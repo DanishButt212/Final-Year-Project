@@ -71,6 +71,11 @@ enum CaseEventType {
   PAYMENT_RECEIVED
   EVIDENCE_ADDED
   EVIDENCE_LOCKED
+  SUMMONS_ISSUED
+  SUMMONS_ATTEMPT
+  SUMMONS_EXECUTED
+  SUMMONS_REASSIGNED
+  SUMMONS_CANCELLED
 }
 
 enum EvidenceCategory {
@@ -147,11 +152,31 @@ enum PaymentStatus {
 }
 
 enum SummonsStatus {
-  PENDING
+  PENDING_ASSIGNMENT
   ASSIGNED
-  DELIVERED
-  FAILED
-  RETURNED
+  ATTEMPT_IN_PROGRESS
+  EXECUTED
+  CANCELLED
+}
+
+enum NoticeType {
+  SUMMONS
+  NOTICE
+}
+
+enum SummonsPriority {
+  URGENT
+  NORMAL
+}
+
+enum ServiceMode {
+  PERSONAL_DELIVERY
+  REFUSED_AFFIXED
+}
+
+enum ServerStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum RetainerTxType {
@@ -230,6 +255,9 @@ model User {
   challansPaid           Challan[]
   payments               Payment[]
   summonsServed          Summons[]                 @relation("SummonsServer")
+  summonsIssued          Summons[]                 @relation("SummonsIssuer")
+  summonsAttempts        SummonsAttempt[]          @relation("AttemptServer")
+  serverProfile          ProcessServerProfile?
   reviewedDiaryEntries   InternDiaryEntry[]        @relation("DiaryReviewer")
   verifiedLawyers        LawyerProfile[]           @relation("LawyerVerifier")
   sessionParticipation   CourtSessionParticipant[]
@@ -277,10 +305,11 @@ model InternProfile {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  user       User               @relation(fields: [userId], references: [id])
-  supervisor LawyerProfile      @relation(fields: [supervisorId], references: [id])
-  diary      InternDiaryEntry[]
-  attendance Attendance[]
+  user           User                   @relation(fields: [userId], references: [id])
+  supervisor     LawyerProfile          @relation(fields: [supervisorId], references: [id])
+  diary          InternDiaryEntry[]
+  attendance     Attendance[]
+  serverProfiles ProcessServerProfile[]
 
   @@index([supervisorId])
 }
@@ -316,11 +345,12 @@ model Court {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  courtrooms Courtroom[]
-  judges     User[]
-  cases      Case[]
-  causeLists CauseList[]
-  attendance Attendance[]
+  courtrooms            Courtroom[]
+  judges                User[]
+  cases                 Case[]
+  causeLists            CauseList[]
+  attendance            Attendance[]
+  processServerProfiles ProcessServerProfile[]
 
   @@index([city])
 }
@@ -617,29 +647,91 @@ model Payment {
 
 /// FR: summons delivery by process server with GPS, photo, signature (UC: Serve Summons)
 model Summons {
-  id            String        @id @default(uuid())
-  caseId        String
-  partyId       String?
-  serverId      String?
-  status        SummonsStatus @default(PENDING)
-  issuedAt      DateTime      @default(now())
-  dueBy         DateTime?     @db.Date
-  deliveredAt   DateTime?
-  gpsLat        Decimal?      @db.Decimal(9, 6)
-  gpsLng        Decimal?      @db.Decimal(9, 6)
-  photoPath     String?
-  recipientName String?
-  signaturePath String?
-  remarks       String?
-  attempts      Int           @default(0)
-  updatedAt     DateTime      @updatedAt
+  id               String          @id @default(uuid())
+  caseId           String
+  partyId          String?
+  noticeType       NoticeType      @default(SUMMONS)
+  recipientName    String
+  recipientCnic    String?
+  serviceAddress   String
+  sector           String
+  priority         SummonsPriority @default(NORMAL)
+  status           SummonsStatus   @default(PENDING_ASSIGNMENT)
+  serverId         String?
+  issuedById       String?
+  issuedAt         DateTime        @default(now())
+  dueBy            DateTime?       @db.Date
+  cancelReason     String?
+  cancelledAt      DateTime?
+  // proof of execution (files are AES-256-GCM encrypted at rest)
+  serviceMode      ServiceMode?
+  executedAt       DateTime?
+  executedLat      Decimal?        @db.Decimal(9, 6)
+  executedLng      Decimal?        @db.Decimal(9, 6)
+  executedAccuracy Decimal?        @db.Decimal(8, 2)
+  executionNotes   String?
+  photoPath        String?
+  photoIv          String?
+  photoTag         String?
+  photoSha256      String?
+  signaturePath    String?
+  signatureIv      String?
+  signatureTag     String?
+  signatureSha256  String?
+  seal             String?
+  sealedAt         DateTime?
+  updatedAt        DateTime        @updatedAt
 
-  case   Case       @relation(fields: [caseId], references: [id])
-  party  CaseParty? @relation(fields: [partyId], references: [id])
-  server User?      @relation("SummonsServer", fields: [serverId], references: [id])
+  case     Case             @relation(fields: [caseId], references: [id])
+  party    CaseParty?       @relation(fields: [partyId], references: [id])
+  server   User?            @relation("SummonsServer", fields: [serverId], references: [id])
+  issuedBy User?            @relation("SummonsIssuer", fields: [issuedById], references: [id])
+  attempts SummonsAttempt[]
 
   @@index([caseId])
   @@index([serverId, status])
+  @@index([status, dueBy])
+}
+
+/// One committed field progress entry. createdAt is the authoritative server time.
+model SummonsAttempt {
+  id        String   @id @default(uuid())
+  summonsId String
+  serverId  String
+  createdAt DateTime @default(now())
+  latitude  Decimal  @db.Decimal(9, 6)
+  longitude Decimal  @db.Decimal(9, 6)
+  accuracyM Decimal  @db.Decimal(8, 2)
+  notes     String
+
+  summons Summons @relation(fields: [summonsId], references: [id])
+  server  User    @relation("AttemptServer", fields: [serverId], references: [id])
+
+  @@index([summonsId, createdAt])
+}
+
+/// Staff profile of a process server (Tamila officer).
+model ProcessServerProfile {
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  badgeNumber String       @unique
+  courtId     String
+  sector      String
+  phone       String?
+  status      ServerStatus @default(ACTIVE)
+  photoPath   String?
+  photoIv     String?
+  photoTag    String?
+  photoSha256 String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user            User           @relation(fields: [userId], references: [id])
+  court           Court          @relation(fields: [courtId], references: [id])
+  internProfile   InternProfile? @relation(fields: [internProfileId], references: [id])
+  internProfileId String?
+
+  @@index([courtId])
 }
 
 // ---------------------------------------------------------------- internship

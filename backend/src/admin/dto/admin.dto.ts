@@ -92,6 +92,19 @@ export class CreateStaffDto {
   @IsOptional()
   @IsUUID()
   supervisorLawyerId?: string;
+
+  /** Required for process servers. */
+  @TrimOrUndefined()
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  badgeNumber?: string;
+
+  @TrimOrUndefined()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  sector?: string;
 }
 
 export const STATUS_ACTIONS = ['suspend', 'block', 'reactivate', 'delete'] as const;

@@ -14,5 +14,6 @@ import { MockScreeningService } from './mock-screening.service';
     EvidenceUploadInterceptor,
     EvidenceService,
   ],
+  exports: [EvidenceCryptoService],
 })
 export class EvidenceModule {}

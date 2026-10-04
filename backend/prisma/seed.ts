@@ -15,6 +15,13 @@ import { CaseType, PartyRole, PrismaClient, Role } from '../src/generated/prisma
 import { generateUcn } from '../src/cases/ucn';
 import { nextChallanNo, nextReceiptNo, nextSequence } from '../src/common/counters';
 import { calculateLedger, feeInputHash } from '../src/fees/fee-calculator';
+import { deflateSync } from 'node:zlib';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { unlinkSync } from 'node:fs';
+import { EvidenceCryptoService } from '../src/evidence/evidence-crypto.service';
+import { SealService } from '../src/summons/seal.service';
+import { LocalStorageService } from '../src/storage/local-storage.service';
 
 config({ quiet: true });
 
@@ -202,6 +209,22 @@ const USERS: SeedUser[] = [
     firstName: 'Hamza',
     lastName: 'Sheikh',
     email: `intern2@${DOMAIN}`,
+    dev: true,
+  },
+  {
+    key: 'server2',
+    role: 'PROCESS_SERVER',
+    firstName: 'Imtiaz',
+    lastName: 'Hussain',
+    email: `server2@${DOMAIN}`,
+    dev: true,
+  },
+  {
+    key: 'server3',
+    role: 'PROCESS_SERVER',
+    firstName: 'Zubair',
+    lastName: 'Ahmed',
+    email: `server3@${DOMAIN}`,
     dev: true,
   },
 ];
@@ -548,6 +571,9 @@ async function seedSampleData(
       partyId: party.id,
       serverId: ids.server,
       status: 'ASSIGNED',
+      recipientName: 'Sample Respondent',
+      serviceAddress: 'House 22, Street 4, Shah Rukn-e-Alam Colony, Multan',
+      sector: 'Shah Rukn-e-Alam Colony',
       dueBy: utcDate(2),
     },
   });
@@ -1579,6 +1605,350 @@ async function seedPhase4B(ids: Record<string, string>, lawyers: Record<string, 
   }
 }
 
+// ---------------------------------------------------------------- phase 4C
+
+const crcTable = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+const crc32 = (buf: Buffer) => {
+  let c = 0xffffffff;
+  for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+};
+
+/** A tiny valid RGB PNG. `paint(x, y)` returns the pixel colour. */
+function makePng(w: number, h: number, paint: (x: number, y: number) => [number, number, number]) {
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    raw[y * (w * 3 + 1)] = 0;
+    for (let x = 0; x < w; x++) {
+      const [r, g, b] = paint(x, y);
+      const o = y * (w * 3 + 1) + 1 + x * 3;
+      raw[o] = r;
+      raw[o + 1] = g;
+      raw[o + 2] = b;
+    }
+  }
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(td));
+    return Buffer.concat([len, td, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+async function seedPhase4C(ids: Record<string, string>) {
+  const policy: [string, string, string][] = [
+    [
+      'summons_max_gps_accuracy_m',
+      '100',
+      'Worst GPS accuracy accepted for summons progress and proof, in metres',
+    ],
+    ['summons_default_due_days', '7', 'Default number of days until a summons is due'],
+  ];
+  for (const [key, value, description] of policy) {
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value, description },
+    });
+  }
+
+  const sessions = await prisma.court.findUniqueOrThrow({
+    where: { name: 'District & Sessions Court Multan' },
+  });
+  const lhc = await prisma.court.findUniqueOrThrow({
+    where: { name: 'Lahore High Court Multan Bench' },
+  });
+  const servers: [string, string, string, string][] = [
+    [ids.server, 'PS-1001', sessions.id, 'Gulgasht Colony'],
+    [ids.server2, 'PS-1002', sessions.id, 'Shah Rukn-e-Alam Colony'],
+    [ids.server3, 'PS-2001', lhc.id, 'Cantt Area'],
+  ];
+  for (const [userId, badgeNumber, courtId, sector] of servers) {
+    await prisma.processServerProfile.upsert({
+      where: { userId },
+      update: {},
+      create: { userId, badgeNumber, courtId, sector },
+    });
+  }
+
+  if ((await prisma.summons.count({ where: { issuedById: ids.admin } })) > 0) {
+    console.log('Phase 4C summons already exist, skipping.');
+    return;
+  }
+
+  const cfg = {
+    get: (k: string) => process.env[k],
+    getOrThrow: (k: string) => {
+      const v = process.env[k] ?? (k === 'UPLOAD_DIR' ? join(process.cwd(), 'uploads') : undefined);
+      if (!v) throw new Error(`${k} is not set`);
+      return v;
+    },
+  } as never;
+  const storage = new LocalStorageService(cfg);
+  const crypto = new EvidenceCryptoService(cfg, storage);
+  const seals = new SealService(cfg);
+
+  const cases = await prisma.case.findMany({
+    where: { judgeId: { not: null } },
+    orderBy: { filingDate: 'asc' },
+    select: { id: true, ucn: true, parties: { select: { id: true, name: true, role: true } } },
+    take: 8,
+  });
+  if (cases.length === 0) return;
+  const pick = (i: number) => {
+    const c = cases[i % cases.length];
+    const party = c.parties.find((p) => p.role === 'RESPONDENT') ?? c.parties[0];
+    return { c, party };
+  };
+
+  const rows: {
+    recipient: string;
+    address: string;
+    sector: string;
+    priority: 'URGENT' | 'NORMAL';
+    due: number;
+    server: string | null;
+    status: 'PENDING_ASSIGNMENT' | 'ASSIGNED' | 'ATTEMPT_IN_PROGRESS' | 'EXECUTED' | 'CANCELLED';
+    attempts?: [string, number][];
+    mode?: 'PERSONAL_DELIVERY' | 'REFUSED_AFFIXED';
+    type?: 'SUMMONS' | 'NOTICE';
+  }[] = [
+    {
+      recipient: 'Bilal Ahmed',
+      address: 'House 14, Street 7, Gulgasht Colony, Multan',
+      sector: 'Gulgasht Colony',
+      priority: 'NORMAL',
+      due: 6,
+      server: null,
+      status: 'PENDING_ASSIGNMENT',
+    },
+    {
+      recipient: 'Kamran Siddiqui',
+      address: 'Flat 3, Block C, Shah Rukn-e-Alam Colony, Multan',
+      sector: 'Shah Rukn-e-Alam Colony',
+      priority: 'NORMAL',
+      due: -3,
+      server: ids.server2,
+      status: 'ASSIGNED',
+    },
+    {
+      recipient: 'Nasir Mehmood',
+      address: 'House 77, Street 12, Gulgasht Colony, Multan',
+      sector: 'Gulgasht Colony',
+      priority: 'URGENT',
+      due: 2,
+      server: ids.server,
+      status: 'ASSIGNED',
+      type: 'NOTICE',
+    },
+    {
+      recipient: 'Sajid Iqbal',
+      address: 'Shop 9, Hussain Agahi Bazaar, Multan',
+      sector: 'Hussain Agahi',
+      priority: 'NORMAL',
+      due: 5,
+      server: ids.server,
+      status: 'ASSIGNED',
+    },
+    {
+      recipient: 'Muhammad Rafiq',
+      address: 'House 5, Street 2, Cantt Area, Multan',
+      sector: 'Cantt Area',
+      priority: 'URGENT',
+      due: 1,
+      server: ids.server3,
+      status: 'ATTEMPT_IN_PROGRESS',
+      attempts: [
+        ['Premises locked, neighbour says family returns in the evening.', -2],
+        ['Recipient refused to meet at the gate, asked to come back with a court officer.', -1],
+      ],
+    },
+    {
+      recipient: 'Farah Naz',
+      address: 'House 31, Street 9, Gulgasht Colony, Multan',
+      sector: 'Gulgasht Colony',
+      priority: 'NORMAL',
+      due: 4,
+      server: ids.server,
+      status: 'EXECUTED',
+      mode: 'PERSONAL_DELIVERY',
+      attempts: [['Recipient present, identity confirmed by CNIC.', -4]],
+    },
+    {
+      recipient: 'Tahir Mahmood',
+      address: 'House 18, Street 3, Shah Rukn-e-Alam Colony, Multan',
+      sector: 'Shah Rukn-e-Alam Colony',
+      priority: 'NORMAL',
+      due: 3,
+      server: ids.server2,
+      status: 'EXECUTED',
+      mode: 'REFUSED_AFFIXED',
+      attempts: [['Recipient refused to accept the notice.', -3]],
+    },
+    {
+      recipient: 'Ghulam Abbas',
+      address: 'House 40, Street 1, Cantt Area, Multan',
+      sector: 'Cantt Area',
+      priority: 'NORMAL',
+      due: 7,
+      server: ids.server3,
+      status: 'CANCELLED',
+    },
+  ];
+
+  const photoPng = makePng(96, 64, (x, y) => [60 + x, 110 + y, 80]);
+  const sigPng = makePng(120, 40, (x, y) =>
+    Math.abs(y - 20 - Math.round(10 * Math.sin(x / 8))) < 2 ? [20, 20, 40] : [255, 255, 255],
+  );
+  const tmp = (name: string, buf: Buffer) => {
+    const path = join(tmpdir(), `seed-${name}-${process.pid}.png`);
+    writeFileSync(path, buf);
+    return path;
+  };
+
+  for (const [i, r] of rows.entries()) {
+    const { c, party } = pick(i);
+    const s = await prisma.summons.create({
+      data: {
+        caseId: c.id,
+        partyId: party?.id,
+        noticeType: r.type ?? 'SUMMONS',
+        recipientName: r.recipient,
+        serviceAddress: r.address,
+        sector: r.sector,
+        priority: r.priority,
+        status: r.status,
+        serverId: r.server,
+        issuedById: ids.admin,
+        issuedAt: utcDate(-6),
+        dueBy: utcDate(r.due),
+        ...(r.status === 'CANCELLED'
+          ? { cancelReason: 'Case withdrawn against this party.', cancelledAt: utcDate(-1) }
+          : {}),
+      },
+    });
+    await prisma.caseEvent.create({
+      data: {
+        caseId: c.id,
+        type: 'SUMMONS_ISSUED',
+        description: `${r.type === 'NOTICE' ? 'Notice' : 'Summons'} issued to ${r.recipient}.`,
+        actorId: ids.admin,
+        createdAt: utcDate(-6),
+      },
+    });
+    for (const [notes, daysAgo] of r.attempts ?? []) {
+      await prisma.summonsAttempt.create({
+        data: {
+          summonsId: s.id,
+          serverId: r.server as string,
+          createdAt: utcDate(daysAgo),
+          latitude: (30.1575 + i * 0.001).toFixed(6),
+          longitude: (71.5249 + i * 0.001).toFixed(6),
+          accuracyM: (12 + i).toFixed(2),
+          notes,
+        },
+      });
+      await prisma.caseEvent.create({
+        data: {
+          caseId: c.id,
+          type: 'SUMMONS_ATTEMPT',
+          description: `Service attempt on ${r.recipient}: ${notes}`,
+          createdAt: utcDate(daysAgo),
+        },
+      });
+    }
+    if (r.status === 'CANCELLED') {
+      await prisma.caseEvent.create({
+        data: {
+          caseId: c.id,
+          type: 'SUMMONS_CANCELLED',
+          description: `Summons for ${r.recipient} cancelled by the registry.`,
+          actorId: ids.admin,
+        },
+      });
+    }
+    if (r.status === 'EXECUTED' && r.mode && r.server) {
+      const executedAt = new Date(utcDate(-1).getTime() + 10 * 3_600_000);
+      const photoKey = `summons/${s.id}/photo-seed`;
+      const pp = tmp('photo', photoPng);
+      const p = await crypto.encryptToStorage(pp, photoKey);
+      unlinkSync(pp);
+      let sg: Awaited<ReturnType<typeof crypto.encryptToStorage>> | null = null;
+      const sigKey = r.mode === 'PERSONAL_DELIVERY' ? `summons/${s.id}/signature-seed` : null;
+      if (sigKey) {
+        const sp = tmp('sig', sigPng);
+        sg = await crypto.encryptToStorage(sp, sigKey);
+        unlinkSync(sp);
+      }
+      const lat = '30.157800';
+      const lng = '71.525100';
+      const acc = '18.00';
+      const notes =
+        r.mode === 'PERSONAL_DELIVERY'
+          ? 'Delivered in person, signature obtained.'
+          : 'Recipient refused to accept; notice affixed to the gate.';
+      const seal = seals.seal({
+        summonsId: s.id,
+        serverId: r.server,
+        serviceMode: r.mode,
+        executedAt,
+        latitude: lat,
+        longitude: lng,
+        accuracyM: acc,
+        notes,
+        photoSha256: p.sha256,
+        signatureSha256: sg?.sha256 ?? null,
+      });
+      await prisma.summons.update({
+        where: { id: s.id },
+        data: {
+          serviceMode: r.mode,
+          executedAt,
+          executedLat: lat,
+          executedLng: lng,
+          executedAccuracy: acc,
+          executionNotes: notes,
+          photoPath: photoKey,
+          photoIv: p.iv,
+          photoTag: p.authTag,
+          photoSha256: p.sha256,
+          signaturePath: sigKey,
+          signatureIv: sg?.iv ?? null,
+          signatureTag: sg?.authTag ?? null,
+          signatureSha256: sg?.sha256 ?? null,
+          seal,
+          sealedAt: executedAt,
+        },
+      });
+      await prisma.caseEvent.create({
+        data: {
+          caseId: c.id,
+          type: 'SUMMONS_EXECUTED',
+          description: `Summons to ${r.recipient} executed (${r.mode === 'PERSONAL_DELIVERY' ? 'delivered in person' : 'refused, affixed to gate'}).`,
+          createdAt: executedAt,
+        },
+      });
+    }
+  }
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -1614,6 +1984,7 @@ async function main() {
   await seedScheduling(ids, lawyerProfileIds, reference);
   await seedPhase4(ids);
   await seedPhase4B(ids, lawyerProfileIds);
+  await seedPhase4C(ids);
   const file = writeAccountsFile(credentials);
 
   console.log(

@@ -18,6 +18,8 @@ export const SETTING_KEYS = {
   maxEvidenceMb: 'max_evidence_mb',
   attendanceDefaultRadiusM: 'attendance_default_radius_m',
   attendanceMaxAccuracyM: 'attendance_max_accuracy_m',
+  summonsMaxGpsAccuracyM: 'summons_max_gps_accuracy_m',
+  summonsDefaultDueDays: 'summons_default_due_days',
 } as const;
 
 const DEFAULT_MAX_ATTACHMENT_MB = 25;
@@ -88,6 +90,16 @@ export class SettingsService {
     };
   }
 
+  /** Worst GPS accuracy a process server may commit with, and the default due period of a summons. */
+  async summonsPolicy() {
+    const acc = Number(await this.raw(SETTING_KEYS.summonsMaxGpsAccuracyM));
+    const days = Number(await this.raw(SETTING_KEYS.summonsDefaultDueDays));
+    return {
+      maxGpsAccuracyM: Number.isInteger(acc) && acc >= 10 && acc <= 500 ? acc : 100,
+      defaultDueDays: Number.isInteger(days) && days >= 1 && days <= 90 ? days : 7,
+    };
+  }
+
   async feePolicy(): Promise<FeePolicy> {
     const pct = Number(await this.raw(SETTING_KEYS.adValoremPercent));
     const cap = Number(await this.raw(SETTING_KEYS.adValoremCapPkr));
@@ -127,6 +139,8 @@ export class SettingsService {
       maxEvidenceMb: await this.maxEvidenceMb(),
       attendanceDefaultRadiusM: (await this.attendancePolicy()).defaultRadiusM,
       attendanceMaxAccuracyM: (await this.attendancePolicy()).maxAccuracyM,
+      summonsMaxGpsAccuracyM: (await this.summonsPolicy()).maxGpsAccuracyM,
+      summonsDefaultDueDays: (await this.summonsPolicy()).defaultDueDays,
       fees: await this.currentFees(),
     };
   }
@@ -218,6 +232,20 @@ export class SettingsService {
         SETTING_KEYS.attendanceMaxAccuracyM,
         String(dto.attendanceMaxAccuracyM),
         'Worst location accuracy accepted for attendance, in metres',
+      ]);
+    }
+    if (dto.summonsMaxGpsAccuracyM !== undefined) {
+      entries.push([
+        SETTING_KEYS.summonsMaxGpsAccuracyM,
+        String(dto.summonsMaxGpsAccuracyM),
+        'Worst GPS accuracy accepted for summons progress and proof, in metres',
+      ]);
+    }
+    if (dto.summonsDefaultDueDays !== undefined) {
+      entries.push([
+        SETTING_KEYS.summonsDefaultDueDays,
+        String(dto.summonsDefaultDueDays),
+        'Default number of days until a summons is due',
       ]);
     }
     if (dto.filingFeeRateModifier !== undefined) {
