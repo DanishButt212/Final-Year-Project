@@ -48,9 +48,11 @@ Official, calm, trustworthy Pakistan court/government portal. Deep green primary
 
 Our tokens in `design-system/digitaladaalat/MASTER.md` are the single source of truth for the design. The UI UX Pro Max skill is optional and installed locally per developer (`.claude/skills/` is git-ignored, not committed); use it only for checklist, accessibility and layout guidance, and never let it override our colors, fonts or anti-patterns.
 
-## Branch workflow
-- Personal branches (for example `danish`); never commit or push to `main` directly.
-- Changes go into `main` through pull requests, reviewed by Danish.
+## Git workflow
+- Work directly on `main`, in small logical commits.
+- Before every push run `npm run build` and `npm run lint` in `backend/` and `frontend/`; both must pass.
+- Run `git pull origin main` before pushing; if my teammate pushed something, merge carefully.
+- Never force push. The `danish` branch is kept as a backup; do not delete it.
 
 ## References
 - Project brief: `docs/PROJECT_BRIEF.md`

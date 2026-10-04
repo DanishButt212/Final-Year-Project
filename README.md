@@ -12,11 +12,10 @@ CLAUDE.md       Instructions for Claude Code
 
 See `docs/PROJECT_BRIEF.md` for the full project brief.
 
-## Branch workflow
+## Git workflow
 
-- `main` is protected by convention: never commit or push to it directly.
-- Each team member works on a personal branch (for example `danish`).
-- Changes reach `main` through pull requests, reviewed by Danish.
+- Work directly on `main` in small logical commits; run `npm run build` and `npm run lint` in `backend/` and `frontend/` and `git pull origin main` before every push. Never force push.
+- The `danish` branch is kept as a backup.
 
 ## Getting started (Windows)
 
