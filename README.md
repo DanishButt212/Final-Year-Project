@@ -85,6 +85,24 @@ Policy settings (table `SystemSetting` and `FeeStructure`): `max_attachment_mb` 
 
 Extra policy settings (System Policies page): `court_day_start` (default `09:00`), `court_day_end` (`14:00`) and `hearing_slot_minutes` (`30`). Courts sit Monday to Friday. A judge, a courtroom and every lawyer of the case must be free in a slot; the database also enforces one active hearing per judge and per courtroom per date and slot with partial unique indexes (see `docs/CHANGES.md`).
 
+**Fees, payments, evidence vault, preferences and feedback (Phase 4A).**
+
+| Area | Routes |
+|---|---|
+| Challan (UC-4.1) | `POST /cases/:id/challan` (idempotent), `GET /cases/:id/challan`, `GET /challans/:id/pdf` |
+| Payment (UC-4.2) | `POST /payments/checkout`, `POST /mock-gateway/authorize` (simulated gateway) |
+| Receipts (UC-4.3) | `GET /payments/mine`, `GET /payments/:id/receipt` (PDF) |
+| Evidence vault (UC-5.1, 5.2) | `GET /cases/:id/vault`, `POST /cases/:id/evidence` (multipart), `PATCH` and `DELETE /cases/:id/evidence/:eid`, `GET /cases/:id/evidence/:eid/download`, `GET /cases/:id/pleadings/:docId/download` |
+| Judge | `GET /judge/cases/:id`, `POST /judge/cases/:id/evidence/lock` |
+| Preferences (UC-5.3) | `GET` and `PUT /users/me/notification-preferences` |
+| Feedback (UC-5.4) | `POST /feedback`, admin `GET /admin/feedback`, `PATCH /admin/feedback/:id` |
+
+New settings (System Policies): `ad_valorem_percent` (default 1, 0 to 10), `ad_valorem_cap_pkr` (50000), `challan_due_days` (7), `max_evidence_mb` (100, 1 to 200).
+
+**Environment variable `EVIDENCE_ENCRYPTION_KEY`** (required): 32 random bytes, base64. The evidence module refuses to start without it. Generate one into your local `backend/.env` with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`; `.env.example` only holds a placeholder. Never commit it. If the key is lost, existing encrypted exhibits cannot be decrypted.
+
+The payment gateway is simulated. Test cards: `4242 4242 4242 4242` approves, `4000 0000 0000 0002` is declined (insufficient funds), any other number failing the Luhn check is declined. Card details are never stored or logged.
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend
