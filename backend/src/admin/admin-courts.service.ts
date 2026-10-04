@@ -1,11 +1,16 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ACTIVE_CASE_STATUSES, RequestMeta } from './constants';
-import { CreateCourtroomDto, UpdateCourtroomDto } from './dto/admin.dto';
+import { CreateCourtroomDto, UpdateCourtGeofenceDto, UpdateCourtroomDto } from './dto/admin.dto';
 
 const duplicateRoom = () =>
   new ConflictException({
@@ -53,6 +58,9 @@ export class AdminCourtsService {
       type: c.type,
       city: c.city,
       isActive: c.isActive,
+      latitude: c.latitude ? Number(c.latitude) : null,
+      longitude: c.longitude ? Number(c.longitude) : null,
+      geofenceRadiusM: c.geofenceRadiusM,
       courtrooms: c.courtrooms.map((r) => ({
         id: r.id,
         name: r.name,
@@ -92,6 +100,49 @@ export class AdminCourtsService {
       }
       throw error;
     }
+  }
+
+  /** Sets or clears the court complex geo-fence used for intern attendance. */
+  async updateGeofence(
+    actor: AuthUser,
+    id: string,
+    dto: UpdateCourtGeofenceDto,
+    meta: RequestMeta,
+  ) {
+    const court = await this.prisma.court.findUnique({ where: { id } });
+    if (!court) throw new NotFoundException(Messages.NOT_FOUND);
+    const lat = dto.latitude ?? null;
+    const lng = dto.longitude ?? null;
+    if ((lat === null) !== (lng === null)) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: Messages.INVALID_FIELDS,
+        details: [
+          {
+            field: 'latitude',
+            messages: ['Enter both latitude and longitude, or leave both empty.'],
+          },
+        ],
+      });
+    }
+    await this.prisma.court.update({
+      where: { id },
+      data: {
+        latitude: lat === null ? null : lat.toFixed(6),
+        longitude: lng === null ? null : lng.toFixed(6),
+        geofenceRadiusM: lat === null ? null : (dto.geofenceRadiusM ?? null),
+      },
+    });
+    await this.audit.log({
+      action: AuditAction.COURT_GEOFENCE_UPDATED,
+      actorId: actor.id,
+      actorRole: actor.role,
+      entity: 'Court',
+      entityId: id,
+      metadata: { configured: lat !== null, radiusM: dto.geofenceRadiusM ?? null },
+      ...meta,
+    });
+    return { message: 'Court geo-fence saved.' };
   }
 
   async updateCourtroom(actor: AuthUser, id: string, dto: UpdateCourtroomDto, meta: RequestMeta) {

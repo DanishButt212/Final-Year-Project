@@ -115,19 +115,43 @@ export class AuthService {
       (this.dummyHash ??= bcrypt.hashSync('not-a-real-password', this.rounds));
     const passwordOk = await bcrypt.compare(dto.password, hash);
 
-    if (!user || !passwordOk || user.status !== 'ACTIVE') {
+    // Chamber desk login: the Chamber ID must belong to this lawyer and the chamber licence must be active.
+    let chamberOk = true;
+    if (dto.chamberCode) {
+      const chamber = user?.lawyerProfile
+        ? await this.prisma.chamberProfile.findUnique({
+            where: { lawyerId: user.lawyerProfile.id },
+            select: { chamberCode: true, licenseStatus: true },
+          })
+        : null;
+      chamberOk =
+        user?.role === 'LAWYER' &&
+        user.lawyerProfile?.verificationStatus === 'VERIFIED' &&
+        chamber?.licenseStatus === 'ACTIVE' &&
+        chamber.chamberCode.toLowerCase() === dto.chamberCode.toLowerCase();
+    }
+
+    if (!user || !passwordOk || user.status !== 'ACTIVE' || !chamberOk) {
       await this.audit.log({
-        action: AuditAction.LOGIN_FAILURE,
+        action: dto.chamberCode ? AuditAction.CHAMBER_LOGIN_FAILURE : AuditAction.LOGIN_FAILURE,
         actorId: user?.id,
         actorRole: user?.role,
         success: false,
         metadata: {
           identifier,
-          reason: !user ? 'unknown_account' : !passwordOk ? 'bad_password' : 'inactive',
+          reason: !user
+            ? 'unknown_account'
+            : !passwordOk
+              ? 'bad_password'
+              : !chamberOk
+                ? 'chamber_mismatch'
+                : 'inactive',
         },
         ...meta,
       });
-      throw new UnauthorizedException(Messages.LOGIN_FAILED);
+      throw new UnauthorizedException(
+        dto.chamberCode ? Messages.CHAMBER_LOGIN_FAILED : Messages.LOGIN_FAILED,
+      );
     }
 
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
@@ -141,7 +165,11 @@ export class AuthService {
     });
 
     const token = await this.jwt.signAsync({ sub: user.id, role: user.role });
-    return { message: Messages.LOGIN_SUCCESS, user: toPublicUser(user), token };
+    return {
+      message: dto.chamberCode ? Messages.CHAMBER_LOGIN_SUCCESS : Messages.LOGIN_SUCCESS,
+      user: toPublicUser(user),
+      token,
+    };
   }
 
   async logout(

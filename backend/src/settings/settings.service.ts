@@ -16,6 +16,8 @@ export const SETTING_KEYS = {
   adValoremCapPkr: 'ad_valorem_cap_pkr',
   challanDueDays: 'challan_due_days',
   maxEvidenceMb: 'max_evidence_mb',
+  attendanceDefaultRadiusM: 'attendance_default_radius_m',
+  attendanceMaxAccuracyM: 'attendance_max_accuracy_m',
 } as const;
 
 const DEFAULT_MAX_ATTACHMENT_MB = 25;
@@ -76,6 +78,16 @@ export class SettingsService {
     return Number.isInteger(n) && n >= 1 && n <= 200 ? n : DEFAULT_MAX_EVIDENCE_MB;
   }
 
+  /** Geo-fence radius used by courts without their own radius, and the worst GPS accuracy accepted. */
+  async attendancePolicy() {
+    const radius = Number(await this.raw(SETTING_KEYS.attendanceDefaultRadiusM));
+    const acc = Number(await this.raw(SETTING_KEYS.attendanceMaxAccuracyM));
+    return {
+      defaultRadiusM: Number.isInteger(radius) && radius >= 50 && radius <= 5000 ? radius : 300,
+      maxAccuracyM: Number.isInteger(acc) && acc >= 10 && acc <= 1000 ? acc : 150,
+    };
+  }
+
   async feePolicy(): Promise<FeePolicy> {
     const pct = Number(await this.raw(SETTING_KEYS.adValoremPercent));
     const cap = Number(await this.raw(SETTING_KEYS.adValoremCapPkr));
@@ -113,6 +125,8 @@ export class SettingsService {
       adValoremCapPkr: (await this.feePolicy()).adValoremCapPkr,
       challanDueDays: (await this.feePolicy()).challanDueDays,
       maxEvidenceMb: await this.maxEvidenceMb(),
+      attendanceDefaultRadiusM: (await this.attendancePolicy()).defaultRadiusM,
+      attendanceMaxAccuracyM: (await this.attendancePolicy()).maxAccuracyM,
       fees: await this.currentFees(),
     };
   }
@@ -190,6 +204,20 @@ export class SettingsService {
         SETTING_KEYS.maxEvidenceMb,
         String(dto.maxEvidenceMb),
         'Maximum evidence file size in MB',
+      ]);
+    }
+    if (dto.attendanceDefaultRadiusM !== undefined) {
+      entries.push([
+        SETTING_KEYS.attendanceDefaultRadiusM,
+        String(dto.attendanceDefaultRadiusM),
+        'Default court geo-fence radius in metres',
+      ]);
+    }
+    if (dto.attendanceMaxAccuracyM !== undefined) {
+      entries.push([
+        SETTING_KEYS.attendanceMaxAccuracyM,
+        String(dto.attendanceMaxAccuracyM),
+        'Worst location accuracy accepted for attendance, in metres',
       ]);
     }
     if (dto.filingFeeRateModifier !== undefined) {

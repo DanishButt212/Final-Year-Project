@@ -124,6 +124,41 @@ export class AdminUsersService {
       }
     }
 
+    let supervisorId: string | null = null;
+    if (dto.role === 'INTERN') {
+      const sup = dto.supervisorLawyerId
+        ? await this.prisma.lawyerProfile.findFirst({
+            where: {
+              id: dto.supervisorLawyerId,
+              verificationStatus: 'VERIFIED',
+              user: { status: 'ACTIVE' },
+            },
+            select: { id: true },
+          })
+        : null;
+      if (!sup) {
+        throw new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: Messages.INVALID_FIELDS,
+          details: [
+            {
+              field: 'supervisorLawyerId',
+              messages: ['Choose the verified lawyer who supervises this intern.'],
+            },
+          ],
+        });
+      }
+      supervisorId = sup.id;
+    } else if (dto.supervisorLawyerId) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: Messages.INVALID_FIELDS,
+        details: [
+          { field: 'supervisorLawyerId', messages: ['Only interns have a supervising lawyer.'] },
+        ],
+      });
+    }
+
     const duplicate = await this.prisma.user.findFirst({
       where: { OR: [{ cnic: dto.cnic }, { email: dto.email }] },
       select: { id: true },
@@ -152,6 +187,9 @@ export class AdminUsersService {
             courtroomId,
             notificationPreference: { create: {} },
             passwordResetTokens: { create: { tokenHash: hashToken(token), expiresAt } },
+            ...(supervisorId
+              ? { internProfile: { create: { supervisorId, startDate: new Date() } } }
+              : {}),
           },
           select: userSelect,
         });
@@ -161,7 +199,7 @@ export class AdminUsersService {
           actorRole: actor.role,
           entity: 'User',
           entityId: created.id,
-          metadata: { role: dto.role, courtId },
+          metadata: { role: dto.role, courtId, supervisorId },
           ...meta,
         });
         return created;
@@ -214,6 +252,11 @@ export class AdminUsersService {
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { status: next } });
+      // A suspended, blocked or deleted lawyer suspends the chamber licence; reactivation restores it.
+      await tx.chamberProfile.updateMany({
+        where: { lawyer: { userId: id } },
+        data: { licenseStatus: next === 'ACTIVE' ? 'ACTIVE' : 'SUSPENDED' },
+      });
       // Reactivating a rejected lawyer sends the profile back to the approval queue.
       if (dto.action === 'reactivate' && target.lawyerProfile?.verificationStatus === 'REJECTED') {
         await tx.lawyerProfile.update({

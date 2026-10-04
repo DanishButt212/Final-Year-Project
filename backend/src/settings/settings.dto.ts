@@ -93,6 +93,18 @@ export class UpdateSettingsDto {
   maxEvidenceMb?: number;
 
   @IsOptional()
+  @IsInt({ message: 'Default geo-fence radius must be a whole number of metres.' })
+  @Min(50, { message: 'Default geo-fence radius must be between 50 and 5000 metres.' })
+  @Max(5000, { message: 'Default geo-fence radius must be between 50 and 5000 metres.' })
+  attendanceDefaultRadiusM?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'Maximum accuracy must be a whole number of metres.' })
+  @Min(10, { message: 'Maximum accuracy must be between 10 and 1000 metres.' })
+  @Max(1000, { message: 'Maximum accuracy must be between 10 and 1000 metres.' })
+  attendanceMaxAccuracyM?: number;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)
   @ValidateNested({ each: true })

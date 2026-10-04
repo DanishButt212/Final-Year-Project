@@ -7,6 +7,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -86,6 +87,11 @@ export class CreateStaffDto {
   @IsOptional()
   @IsUUID()
   courtroomId?: string;
+
+  /** Required for interns: the verified lawyer (LawyerProfile id) who supervises them. */
+  @IsOptional()
+  @IsUUID()
+  supervisorLawyerId?: string;
 }
 
 export const STATUS_ACTIONS = ['suspend', 'block', 'reactivate', 'delete'] as const;
@@ -204,4 +210,27 @@ export class AllocateCaseDto {
   @IsOptional()
   @IsBoolean()
   reallocate?: boolean;
+}
+
+export class UpdateCourtGeofenceDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 6 }, { message: 'Latitude must be a number.' })
+  @Min(-90, { message: 'Latitude must be between -90 and 90.' })
+  @Max(90, { message: 'Latitude must be between -90 and 90.' })
+  latitude?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 6 }, { message: 'Longitude must be a number.' })
+  @Min(-180, { message: 'Longitude must be between -180 and 180.' })
+  @Max(180, { message: 'Longitude must be between -180 and 180.' })
+  longitude?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Radius must be a whole number of metres.' })
+  @Min(50, { message: 'Radius must be between 50 and 5000 metres.' })
+  @Max(5000, { message: 'Radius must be between 50 and 5000 metres.' })
+  geofenceRadiusM?: number | null;
 }

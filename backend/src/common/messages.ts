@@ -6,6 +6,8 @@ export const Messages = {
   REGISTER_SUCCESS: 'Your registration request has been submitted successfully.',
   LOGIN_SUCCESS: 'Logged into the system successfully.',
   LOGIN_FAILED: 'Invalid username or password.',
+  CHAMBER_LOGIN_SUCCESS: 'Chamber database cluster accessed successfully.',
+  CHAMBER_LOGIN_FAILED: 'Authentication Failure: Check Chamber ID or security parameters.',
   LOGOUT_SUCCESS: 'Logged out successfully.',
   FORGOT_PASSWORD_GENERIC:
     'If an account with that email exists, a password reset link has been sent.',

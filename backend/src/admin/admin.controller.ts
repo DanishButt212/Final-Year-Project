@@ -26,6 +26,7 @@ import {
   AdminListUsersQueryDto,
   AllocateCaseDto,
   CreateCourtroomDto,
+  UpdateCourtGeofenceDto,
   CreateStaffDto,
   DashboardQueryDto,
   ListLawyersQueryDto,
@@ -116,6 +117,16 @@ export class AdminController {
   @Get('courts')
   listCourts() {
     return this.courts.list();
+  }
+
+  @Patch('courts/:id')
+  updateGeofence(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIdPipe) id: string,
+    @Body() dto: UpdateCourtGeofenceDto,
+    @Req() req: Request,
+  ) {
+    return this.courts.updateGeofence(user, id, dto, meta(req));
   }
 
   @Post('courtrooms')
