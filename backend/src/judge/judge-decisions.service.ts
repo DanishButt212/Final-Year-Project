@@ -259,6 +259,53 @@ export class JudgeDecisionsService {
           });
         }
 
+        // Summons not yet served or cancelled are cancelled with the case; executed ones stay untouched.
+        const openSummons = await tx.summons.findMany({
+          where: {
+            caseId,
+            status: { in: ['PENDING_ASSIGNMENT', 'ASSIGNED', 'ATTEMPT_IN_PROGRESS'] },
+          },
+          select: { id: true, recipientName: true, serverId: true },
+        });
+        for (const s of openSummons) {
+          const done = await tx.summons.updateMany({
+            where: {
+              id: s.id,
+              status: { in: ['PENDING_ASSIGNMENT', 'ASSIGNED', 'ATTEMPT_IN_PROGRESS'] },
+            },
+            data: { status: 'CANCELLED', cancelReason: 'Case decided', cancelledAt: now },
+          });
+          if (done.count !== 1) continue;
+          // Like every summons event, this one carries no actor.
+          await tx.caseEvent.create({
+            data: {
+              caseId,
+              type: CaseEventType.SUMMONS_CANCELLED,
+              description: `Summons for ${s.recipientName} cancelled because the case was decided.`,
+            },
+          });
+          await this.audit.logWithin(tx, {
+            action: AuditAction.SUMMONS_CANCELLED,
+            actorId: judge.id,
+            actorRole: judge.role,
+            entity: 'Summons',
+            entityId: s.id,
+            metadata: { reason: 'Case decided', ucn: c.ucn },
+            ...meta,
+          });
+          if (s.serverId) {
+            await this.notifications.notify(
+              s.serverId,
+              {
+                type: 'SUMMONS_ASSIGNED',
+                title: 'Summons cancelled',
+                body: `${s.recipientName} (${c.ucn}) was cancelled because the case was decided.`,
+              },
+              tx,
+            );
+          }
+        }
+
         await tx.caseEvent.create({
           data: {
             caseId,
@@ -278,6 +325,7 @@ export class JudgeDecisionsService {
             decisionType: dto.decisionType,
             cancelledHearings: cancelled.length,
             lockedExhibits: locked.count,
+            cancelledSummons: openSummons.length,
           },
           ...meta,
         });

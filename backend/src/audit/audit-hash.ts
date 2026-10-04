@@ -1,7 +1,24 @@
 import { createHash } from 'node:crypto';
 
-/** Metadata keys that must never be stored (matched case-insensitively against the key name). */
-const SECRET_KEY = /password|token|cvv|cardnumber|card_number|secret|key/i;
+/** Metadata keys that must never be stored: exactly one of these names, or ending with one of them (case-insensitive). */
+const SECRET_NAMES = [
+  'password',
+  'passwordHash',
+  'newPassword',
+  'token',
+  'accessToken',
+  'refreshToken',
+  'resetToken',
+  'cvv',
+  'cardNumber',
+  'secret',
+  'apiKey',
+  'privateKey',
+  'secretKey',
+  'encryptionKey',
+  'authorization',
+];
+const SECRET_KEY = new RegExp(`(${SECRET_NAMES.join('|')})$`, 'i');
 
 /** Returns a JSON-safe clone of the metadata with every secret-looking key removed. */
 export function sanitizeMetadata(value: unknown): unknown {

@@ -42,7 +42,7 @@ const STATUS: Record<
 > = {
   SCHEDULED: { variant: 'hearing', label: 'Scheduled' },
   ADJOURNED: { variant: 'pending', label: 'Adjourned' },
-  HELD: { variant: 'decided', label: 'Held' },
+  HELD: { variant: 'decided', label: 'Completed' },
   CANCELLED: { variant: 'rejected', label: 'Cancelled' },
 };
 

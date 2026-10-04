@@ -56,7 +56,7 @@ const STATUS_VARIANT = {
 const STATUS_LABEL = {
   SCHEDULED: 'Scheduled',
   ADJOURNED: 'Adjourned',
-  HELD: 'Held',
+  HELD: 'Completed',
   CANCELLED: 'Cancelled',
 } as const;
 

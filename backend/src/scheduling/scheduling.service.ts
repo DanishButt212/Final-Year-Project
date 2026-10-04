@@ -339,7 +339,7 @@ export class SchedulingService {
               message:
                 old.status === 'CANCELLED'
                   ? 'A cancelled hearing cannot be rescheduled.'
-                  : 'A hearing that has already been held cannot be rescheduled.',
+                  : 'A hearing that has already been completed cannot be rescheduled.',
             });
           }
           const c = await this.loadCase(tx, old.caseId);
@@ -445,7 +445,7 @@ export class SchedulingService {
             message:
               h0.status === 'CANCELLED'
                 ? 'This hearing is already cancelled.'
-                : 'A hearing that has already been held cannot be cancelled.',
+                : 'A hearing that has already been completed cannot be cancelled.',
           });
         }
         const c = await this.loadCase(tx, h0.caseId);
