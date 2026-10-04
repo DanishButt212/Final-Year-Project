@@ -58,6 +58,21 @@ After changing `prisma/schema.prisma`, create a migration with `npx prisma migra
 
 **Case filing API (Phase 2).** Litigants and lawyers use `POST /cases` (multipart), `GET /cases`, `GET /cases/summary`, `GET /cases/:id`, `POST /cases/:id/documents` and `GET /cases/:id/documents/:docId/download`. Each case gets a number like `DA-2026-CIV-000045` (`CIV`, `CRA`, `WRT` or `BAL` by case type). Uploads are PDF only, 25 MB each, stored in `UPLOAD_DIR` (default `backend/uploads`, git-ignored). Optional env vars: `UPLOAD_DIR`, `UPLOAD_TMP_DIR`, `UPLOAD_THROTTLE_LIMIT` (see `backend/.env.example`).
 
+**Admin portal and allocation API (Phase 3A).** All `/admin/*` routes are ADMIN-only and write an audit entry for every change.
+
+| Area | Routes |
+|---|---|
+| Analytics (UC-1.3) | `GET /admin/dashboard/stats?courtId=` |
+| Accounts (UC-2.1) | `GET /admin/users`, `POST /admin/users` (provision INTERN, PROCESS_SERVER, JUDGE, ADMIN; returns the reset link once), `PATCH /admin/users/:id/status` (`suspend`, `block`, `reactivate`, `delete`) |
+| Lawyer verification (UC-2.2) | `GET /admin/lawyers?status=PENDING\|VERIFIED\|REJECTED`, `POST /admin/lawyers/:id/bar-check`, `/verify`, `/reject` |
+| Policies (UC-2.3) | `GET` and `PUT /admin/settings`, public `GET /settings/public` |
+| Courts | `GET /admin/courts`, `POST /admin/courtrooms`, `PATCH /admin/courtrooms/:id` |
+| Cases | `GET /admin/cases`, `GET /admin/cases/:id`, `GET /admin/cases/:id/documents/:docId/download`, `POST /admin/cases/:id/allocate` (`MANUAL` or `RANDOM`) |
+| Notifications (all roles) | `GET /notifications`, `PATCH /notifications/:id/read`, `POST /notifications/read-all` |
+| Judge | `GET /judge/cases` |
+
+Policy settings (table `SystemSetting` and `FeeStructure`): `max_attachment_mb` (integer 1 to 100, default 25), `case_registration_open` (true/false), `filing_fee_rate_modifier` (percent 0 to 100, default 0) and the filing fee per case type. Uploads read the limit at request time. Lawyers must be VERIFIED before they can file a case. Suspended, blocked or deleted users are refused at login and on every later request. The mock Bar Council finds numbers like `LH-45821` and reports `LH-99999` as revoked.
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend

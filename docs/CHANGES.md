@@ -53,9 +53,28 @@ Version notes:
 - **Throttling and env:** new `UPLOAD_THROTTLE_LIMIT` (default 20/min); `UPLOAD_DIR` and `UPLOAD_TMP_DIR` added.
 - **Libraries added:** `multer`, `@types/multer` (backend), `@radix-ui/react-tabs` (frontend).
 - **Sidebar:** litigant and lawyer menus now start with Dashboard, New Case Submission, My Case Portfolio.
-- **Lawyer verification (Phase 3):** once admin lawyer verification exists, filing a case will require a VERIFIED lawyer.
+- **Lawyer verification:** done in Phase 3A (see below).
 - **Optional Phase 3 hardening:** a database-level lock (trigger) to block updates and deletes on `CaseDocument`; for now the API simply has no update or delete route.
 - **Not in Phase 2:** payments/challan, judge allocation, hearings, evidence vault, notifications, admin case views.
+
+## Phase 3A decisions: admin portal and case allocation (04-10-2026)
+These are my design decisions where the report is silent or I went beyond it. Recharts and the Radix dropdown menu were added to the frontend.
+
+1. **Case allocation (no report text).** The registrar allocates a case that is `PENDING_ASSIGNMENT` to a court, courtroom and judge, manually or randomly. Re-allocation needs an explicit `reallocate` flag, only works on `ALLOCATED` cases, and records the previous judge in the lifecycle event and the audit log. Allocation sets status `ALLOCATED`, adds a `CASE_ALLOCATED` lifecycle event (visible to the litigant or lawyer) and an in-app notification to whoever filed the case.
+2. **Random allocation rule.** Among ACTIVE judges of the chosen court, take those with the fewest active cases and pick one at random among ties. Active cases are those in status FILED, UNDER_SCRUTINY, ALLOCATED, PENDING or HEARING_FIXED. On re-allocation the previous judge is skipped when another judge is available.
+3. **Courtroom default.** If no courtroom is given: the judge's own courtroom (new optional `User.courtroomId`), else the first active courtroom of the court.
+4. **New statuses and fields.** `UserStatus.BLOCKED` (access revoked); the existing `DEACTIVATED` is the soft-deleted state; `CaseEventType.CASE_ALLOCATED`; `User.courtroomId`. The existing `ALLOCATED` and `DECIDED` case statuses are reused. Migration `admin_allocation`.
+5. **Account actions.** Suspend, block (revoke access), reactivate and delete (soft delete, rows are never removed because of foreign keys). An admin cannot suspend, block or delete themselves or the last active admin. A deleted account cannot be changed. Reactivating a rejected lawyer moves the profile back to PENDING. There is no role-change endpoint.
+6. **Provisioning staff.** Admin creates INTERN, PROCESS_SERVER, JUDGE and ADMIN accounts. The account gets a random unusable password and a password-reset link (valid 72 hours, same token mechanism as forgot-password). The email is mocked (logged to the console) and the link is returned once to the admin. Public registration stays LITIGANT and LAWYER only. An intern account has no `InternProfile` yet, because it needs a supervising lawyer; that is created in the internship phase.
+7. **Mock Bar Council.** A bar number matching `^[A-Z]{2}-\d{4,6}$` is "found", a small hard-coded list (`LH-99999`, `LH-00000`, `PB-123456`) is "not found". Seeded older lawyers with numbers like `MBA-2016-0101` are already VERIFIED and are not re-checked.
+8. **Verified-lawyer filing rule.** A LAWYER whose profile is not VERIFIED gets 403 with "Your lawyer profile is pending verification. You can file cases once the registrar approves your bar credentials." on `POST /cases` and when attaching documents. Once verified, credentials are locked (it cannot be verified or rejected again; suspend the account instead). Rejecting sets the profile REJECTED, stores the reason and suspends the account.
+9. **Policies.** Settings: `max_attachment_mb` (1 to 100, default 25), `case_registration_open`, `filing_fee_rate_modifier` (decimal percent 0 to 100), plus editable filing fees per case type in `FeeStructure`. The older seeded key `max_pleading_size_mb` is no longer read. The multer hard cap is 100 MB; the policy limit is checked afterwards and the rejection message shows the active limit. `GET /settings/public` exposes only `maxAttachmentMb` and `caseRegistrationOpen`. The fee modifier is stored and shown but not applied anywhere yet, because challans and payments are a later phase.
+10. **Analytics.** "Active trial numbers" are shown as active (allocated) cases, "pending document loads" as documents attached in the last 7 days, "daily clearing rate" as cases decided per day (from `Case.decidedAt`, which nothing sets yet except the seed), and "server processing load" as uptime, database ping and memory. The court filter applies to case and document metrics; pending-assignment cases that have no court are excluded when a court is chosen.
+11. **Notifications.** In-app only, polled every 60 seconds. Lawyer verification also notifies the lawyer.
+12. **Lawyer and litigant UI.** The "New Case Submission" button is disabled with an explanation for unverified lawyers and when registration is closed; the wizard's file check uses the active size limit.
+
+### Phase 3B (next, not built)
+Hearings, cause lists, anti-clash scheduling, calendar overlaps, the hearing schedule for litigants and lawyers, and the partial unique index that ignores cancelled hearings (see below).
 
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** cancelled hearings must not keep holding a judge's slot. Replace the unique `(judgeId, date, timeSlot)` constraint on `Hearing` with a partial unique index that ignores `CANCELLED` hearings (raw SQL migration, `CREATE UNIQUE INDEX ... WHERE status <> 'CANCELLED'`). Do this when hearing scheduling is built, not before.
