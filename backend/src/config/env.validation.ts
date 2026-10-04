@@ -18,6 +18,8 @@ export interface Env {
   UPLOAD_DIR: string;
   /** Where multer first writes incoming files before they are validated and moved. */
   UPLOAD_TMP_DIR: string;
+  /** Base64 of 32 random bytes; the evidence vault refuses to start without it. */
+  EVIDENCE_ENCRYPTION_KEY?: string;
 }
 
 const REQUIRED = ['DATABASE_URL', 'JWT_SECRET'] as const;
@@ -48,6 +50,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
     FORGOT_THROTTLE_LIMIT: Number(raw.FORGOT_THROTTLE_LIMIT ?? 10),
     UPLOAD_THROTTLE_LIMIT: Number(raw.UPLOAD_THROTTLE_LIMIT ?? 20),
     UPLOAD_DIR: resolve(String(raw.UPLOAD_DIR ?? join(process.cwd(), 'uploads'))),
+    EVIDENCE_ENCRYPTION_KEY: raw.EVIDENCE_ENCRYPTION_KEY ? String(raw.EVIDENCE_ENCRYPTION_KEY) : undefined,
     UPLOAD_TMP_DIR: resolve(String(raw.UPLOAD_TMP_DIR ?? join(tmpdir(), 'digitaladaalat-uploads'))),
   };
 }

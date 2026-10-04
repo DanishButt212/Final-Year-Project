@@ -68,6 +68,28 @@ enum CaseEventType {
   HEARING_SCHEDULED
   HEARING_RESCHEDULED
   HEARING_CANCELLED
+  PAYMENT_RECEIVED
+  EVIDENCE_ADDED
+  EVIDENCE_LOCKED
+}
+
+enum EvidenceCategory {
+  VIDEO
+  AUDIO
+  SCANNED_DOCUMENT
+}
+
+enum FeedbackCategory {
+  USABILITY
+  TECHNICAL_ISSUE
+  SUGGESTION
+  OTHER
+}
+
+enum FeedbackStatus {
+  NEW
+  PROCESSED
+  ARCHIVED
 }
 
 enum PartyRole {
@@ -197,7 +219,9 @@ model User {
   judgeCases             Case[]                    @relation("CaseJudge")
   judgeHearings          Hearing[]                 @relation("HearingJudge")
   uploadedDocuments      CaseDocument[]
-  uploadedEvidence       Evidence[]
+  uploadedEvidence       Evidence[]                @relation("EvidenceUploader")
+  lockedEvidence         Evidence[]                @relation("EvidenceLocker")
+  reviewedFeedback       Feedback[]                @relation("FeedbackReviewer")
   challansPaid           Challan[]
   payments               Payment[]
   summonsServed          Summons[]                 @relation("SummonsServer")
@@ -312,21 +336,22 @@ model Courtroom {
 
 /// FR 3-1, FR 3-3: electronic filing and Unique Case Number (UC-2.1 Submit New Case, UC-2.3 View Case Portfolio)
 model Case {
-  id           String     @id @default(uuid())
-  ucn          String     @unique
-  caseType     CaseType
-  status       CaseStatus @default(DRAFT)
-  title        String
-  reliefSought String
-  filingDate   DateTime?  @db.Date
-  filedById    String
-  courtId      String?
-  courtroomId  String?
-  judgeId      String?
-  allocatedAt  DateTime?
-  decidedAt    DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  ucn            String     @unique
+  caseType       CaseType
+  status         CaseStatus @default(DRAFT)
+  title          String
+  reliefSought   String
+  claimAmountPkr Decimal?   @db.Decimal(14, 2) // optional claim value, used for the Civil Suit ad valorem fee
+  filingDate     DateTime?  @db.Date
+  filedById      String
+  courtId        String?
+  courtroomId    String?
+  judgeId        String?
+  allocatedAt    DateTime?
+  decidedAt      DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   filedBy   User            @relation("CaseFiledBy", fields: [filedById], references: [id])
   judge     User?           @relation("CaseJudge", fields: [judgeId], references: [id])
@@ -391,21 +416,31 @@ model CaseDocument {
 
 /// FR: evidence vault (UC: Manage Evidence)
 model Evidence {
-  id           String   @id @default(uuid())
+  id           String           @id @default(uuid())
   caseId       String
+  category     EvidenceCategory
   title        String
+  originalName String
   description  String?
-  filePath     String
+  filePath     String // storage key of the ENCRYPTED file (AES-256-GCM)
   mimeType     String
-  sizeBytes    Int
-  sha256       String
+  sizeBytes    Int // size of the original file
+  sha256       String // SHA-256 of the original (plain) file
+  iv           String // base64 initialisation vector
+  authTag      String // base64 GCM authentication tag
   uploadedById String
-  createdAt    DateTime @default(now())
+  lockedAt     DateTime?
+  lockedById   String?
+  lockReason   String?
+  deletedAt    DateTime? // tombstone: the encrypted file is removed, the row stays for the audit trail
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  case       Case @relation(fields: [caseId], references: [id])
-  uploadedBy User @relation(fields: [uploadedById], references: [id])
+  case       Case  @relation(fields: [caseId], references: [id])
+  uploadedBy User  @relation("EvidenceUploader", fields: [uploadedById], references: [id])
+  lockedBy   User? @relation("EvidenceLocker", fields: [lockedById], references: [id])
 
-  @@index([caseId])
+  @@index([caseId, deletedAt])
 }
 
 /// FR 3-3: lifecycle history shown on the case page (UC-2.3). Append-only by convention: no update or delete code paths.
@@ -531,6 +566,8 @@ model Challan {
   status    ChallanStatus @default(UNPAID)
   dueDate   DateTime      @db.Date
   issuedAt  DateTime      @default(now())
+  ledger    Json // line items of the cost ledger (base fee, claim value fee, modifier, total)
+  inputHash String // hash of the amount inputs, to know when a recalculation is needed
 
   case     Case      @relation(fields: [caseId], references: [id])
   payer    User      @relation(fields: [payerId], references: [id])
@@ -542,16 +579,19 @@ model Challan {
 
 /// FR: mock online payment and receipt (UC: Pay Fee, View Receipt)
 model Payment {
-  id         String        @id @default(uuid())
-  challanId  String
-  payerId    String
-  amount     Decimal       @db.Decimal(12, 2)
-  method     PaymentMethod
-  status     PaymentStatus @default(PENDING)
-  gatewayRef String?       @unique
-  receiptNo  String?       @unique
-  paidAt     DateTime?
-  createdAt  DateTime      @default(now())
+  id            String        @id @default(uuid())
+  challanId     String
+  payerId       String
+  amount        Decimal       @db.Decimal(12, 2)
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
+  gatewayRef    String?       @unique
+  receiptNo     String?       @unique
+  cardBrand     String? // only the brand and last 4 digits are ever kept
+  cardLast4     String?
+  failureReason String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
 
   challan Challan @relation(fields: [challanId], references: [id])
   payer   User    @relation(fields: [payerId], references: [id])
@@ -729,6 +769,7 @@ model NotificationPreference {
   userId       String   @unique
   emailEnabled Boolean  @default(true)
   smsEnabled   Boolean  @default(false)
+  pushEnabled  Boolean  @default(false)
   inAppEnabled Boolean  @default(true)
   updatedAt    DateTime @updatedAt
 
@@ -737,16 +778,22 @@ model NotificationPreference {
 
 /// FR: user feedback (UC: Submit Feedback)
 model Feedback {
-  id        String   @id @default(uuid())
-  userId    String?
-  rating    Int
-  category  String?
-  message   String
-  createdAt DateTime @default(now())
+  id                   String           @id @default(uuid())
+  userId               String?
+  rating               Int?
+  category             FeedbackCategory @default(OTHER)
+  message              String
+  status               FeedbackStatus   @default(NEW)
+  forwardToMaintenance Boolean          @default(false)
+  reviewedById         String?
+  reviewedAt           DateTime?
+  createdAt            DateTime         @default(now())
 
-  user User? @relation(fields: [userId], references: [id])
+  user     User? @relation(fields: [userId], references: [id])
+  reviewer User? @relation("FeedbackReviewer", fields: [reviewedById], references: [id])
 
   @@index([createdAt])
+  @@index([status, category])
 }
 
 /// FR: immutable audit logs (UC: View Audit Logs). Append-only: UPDATE/DELETE blocked by trigger.
