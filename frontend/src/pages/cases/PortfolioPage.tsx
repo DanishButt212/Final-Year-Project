@@ -12,6 +12,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
+import { useFilingGate } from '@/hooks/use-filing-gate';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
 import {
@@ -35,6 +36,7 @@ const PAGE_SIZE = 10;
 export default function PortfolioPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const gate = useFilingGate();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<CaseStatus | ''>('');
   const [searchInput, setSearchInput] = useState('');
@@ -74,11 +76,17 @@ export default function PortfolioPage() {
           { label: 'My Case Portfolio' },
         ]}
         actions={
-          <Button asChild>
-            <Link to={portalPath(portal, 'new-case')}>
+          gate.canFile ? (
+            <Button asChild>
+              <Link to={portalPath(portal, 'new-case')}>
+                <FilePlus2 aria-hidden="true" /> New Case Submission
+              </Link>
+            </Button>
+          ) : (
+            <Button disabled title={gate.reason ?? undefined}>
               <FilePlus2 aria-hidden="true" /> New Case Submission
-            </Link>
-          </Button>
+            </Button>
+          )
         }
       />
 

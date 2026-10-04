@@ -22,6 +22,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { PdfDropZone } from '@/components/ui/pdf-drop-zone';
 import { ProgressBar } from '@/components/ui/progress';
 import { Stepper } from '@/components/ui/stepper';
+import { useFilingGate } from '@/hooks/use-filing-gate';
 import { toast } from '@/components/ui/toaster';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes';
 import { parseApiError } from '@/lib/api';
@@ -180,7 +181,7 @@ function ReviewParties({ title, parties }: { title: string; parties: PartyValues
   );
 }
 
-export default function NewCasePage() {
+function NewCaseWizard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -518,6 +519,28 @@ export default function NewCasePage() {
           )}
         </div>
       </form>
+    </>
+  );
+}
+
+/** Shows why filing is unavailable (unverified lawyer, registration closed) instead of the wizard. */
+export default function NewCasePage() {
+  const { user } = useAuth();
+  const gate = useFilingGate();
+  if (!user || gate.canFile) return <NewCaseWizard />;
+  const portal = PORTALS[user.role];
+  return (
+    <>
+      <PageHeader
+        title="New Case Submission"
+        crumbs={[
+          { label: 'Dashboard', to: portalPath(portal, '') },
+          { label: 'New Case Submission' },
+        ]}
+      />
+      <Alert variant="info" title="New filing unavailable">
+        {gate.reason}
+      </Alert>
     </>
   );
 }

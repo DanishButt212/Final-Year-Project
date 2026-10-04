@@ -1,9 +1,17 @@
 import { Route, Routes } from 'react-router';
-import { GuestOnly, RequireAuth } from '@/auth/guards';
+import { GuestOnly, RequireAuth, RequireRole } from '@/auth/guards';
 import { useAuth } from '@/auth/useAuth';
 import { AppShell } from '@/components/layout/AppShell';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
+import AccountsPage from '@/pages/admin/AccountsPage';
+import AdminCaseDetailPage from '@/pages/admin/AdminCaseDetailPage';
+import AdminCasesPage from '@/pages/admin/AdminCasesPage';
+import CourtsPage from '@/pages/admin/CourtsPage';
+import LawyerVerificationPage from '@/pages/admin/LawyerVerificationPage';
+import PoliciesPage from '@/pages/admin/PoliciesPage';
+import JudgeCasesPage from '@/pages/judge/JudgeCasesPage';
+import NotificationsPage from '@/pages/NotificationsPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
@@ -37,6 +45,18 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route element={<RequireRole role="ADMIN" />}>
+            <Route path="admin/accounts" element={<AccountsPage />} />
+            <Route path="admin/lawyer-verification" element={<LawyerVerificationPage />} />
+            <Route path="admin/cases" element={<AdminCasesPage />} />
+            <Route path="admin/cases/:caseId" element={<AdminCaseDetailPage />} />
+            <Route path="admin/courts" element={<CourtsPage />} />
+            <Route path="admin/policies" element={<PoliciesPage />} />
+          </Route>
+          <Route element={<RequireRole role="JUDGE" />}>
+            <Route path="judge/cases" element={<JudgeCasesPage />} />
+          </Route>
           <Route path=":portal" element={<PortalHome />} />
           <Route
             path=":portal/new-case"

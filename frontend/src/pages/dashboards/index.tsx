@@ -1,6 +1,5 @@
 import {
   Archive,
-  Briefcase,
   CalendarDays,
   ClipboardList,
   Clock,
@@ -17,8 +16,10 @@ import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
+import { LAWYER_PENDING_MESSAGE } from '@/hooks/use-filing-gate';
 import { DashboardFrame, EmptyPanel, PanelGrid } from './parts';
-import AdminUsersPanel from './AdminUsersPanel';
+import AnalyticsBoard from '../admin/AnalyticsBoard';
+import { MyAllocatedCases } from '../judge/JudgeCasesPage';
 import CaseOverview from './CaseOverview';
 
 export function LitigantDashboard() {
@@ -60,13 +61,12 @@ export function LawyerDashboard() {
   const status = user?.lawyerProfile?.verificationStatus;
   return (
     <DashboardFrame description="Your chamber, clients and cases at a glance.">
-      <CaseOverview />
       {status === 'PENDING' && (
         <Alert variant="info" title="Verification pending" className="mb-6">
-          An administrator will verify your Bar Council registration. Some features stay limited
-          until then.
+          {LAWYER_PENDING_MESSAGE}
         </Alert>
       )}
+      <CaseOverview />
       {status === 'REJECTED' && (
         <Alert variant="error" title="Verification rejected" className="mb-6">
           Your Bar Council registration could not be verified. Please contact the registrar.
@@ -151,6 +151,9 @@ export function InternDashboard() {
 export function JudgeDashboard() {
   return (
     <DashboardFrame description="Today's cause list and your caseload.">
+      <div className="mb-6">
+        <MyAllocatedCases />
+      </div>
       <PanelGrid>
         <EmptyPanel
           title="Today's cause list"
@@ -159,14 +162,6 @@ export function JudgeDashboard() {
           emptyText="Cases fixed before you for today will appear here."
           actionLabel="Open cause list"
           actionTo="/judge/cause-list"
-        />
-        <EmptyPanel
-          title="Allocated cases"
-          icon={Briefcase}
-          emptyTitle="No cases allocated"
-          emptyText="Cases allocated to you by the registrar will be listed here."
-          actionLabel="Case status"
-          actionTo="/judge/cases"
         />
         <EmptyPanel
           title="Recent orders"
@@ -183,8 +178,8 @@ export function JudgeDashboard() {
 
 export function AdminDashboard() {
   return (
-    <DashboardFrame description="System overview and user management.">
-      <AdminUsersPanel />
+    <DashboardFrame description="Live metrics for the whole court system.">
+      <AnalyticsBoard />
     </DashboardFrame>
   );
 }

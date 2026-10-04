@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFilingGate } from '@/hooks/use-filing-gate';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { parseApiError } from '@/lib/api';
 import { casesApi } from '@/lib/cases-api';
@@ -36,6 +37,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Scale; label: string;
 /** Dashboard block for litigants and lawyers: case totals and the five most recent cases (real API data). */
 export default function CaseOverview() {
   const { user } = useAuth();
+  const gate = useFilingGate();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['cases', 'summary'],
     queryFn: casesApi.summary,
@@ -49,12 +51,30 @@ export default function CaseOverview() {
     <section aria-label="Case overview" className="mb-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold">Your cases</h2>
-        <Button asChild size="lg">
-          <Link to={portalPath(portal, 'new-case')}>
+        {gate.canFile ? (
+          <Button asChild size="lg">
+            <Link to={portalPath(portal, 'new-case')}>
+              <FilePlus2 aria-hidden="true" /> New Case Submission
+            </Link>
+          </Button>
+        ) : (
+          <Button size="lg" disabled aria-describedby="filing-gate-reason">
             <FilePlus2 aria-hidden="true" /> New Case Submission
-          </Link>
-        </Button>
+          </Button>
+        )}
       </div>
+      {gate.reason && (
+        <Alert
+          variant={
+            user.role === 'LAWYER' && !gate.canFile && gate.reason.includes('pending')
+              ? 'info'
+              : 'error'
+          }
+          title="New filing unavailable"
+        >
+          <span id="filing-gate-reason">{gate.reason}</span>
+        </Alert>
+      )}
 
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
 

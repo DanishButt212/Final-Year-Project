@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { Skeleton } from '@/components/ui/skeleton';
 import { roleHome } from '@/lib/navigation';
+import type { Role } from '@/lib/types';
 import { useAuth } from './useAuth';
 
 function FullPageLoader() {
@@ -28,5 +29,12 @@ export function GuestOnly() {
   const { user, loading } = useAuth();
   if (loading) return <FullPageLoader />;
   if (user) return <Navigate to={roleHome(user.role)} replace />;
+  return <Outlet />;
+}
+
+/** Routes that belong to one role only; everyone else gets the 403 page. */
+export function RequireRole({ role }: { role: Role }) {
+  const { user } = useAuth();
+  if (user && user.role !== role) return <Navigate to="/forbidden" replace />;
   return <Outlet />;
 }
