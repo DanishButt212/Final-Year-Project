@@ -12,9 +12,21 @@ export const SETTING_KEYS = {
   courtDayStart: 'court_day_start',
   courtDayEnd: 'court_day_end',
   hearingSlotMinutes: 'hearing_slot_minutes',
+  adValoremPercent: 'ad_valorem_percent',
+  adValoremCapPkr: 'ad_valorem_cap_pkr',
+  challanDueDays: 'challan_due_days',
+  maxEvidenceMb: 'max_evidence_mb',
 } as const;
 
 const DEFAULT_MAX_ATTACHMENT_MB = 25;
+const DEFAULT_MAX_EVIDENCE_MB = 100;
+
+export interface FeePolicy {
+  adValoremPercent: string;
+  adValoremCapPkr: string;
+  challanDueDays: number;
+  filingFeeRateModifier: string;
+}
 
 export interface SchedulePolicy {
   courtDayStart: string;
@@ -59,6 +71,32 @@ export class SettingsService {
     };
   }
 
+  async maxEvidenceMb(): Promise<number> {
+    const n = Number(await this.raw(SETTING_KEYS.maxEvidenceMb));
+    return Number.isInteger(n) && n >= 1 && n <= 200 ? n : DEFAULT_MAX_EVIDENCE_MB;
+  }
+
+  async feePolicy(): Promise<FeePolicy> {
+    const pct = Number(await this.raw(SETTING_KEYS.adValoremPercent));
+    const cap = Number(await this.raw(SETTING_KEYS.adValoremCapPkr));
+    const days = Number(await this.raw(SETTING_KEYS.challanDueDays));
+    return {
+      adValoremPercent: Number.isFinite(pct) && pct >= 0 && pct <= 10 ? String(pct) : '1',
+      adValoremCapPkr: Number.isFinite(cap) && cap >= 0 ? String(cap) : '50000',
+      challanDueDays: Number.isInteger(days) && days >= 1 && days <= 90 ? days : 7,
+      filingFeeRateModifier: (await this.raw(SETTING_KEYS.filingFeeRateModifier)) ?? '0',
+    };
+  }
+
+  /** Base filing fee in force for a case type (newest active FeeStructure row). */
+  async baseFee(caseType: string): Promise<string> {
+    const row = await this.prisma.feeStructure.findFirst({
+      where: { caseType: caseType as never, isActive: true, effectiveFrom: { lte: new Date() } },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    return row ? row.amount.toFixed(2) : '0.00';
+  }
+
   async publicSettings() {
     return {
       maxAttachmentMb: await this.maxAttachmentMb(),
@@ -71,6 +109,10 @@ export class SettingsService {
       ...(await this.publicSettings()),
       filingFeeRateModifier: (await this.raw(SETTING_KEYS.filingFeeRateModifier)) ?? '0',
       ...(await this.schedulePolicy()),
+      adValoremPercent: (await this.feePolicy()).adValoremPercent,
+      adValoremCapPkr: (await this.feePolicy()).adValoremCapPkr,
+      challanDueDays: (await this.feePolicy()).challanDueDays,
+      maxEvidenceMb: await this.maxEvidenceMb(),
       fees: await this.currentFees(),
     };
   }
@@ -121,6 +163,18 @@ export class SettingsService {
         String(dto.hearingSlotMinutes),
         'Hearing slot length in minutes',
       ]);
+    }
+    if (dto.adValoremPercent !== undefined) {
+      entries.push([SETTING_KEYS.adValoremPercent, dto.adValoremPercent, 'Ad valorem percentage for Civil Suits']);
+    }
+    if (dto.adValoremCapPkr !== undefined) {
+      entries.push([SETTING_KEYS.adValoremCapPkr, dto.adValoremCapPkr, 'Cap on the ad valorem fee (PKR)']);
+    }
+    if (dto.challanDueDays !== undefined) {
+      entries.push([SETTING_KEYS.challanDueDays, String(dto.challanDueDays), 'Days until a challan is due']);
+    }
+    if (dto.maxEvidenceMb !== undefined) {
+      entries.push([SETTING_KEYS.maxEvidenceMb, String(dto.maxEvidenceMb), 'Maximum evidence file size in MB']);
     }
     if (dto.filingFeeRateModifier !== undefined) {
       entries.push([

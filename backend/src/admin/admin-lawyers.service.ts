@@ -5,6 +5,7 @@ import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { Prisma } from '../generated/prisma/client';
 import { MockBarCouncilService } from '../integrations/mock-bar-council.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestMeta } from './constants';
 import { ListLawyersQueryDto } from './dto/admin.dto';
@@ -51,6 +52,7 @@ export class AdminLawyersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly barCouncil: MockBarCouncilService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(q: ListLawyersQueryDto) {
@@ -151,15 +153,15 @@ export class AdminLawyersService {
         metadata: { barNumber: lawyer.barNumber, userId: lawyer.user.id },
         ...meta,
       });
-      await tx.notification.create({
-        data: {
-          userId: lawyer.user.id,
+      await this.notifications.notify(
+        lawyer.user.id,
+        {
           type: 'LAWYER_VERIFIED',
           title: 'Bar credentials verified',
           body: 'The registrar approved your bar credentials. You can now file cases.',
-          sentAt: new Date(),
         },
-      });
+        tx,
+      );
     });
     return { message: Messages.LAWYER_VERIFIED, lawyer: toItem(await this.load(id)) };
   }

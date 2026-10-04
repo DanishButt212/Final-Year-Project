@@ -65,6 +65,31 @@ export class UpdateSettingsDto {
   @Max(240, { message: 'Hearing slot length must be between 10 and 240 minutes.' })
   hearingSlotMinutes?: number;
 
+  /** Ad valorem percentage for Civil Suits, 0 to 10 with up to two decimals. */
+  @IsOptional()
+  @Transform(toStringValue)
+  @Matches(/^(10(\.0{1,2})?|\d(\.\d{1,2})?)$/, {
+    message: 'Ad valorem percentage must be between 0 and 10.',
+  })
+  adValoremPercent?: string;
+
+  @IsOptional()
+  @Transform(toStringValue)
+  @Matches(DECIMAL, { message: 'Ad valorem cap must be an amount of 0 or more with at most two decimals.' })
+  adValoremCapPkr?: string;
+
+  @IsOptional()
+  @IsInt({ message: 'Challan due days must be a whole number.' })
+  @Min(1, { message: 'Challan due days must be between 1 and 90.' })
+  @Max(90, { message: 'Challan due days must be between 1 and 90.' })
+  challanDueDays?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'Max evidence size must be a whole number of MB.' })
+  @Min(1, { message: 'Max evidence size must be between 1 and 200 MB.' })
+  @Max(200, { message: 'Max evidence size must be between 1 and 200 MB.' })
+  maxEvidenceMb?: number;
+
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(20)

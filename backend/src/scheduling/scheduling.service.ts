@@ -8,6 +8,7 @@ import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { CaseEventType, CaseStatus, Prisma } from '../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { fullName, RequestMeta } from '../admin/constants';
@@ -94,6 +95,7 @@ export class SchedulingService {
     private readonly engine: SchedulingEngine,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ------------------------------------------------------------------ helpers
@@ -150,11 +152,7 @@ export class SchedulingService {
   }
 
   private async notify(db: Db, userIds: string[], type: string, title: string, body: string) {
-    if (userIds.length === 0) return;
-    const now = new Date();
-    await db.notification.createMany({
-      data: userIds.map((userId) => ({ userId, type, title, body, sentAt: now })),
-    });
+    await this.notifications.notifyMany(userIds, { type, title, body }, db);
   }
 
   private async audit_(
@@ -863,16 +861,21 @@ export class SchedulingService {
               people.set(u, [...(people.get(u) ?? []), `${h.case.ucn} at ${h.startTime ?? ''}`]);
             }
           }
-          const now = new Date();
-          await tx.notification.createMany({
-            data: [...people].map(([userId, items]) => ({
+          const bodies = new Map(
+            [...people].map(([userId, items]) => [
               userId,
+              `The cause list for ${ddmmyyyy(date)} is published. Listed: ${items.join('; ')}.`,
+            ]),
+          );
+          await this.notifications.notifyMany(
+            [...bodies.keys()],
+            (userId) => ({
               type: 'CAUSE_LIST_PUBLISHED',
               title: 'Cause list published',
-              body: `The cause list for ${ddmmyyyy(date)} is published. Listed: ${items.join('; ')}.`,
-              sentAt: now,
-            })),
-          });
+              body: bodies.get(userId) ?? '',
+            }),
+            tx,
+          );
         }
         await this.audit_(
           tx,

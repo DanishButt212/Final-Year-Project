@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { FeesModule } from './fees/fees.module';
 import { CasesModule } from './cases/cases.module';
 import { StorageModule } from './storage/storage.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -44,6 +45,7 @@ import { UsersModule } from './users/users.module';
     AdminModule,
     JudgeModule,
     SchedulingModule,
+    FeesModule,
     HealthModule,
   ],
   providers: [

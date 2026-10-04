@@ -1,7 +1,10 @@
-import { Controller, Get, Injectable, Module, Query } from '@nestjs/common';
+import { Controller, Get, Injectable, Module, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { fullName, personName } from '../admin/constants';
+import { CasesModule } from '../cases/cases.module';
+import { CasesService } from '../cases/cases.service';
+import { ParseIdPipe } from '../common/parse-id.pipe';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { PageQueryDto, pageMeta } from '../common/pagination';
 import { TrimOrUndefined } from '../common/validators';
@@ -73,7 +76,16 @@ export class JudgeService {
 @Roles('JUDGE')
 @Controller('judge')
 export class JudgeController {
-  constructor(private readonly judge: JudgeService) {}
+  constructor(
+    private readonly judge: JudgeService,
+    private readonly caseService: CasesService,
+  ) {}
+
+  /** Read-only case detail for the judge the case is allocated to (anyone else gets 404). */
+  @Get('cases/:id')
+  detail(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
+    return this.caseService.detail(user, id);
+  }
 
   /** Cases allocated to the logged-in judge. */
   @Get('cases')
@@ -82,5 +94,5 @@ export class JudgeController {
   }
 }
 
-@Module({ controllers: [JudgeController], providers: [JudgeService] })
+@Module({ imports: [CasesModule], controllers: [JudgeController], providers: [JudgeService] })
 export class JudgeModule {}

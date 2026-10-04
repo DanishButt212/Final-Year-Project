@@ -96,6 +96,7 @@ export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDeta
     caseType: c.caseType,
     status: c.status,
     reliefSought: c.reliefSought,
+    claimAmountPkr: c.claimAmountPkr ? c.claimAmountPkr.toFixed(2) : null,
     filingDate: c.filingDate,
     createdAt: c.createdAt,
     allocatedAt: c.allocatedAt,
@@ -190,6 +191,7 @@ export class CasesService {
             status: 'PENDING_ASSIGNMENT',
             title,
             reliefSought: dto.reliefSought,
+            claimAmountPkr: dto.caseType === 'CIVIL_SUIT' && dto.claimAmountPkr ? dto.claimAmountPkr : null,
             filingDate: todayUtc(),
             filedById: user.id,
             parties: {
@@ -438,6 +440,7 @@ export class CasesService {
   /** Cases the user may see: filed by them, or where they are the lawyer on a party. */
   private async scopeFor(user: AuthUser): Promise<Prisma.CaseWhereInput> {
     if (user.role === 'ADMIN') return {};
+    if (user.role === 'JUDGE') return { judgeId: user.id };
     const or: Prisma.CaseWhereInput[] = [{ filedById: user.id }];
     if (user.role === 'LAWYER') {
       const profile = await this.prisma.lawyerProfile.findUnique({

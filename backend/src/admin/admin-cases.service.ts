@@ -10,6 +10,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { caseDetailInclude, toCaseDetail } from '../cases/cases.service';
 import { AdminCourtsService } from './admin-courts.service';
@@ -27,6 +28,7 @@ const listSelect = {
   courtroom: { select: { name: true } },
   judge: personName,
   filedBy: personName,
+  challans: { select: { status: true }, orderBy: { issuedAt: 'desc' }, take: 1 },
 } satisfies Prisma.CaseSelect;
 
 const bad = (field: string, text: string) =>
@@ -43,6 +45,7 @@ export class AdminCasesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly courts: AdminCourtsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(q: AdminListCasesQueryDto) {
@@ -90,6 +93,11 @@ export class AdminCasesService {
         courtroom: c.courtroom?.name ?? null,
         judge: c.judge ? fullName(c.judge) : null,
         filedBy: fullName(c.filedBy),
+        feeStatus: c.challans[0]
+          ? c.challans[0].status === 'PAID'
+            ? 'PAID'
+            : 'UNPAID'
+          : 'NOT_GENERATED',
       })),
       meta: pageMeta(q.page, q.limit, total),
     };
@@ -109,6 +117,14 @@ export class AdminCasesService {
     if (!target) throw new NotFoundException(Messages.NOT_FOUND);
 
     const isReallocation = target.status === 'ALLOCATED' && dto.reallocate === true;
+
+    // Allocation gate: the court fee must be paid before a case enters the allocation queue.
+    if (target.status === 'PENDING_ASSIGNMENT') {
+      const paid = await this.prisma.challan.count({ where: { caseId, status: 'PAID' } });
+      if (paid === 0) {
+        throw new ConflictException({ code: 'FEE_UNPAID', message: 'Court fee is unpaid for this case.' });
+      }
+    }
     if (target.status !== 'PENDING_ASSIGNMENT' && !isReallocation) {
       throw new ConflictException({
         code: 'NOT_ALLOCATABLE',
@@ -193,15 +209,15 @@ export class AdminCasesService {
         },
         ...meta,
       });
-      await tx.notification.create({
-        data: {
-          userId: target.filedById,
+      await this.notifications.notify(
+        target.filedById,
+        {
           type: 'CASE_ALLOCATED',
           title: 'Your case has been allocated',
           body: `${target.ucn} was allocated to ${judgeName} at ${court.name}${courtroom ? `, ${courtroom.name}` : ''}.`,
-          sentAt: now,
         },
-      });
+        tx,
+      );
     });
 
     return {

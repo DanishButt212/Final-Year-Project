@@ -1,13 +1,61 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { MockMailerService } from '../integrations/mock-mailer.service';
+import { Prisma } from '../generated/prisma/client';
 import { Messages } from '../common/messages';
 import { PageQueryDto, pageMeta } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 
+export interface NotifyPayload {
+  type: string;
+  title: string;
+  body: string;
+}
+
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger('MockDelivery');
 
-  /** In-app only (no email or SMS yet). */
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailer: MockMailerService,
+  ) {}
+
+  /**
+   * Central entry point: stores the in-app notification (always on) and, for every channel the user enabled in
+   * "Notification Options Preferences", performs a MOCK delivery by logging it. Pass a transaction client as `db`
+   * to store the notification inside the caller's transaction. Never put secrets in a payload.
+   */
+  async notify(userId: string, payload: NotifyPayload, db: Prisma.TransactionClient = this.prisma) {
+    await this.notifyMany([userId], payload, db);
+  }
+
+  async notifyMany(
+    userIds: string[],
+    payload: NotifyPayload | ((userId: string) => NotifyPayload),
+    db: Prisma.TransactionClient = this.prisma,
+  ) {
+    const ids = [...new Set(userIds)];
+    if (ids.length === 0) return;
+    const now = new Date();
+    const resolve = (id: string) => (typeof payload === 'function' ? payload(id) : payload);
+    await db.notification.createMany({
+      data: ids.map((userId) => ({ userId, ...resolve(userId), channel: 'IN_APP' as const, sentAt: now })),
+    });
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, email: true, phone: true, notificationPreference: true },
+    });
+    for (const u of users) {
+      const pref = u.notificationPreference;
+      const { title, body } = resolve(u.id);
+      const summary = `${title}: ${body}`.slice(0, 140);
+      if (pref ? pref.emailEnabled : true) this.mailer.send(u.email, title, body);
+      if (pref?.smsEnabled) this.logger.log(`[MOCK SMS] to=${u.phone} ${summary}`);
+      if (pref?.pushEnabled) this.logger.log(`[MOCK PUSH] user=${u.id} ${summary}`);
+    }
+  }
+
+  /** In-app notification only (kept for callers that must not trigger external channels). */
   create(userId: string, type: string, title: string, body: string) {
     return this.prisma.notification.create({
       data: { userId, type, title, body, channel: 'IN_APP', sentAt: new Date() },
