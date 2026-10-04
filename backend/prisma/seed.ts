@@ -249,7 +249,6 @@ async function seedReference() {
     ['geofence_radius_meters', '200', 'Allowed distance from the chamber for intern attendance'],
     ['geofence_chamber_lat', '30.1978', 'Demo chamber latitude (Multan)'],
     ['geofence_chamber_lng', '71.4697', 'Demo chamber longitude (Multan)'],
-    ['max_pleading_size_mb', '25', 'Maximum PDF pleading size (legacy key)'],
     ['max_attachment_mb', '25', 'Maximum PDF attachment size in MB'],
     ['filing_fee_rate_modifier', '0', 'Filing fee rate modifier (percent)'],
     ['hearing_slots_per_day', '8', 'Number of hearing time slots per judge per day'],
@@ -259,6 +258,8 @@ async function seedReference() {
       'Set to false to close new case registration (UC-2.1 precondition)',
     ],
   ];
+  // Retired in Phase 3B: replaced by max_attachment_mb.
+  await prisma.systemSetting.deleteMany({ where: { key: 'max_pleading_size_mb' } });
   for (const [key, value, description] of settings) {
     await prisma.systemSetting.upsert({
       where: { key },

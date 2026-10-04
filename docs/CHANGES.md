@@ -79,6 +79,11 @@ Hearings, cause lists, anti-clash scheduling, calendar overlaps, the hearing sch
 ## Workflow change (04-10-2026)
 All work is now committed directly to `main` (no personal branch, no pull requests). Rules: small logical commits; `npm run build` and `npm run lint` in backend and frontend before every push; `git pull origin main` before pushing and merge carefully if the teammate pushed; never force push. The `danish` branch stays as a backup and is not deleted.
 
+## Phase 3B cleanup decisions (04-10-2026)
+- The stale setting key `max_pleading_size_mb` was removed from the seed, and the seed deletes its row (the policy is `max_attachment_mb`).
+- A rejected lawyer who is reactivated returns to PENDING (already implemented in Phase 3A).
+- Provisioned interns get their InternProfile and supervisor in the internship phase.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** cancelled hearings must not keep holding a judge's slot. Replace the unique `(judgeId, date, timeSlot)` constraint on `Hearing` with a partial unique index that ignores `CANCELLED` hearings (raw SQL migration, `CREATE UNIQUE INDEX ... WHERE status <> 'CANCELLED'`). Do this when hearing scheduling is built, not before.
 
