@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Download, FileText, Shuffle } from 'lucide-react';
+import { Download, FileText, ScrollText, Shuffle } from 'lucide-react';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -111,12 +111,21 @@ export default function AdminCaseDetailPage() {
           { label: data.ucn },
         ]}
         actions={
-          allocatable && (
-            <Button onClick={() => setAllocating(true)}>
-              <Shuffle aria-hidden="true" />{' '}
-              {data.status === 'ALLOCATED' ? 'Re-allocate' : 'Allocate case'}
-            </Button>
-          )
+          <>
+            {data.status !== 'PENDING_ASSIGNMENT' && data.status !== 'DRAFT' && (
+              <Button variant="secondary" asChild>
+                <Link to={`/admin/summons?issue=${data.id}`}>
+                  <ScrollText aria-hidden="true" /> Issue summons
+                </Link>
+              </Button>
+            )}
+            {allocatable && (
+              <Button onClick={() => setAllocating(true)}>
+                <Shuffle aria-hidden="true" />{' '}
+                {data.status === 'ALLOCATED' ? 'Re-allocate' : 'Allocate case'}
+              </Button>
+            )}
+          </>
         }
       />
       <div className="-mt-3 mb-6 flex flex-wrap items-center gap-3">

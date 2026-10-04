@@ -53,7 +53,12 @@ export interface CaseEvent {
     | 'HEARING_CANCELLED'
     | 'PAYMENT_RECEIVED'
     | 'EVIDENCE_ADDED'
-    | 'EVIDENCE_LOCKED';
+    | 'EVIDENCE_LOCKED'
+    | 'SUMMONS_ISSUED'
+    | 'SUMMONS_ATTEMPT'
+    | 'SUMMONS_EXECUTED'
+    | 'SUMMONS_REASSIGNED'
+    | 'SUMMONS_CANCELLED';
   description: string;
   createdAt: string;
   actor: string | null;

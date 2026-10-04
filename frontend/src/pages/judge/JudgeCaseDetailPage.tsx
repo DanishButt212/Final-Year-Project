@@ -20,6 +20,7 @@ import { caseTypeLabel } from '@/lib/case-status';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { evidenceApi } from '@/lib/phase4-api';
 import { NotFoundPage } from '@/pages/ErrorPages';
+import SummonsPanel from '@/pages/cases/SummonsPanel';
 import VaultPanel, { vaultKey } from '@/pages/cases/VaultPanel';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -106,6 +107,7 @@ export default function JudgeCaseDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="parties">Parties</TabsTrigger>
           <TabsTrigger value="hearings">Hearings</TabsTrigger>
+          <TabsTrigger value="summons">Summons</TabsTrigger>
           <TabsTrigger value="vault">Vault</TabsTrigger>
         </TabsList>
 
@@ -184,6 +186,10 @@ export default function JudgeCaseDetailPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="summons">
+          <SummonsPanel caseId={data.id} ucn={data.ucn} judge />
         </TabsContent>
 
         <TabsContent value="vault" className="space-y-6">

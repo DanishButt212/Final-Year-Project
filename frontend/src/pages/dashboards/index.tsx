@@ -18,6 +18,7 @@ import AnalyticsBoard from '../admin/AnalyticsBoard';
 import { NextHearingCard } from '../scheduling/UserSchedulePages';
 import { MyAllocatedCases } from '../judge/JudgeCasesPage';
 import CaseOverview from './CaseOverview';
+import { ChamberIdCard } from '../chamber/ChamberIdCard';
 
 export function LitigantDashboard() {
   return (
@@ -56,6 +57,7 @@ export function LawyerDashboard() {
           {LAWYER_PENDING_MESSAGE}
         </Alert>
       )}
+      {status === 'VERIFIED' && <ChamberIdCard />}
       <CaseOverview />
       {status === 'REJECTED' && (
         <Alert variant="error" title="Verification rejected" className="mb-6">

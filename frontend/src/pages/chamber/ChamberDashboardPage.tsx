@@ -18,7 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { parseApiError } from '@/lib/api';
 import { chamberApi } from '@/lib/chamber-api';
 import { formatDate, formatPkr } from '@/lib/format';
-import { balanceText, RetainerBadge, StatCard } from './shared';
+import { RetainerBadge, StatCard } from './shared';
+import { balanceText } from './helpers';
 
 const AXIS = { fontSize: 12, fill: 'var(--color-text-muted)' };
 

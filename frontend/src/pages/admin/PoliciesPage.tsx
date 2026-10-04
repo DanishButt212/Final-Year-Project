@@ -80,6 +80,18 @@ const policySchema = z.object({
     .min(1, MESSAGES.fieldRequired)
     .regex(/^\d+$/, 'Enter a whole number of metres.')
     .refine((v) => Number(v) >= 10 && Number(v) <= 1000, 'Enter a value from 10 to 1000 metres.'),
+  summonsMaxGpsAccuracyM: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of metres.')
+    .refine((v) => Number(v) >= 10 && Number(v) <= 500, 'Enter a value from 10 to 500 metres.'),
+  summonsDefaultDueDays: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of days.')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 90, 'Enter a value from 1 to 90 days.'),
   hearingSlotMinutes: z
     .string()
     .trim()
@@ -112,6 +124,8 @@ const toValues = (s: Settings): PolicyValues => ({
   maxEvidenceMb: String(s.maxEvidenceMb),
   attendanceDefaultRadiusM: String(s.attendanceDefaultRadiusM),
   attendanceMaxAccuracyM: String(s.attendanceMaxAccuracyM),
+  summonsMaxGpsAccuracyM: String(s.summonsMaxGpsAccuracyM),
+  summonsDefaultDueDays: String(s.summonsDefaultDueDays),
   fees: s.fees.map((f) => ({ caseType: f.caseType, amount: f.amount })),
 });
 
@@ -146,6 +160,8 @@ export default function PoliciesPage() {
       maxEvidenceMb: '100',
       attendanceDefaultRadiusM: '300',
       attendanceMaxAccuracyM: '150',
+      summonsMaxGpsAccuracyM: '100',
+      summonsDefaultDueDays: '7',
       fees: [],
     },
   });
@@ -168,6 +184,8 @@ export default function PoliciesPage() {
         maxEvidenceMb: Number(v.maxEvidenceMb),
         attendanceDefaultRadiusM: Number(v.attendanceDefaultRadiusM),
         attendanceMaxAccuracyM: Number(v.attendanceMaxAccuracyM),
+        summonsMaxGpsAccuracyM: Number(v.summonsMaxGpsAccuracyM),
+        summonsDefaultDueDays: Number(v.summonsDefaultDueDays),
         fees: v.fees.map((f) => ({
           caseType: f.caseType as Settings['fees'][number]['caseType'],
           amount: f.amount,
@@ -354,6 +372,37 @@ export default function PoliciesPage() {
                 {(p) => (
                   <Input inputMode="numeric" {...register('attendanceMaxAccuracyM')} {...p} />
                 )}
+              </Field>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Summons and process servers</CardTitle>
+              <p className="text-sm text-text-muted">
+                Process servers must commit progress and proof with a GPS accuracy at least this
+                good. A device location can be spoofed and is not matched to the address in this
+                prototype.
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Maximum GPS accuracy (m)"
+                required
+                hint="10 to 500"
+                error={errors.summonsMaxGpsAccuracyM?.message}
+              >
+                {(p) => (
+                  <Input inputMode="numeric" {...register('summonsMaxGpsAccuracyM')} {...p} />
+                )}
+              </Field>
+              <Field
+                label="Default due period (days)"
+                required
+                hint="1 to 90"
+                error={errors.summonsDefaultDueDays?.message}
+              >
+                {(p) => <Input inputMode="numeric" {...register('summonsDefaultDueDays')} {...p} />}
               </Field>
             </CardContent>
           </Card>

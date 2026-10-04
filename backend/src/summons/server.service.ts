@@ -200,7 +200,8 @@ export class ServerService {
         where: { serverId: ctx.userId, status: { in: [...OPEN_STATUSES] }, dueBy: { lt: today } },
       }),
     ]);
-    return { open, executedThisWeek: executed, overdue };
+    const policy = await this.settings.summonsPolicy();
+    return { open, executedThisWeek: executed, overdue, maxGpsAccuracyM: policy.maxGpsAccuracyM };
   }
 
   async attempt(ctx: ServerContext, id: string, dto: AttemptDto, meta: RequestMeta) {

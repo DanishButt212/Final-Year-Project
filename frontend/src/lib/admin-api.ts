@@ -28,6 +28,8 @@ export interface Settings extends PublicSettings {
   maxEvidenceMb: number;
   attendanceDefaultRadiusM: number;
   attendanceMaxAccuracyM: number;
+  summonsMaxGpsAccuracyM: number;
+  summonsDefaultDueDays: number;
   fees: FeeRow[];
 }
 
@@ -44,6 +46,8 @@ export interface UpdateSettingsPayload {
   maxEvidenceMb?: number;
   attendanceDefaultRadiusM?: number;
   attendanceMaxAccuracyM?: number;
+  summonsMaxGpsAccuracyM?: number;
+  summonsDefaultDueDays?: number;
   fees?: { caseType: CaseType; amount: string }[];
 }
 
@@ -153,6 +157,8 @@ export interface CreateStaffPayload {
   courtId?: string;
   courtroomId?: string;
   supervisorLawyerId?: string;
+  badgeNumber?: string;
+  sector?: string;
 }
 
 // ---------------------------------------------------------------- lawyers

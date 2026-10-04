@@ -6,6 +6,7 @@ import { Alert } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
+import SummonsPanel from './SummonsPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { parseApiError } from '@/lib/api';
 import { casesApi, type CaseDetail } from '@/lib/cases-api';
@@ -110,6 +111,7 @@ export default function CaseDetailPage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="fees">Fees & Payment</TabsTrigger>
           <TabsTrigger value="documents">Evidence Vault</TabsTrigger>
+          <TabsTrigger value="summons">Summons</TabsTrigger>
           <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
         </TabsList>
 
@@ -163,6 +165,10 @@ export default function CaseDetailPage() {
             caseId={data.id}
             canAttachPleadings={!CLOSED_STATUSES.includes(data.status)}
           />
+        </TabsContent>
+
+        <TabsContent value="summons">
+          <SummonsPanel caseId={data.id} ucn={data.ucn} />
         </TabsContent>
 
         <TabsContent value="lifecycle">

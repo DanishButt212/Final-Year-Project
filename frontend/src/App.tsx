@@ -4,6 +4,10 @@ import { useAuth } from '@/auth/useAuth';
 import { AppShell } from '@/components/layout/AppShell';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
+import SummonsRegistryPage from '@/pages/admin/SummonsRegistryPage';
+import { ServerShell } from '@/pages/server/ServerShell';
+import { RosterPage, ServerProfilePage, SummonsPage } from '@/pages/server/ServerPages';
+import { AttemptPage, FinalizePage } from '@/pages/server/ProgressPages';
 import { ChamberGate } from '@/pages/chamber/shared';
 import ChamberDashboardPage from '@/pages/chamber/ChamberDashboardPage';
 import { ClientDetailPage, ClientsPage, NewClientPage } from '@/pages/chamber/ClientsPages';
@@ -62,6 +66,15 @@ export default function App() {
       </Route>
 
       <Route element={<RequireAuth />}>
+        <Route element={<RequireRole role="PROCESS_SERVER" />}>
+          <Route element={<ServerShell />}>
+            <Route path="process-server" element={<RosterPage />} />
+            <Route path="process-server/profile" element={<ServerProfilePage />} />
+            <Route path="process-server/summons/:summonsId" element={<SummonsPage />} />
+            <Route path="process-server/summons/:summonsId/attempt" element={<AttemptPage />} />
+            <Route path="process-server/summons/:summonsId/finalize" element={<FinalizePage />} />
+          </Route>
+        </Route>
         <Route element={<AppShell />}>
           <Route path="profile" element={<ProfilePage />} />
           <Route path="notifications" element={<NotificationsPage />} />
@@ -78,6 +91,7 @@ export default function App() {
             <Route path="admin/courts" element={<CourtsPage />} />
             <Route path="admin/policies" element={<PoliciesPage />} />
             <Route path="admin/feedback" element={<FeedbackAnalysisPage />} />
+            <Route path="admin/summons" element={<SummonsRegistryPage />} />
           </Route>
           <Route element={<RequireRole role="LAWYER" />}>
             <Route element={<ChamberGate />}>

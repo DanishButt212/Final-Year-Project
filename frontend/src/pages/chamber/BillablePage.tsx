@@ -29,7 +29,7 @@ import { chamberApi } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatPkr } from '@/lib/format';
 import { MESSAGES, summaryFor } from '@/lib/schemas';
-import { todayInput, useClientOptions } from './shared';
+import { todayInput, useClientOptions } from './helpers';
 
 const HOURS_MESSAGE = 'Hours must be in steps of 0.25, between 0.25 and 24.';
 const schema = z.object({

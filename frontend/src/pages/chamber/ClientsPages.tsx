@@ -31,7 +31,8 @@ import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatPkr } from '@/lib/format';
 import { CNIC_REGEX, MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import { NotFoundPage } from '@/pages/ErrorPages';
-import { balanceText, RetainerBadge, todayInput } from './shared';
+import { RetainerBadge } from './shared';
+import { balanceText, todayInput } from './helpers';
 
 const CASE_TYPES = [
   'Civil Suit',

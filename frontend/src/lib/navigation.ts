@@ -16,7 +16,6 @@ import {
   Bell,
   Receipt,
   Settings,
-  Smartphone,
   UserCheck,
   Users,
   Wallet,
@@ -28,6 +27,8 @@ import {
   UserPlus,
   NotebookPen,
   Shuffle,
+  ScrollText,
+  UserCircle,
 } from 'lucide-react';
 import type { Role } from './types';
 
@@ -242,13 +243,19 @@ export const PORTALS: Record<Role, Portal> = {
   PROCESS_SERVER: {
     slug: 'process-server',
     role: 'PROCESS_SERVER',
-    label: 'Process Server',
+    label: 'Process Server Console',
     items: [
       {
         slug: '',
-        label: 'Mobile App',
-        icon: Smartphone,
-        description: 'Summons are served through the mobile app.',
+        label: 'My Duty Roster',
+        icon: ClipboardList,
+        description: 'Summons and notices assigned to you.',
+      },
+      {
+        slug: 'profile',
+        label: 'Staff Profile Settings',
+        icon: UserCircle,
+        description: 'Your precinct, sector, phone and photo.',
       },
     ],
   },
@@ -313,6 +320,12 @@ export const PORTALS: Record<Role, Portal> = {
         label: 'Courts & Benches',
         icon: Landmark,
         description: 'Courts, courtrooms and judges.',
+      },
+      {
+        slug: 'summons',
+        label: 'Summons & Notices',
+        icon: ScrollText,
+        description: 'Issue summons and notices and assign them to process servers.',
       },
       {
         slug: 'policies',

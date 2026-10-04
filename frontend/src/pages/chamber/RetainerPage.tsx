@@ -32,7 +32,8 @@ import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
 import { chamberApi, type RetainerRow } from '@/lib/chamber-api';
 import { formatDate, formatPkr } from '@/lib/format';
-import { balanceText, RetainerBadge } from './shared';
+import { RetainerBadge } from './shared';
+import { balanceText } from './helpers';
 
 function DepositDialog({ row, onClose }: { row: RetainerRow; onClose: () => void }) {
   const queryClient = useQueryClient();

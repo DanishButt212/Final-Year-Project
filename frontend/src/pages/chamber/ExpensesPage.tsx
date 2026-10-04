@@ -27,7 +27,8 @@ import { chamberApi } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatPkr } from '@/lib/format';
 import { MESSAGES, summaryFor } from '@/lib/schemas';
-import { StatCard, todayInput } from './shared';
+import { StatCard } from './shared';
+import { todayInput } from './helpers';
 
 const schema = z.object({
   spentOn: z.string().min(1, MESSAGES.fieldRequired),

@@ -159,10 +159,20 @@ const staffSchema = z
     courtId: z.string().optional(),
     courtroomId: z.string().optional(),
     supervisorLawyerId: z.string().optional(),
+    badgeNumber: z.string().trim().max(30, 'Use 30 characters or fewer.').optional(),
+    sector: z.string().trim().max(80, 'Use 80 characters or fewer.').optional(),
   })
   .superRefine((v, ctx) => {
     if (v.role === 'JUDGE' && !v.courtId) {
       ctx.addIssue({ code: 'custom', path: ['courtId'], message: 'Choose the judge’s court.' });
+    }
+    if (v.role === 'PROCESS_SERVER') {
+      if (!v.badgeNumber)
+        ctx.addIssue({ code: 'custom', path: ['badgeNumber'], message: 'Enter the badge number.' });
+      if (!v.courtId)
+        ctx.addIssue({ code: 'custom', path: ['courtId'], message: 'Choose the precinct court.' });
+      if (!v.sector)
+        ctx.addIssue({ code: 'custom', path: ['sector'], message: 'Enter the assigned sector.' });
     }
     if (v.role === 'INTERN' && !v.supervisorLawyerId) {
       ctx.addIssue({
@@ -182,6 +192,8 @@ const STAFF_FIELDS = [
   'phone',
   'courtId',
   'supervisorLawyerId',
+  'badgeNumber',
+  'sector',
   'courtroomId',
 ];
 
@@ -217,6 +229,8 @@ function AddStaffDialog({
       phone: '',
       courtId: '',
       supervisorLawyerId: '',
+      badgeNumber: '',
+      sector: '',
       courtroomId: '',
     },
   });
@@ -240,7 +254,12 @@ function AddStaffDialog({
     mutationFn: (values: StaffValues) =>
       adminApi.createStaff({
         ...values,
-        courtId: values.role === 'JUDGE' ? values.courtId || undefined : undefined,
+        courtId:
+          values.role === 'JUDGE' || values.role === 'PROCESS_SERVER'
+            ? values.courtId || undefined
+            : undefined,
+        badgeNumber: values.role === 'PROCESS_SERVER' ? values.badgeNumber || undefined : undefined,
+        sector: values.role === 'PROCESS_SERVER' ? values.sector || undefined : undefined,
         courtroomId: values.role === 'JUDGE' ? values.courtroomId || undefined : undefined,
         supervisorLawyerId:
           values.role === 'INTERN' ? values.supervisorLawyerId || undefined : undefined,
@@ -398,6 +417,45 @@ function AddStaffDialog({
                     )}
                   </Field>
                 </div>
+              )}
+              {role === 'PROCESS_SERVER' && (
+                <>
+                  <Field label="Badge number" required error={errors.badgeNumber?.message}>
+                    {(p) => <Input maxLength={30} {...register('badgeNumber')} {...p} />}
+                  </Field>
+                  <Field
+                    label="Assigned sector"
+                    required
+                    error={errors.sector?.message}
+                    hint="For example Gulgasht Colony"
+                  >
+                    {(p) => <Input maxLength={80} {...register('sector')} {...p} />}
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field label="Precinct court" required error={errors.courtId?.message}>
+                      {(p) => (
+                        <Controller
+                          control={control}
+                          name="courtId"
+                          render={({ field }) => (
+                            <NativeSelect
+                              value={field.value ?? ''}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              {...p}
+                            >
+                              <option value="">Choose a court</option>
+                              {courts.data?.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </NativeSelect>
+                          )}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                </>
               )}
               {role === 'JUDGE' && (
                 <>
