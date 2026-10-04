@@ -1,33 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FileText, Lock, Paperclip } from 'lucide-react';
-import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { useParams, useSearchParams } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { EmptyState } from '@/components/ui/empty-state';
-import { PdfDropZone } from '@/components/ui/pdf-drop-zone';
-import { ProgressBar } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
-import { casesApi, type CaseDetail, type CaseDocument } from '@/lib/cases-api';
+import { casesApi, type CaseDetail } from '@/lib/cases-api';
 import { caseTypeLabel, CLOSED_STATUSES, judgeBench } from '@/lib/case-status';
-import { formatDate, formatDateTime, formatFileSize } from '@/lib/format';
+import { formatDate, formatDateTime, formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { NotFoundPage } from '@/pages/ErrorPages';
+import FeesPanel from './FeesPanel';
+import VaultPanel from './VaultPanel';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -58,143 +45,13 @@ function PartyList({ title, parties }: { title: string; parties: CaseDetail['par
   );
 }
 
-function DocumentsTab({ detail }: { detail: CaseDetail }) {
-  const queryClient = useQueryClient();
-  const [files, setFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState<number | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState<string | null>(null);
-  const closed = CLOSED_STATUSES.includes(detail.status);
-
-  const upload = useMutation({
-    mutationFn: () => casesApi.addDocuments(detail.id, files, setProgress),
-    onSuccess: async (res) => {
-      setSuccess(res.message);
-      toast.success(res.message);
-      setFiles([]);
-      setProgress(null);
-      await queryClient.invalidateQueries({ queryKey: ['cases'] });
-    },
-    onError: (e) => {
-      setProgress(null);
-      setError(parseApiError(e).message);
-    },
-  });
-
-  async function download(doc: CaseDocument) {
-    setDownloading(doc.id);
-    try {
-      await casesApi.download(detail.id, doc);
-    } catch (e) {
-      toast.error(parseApiError(e).message);
-    } finally {
-      setDownloading(null);
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Attached documents</CardTitle>
-          <p className="flex items-center gap-1.5 text-sm text-text-muted">
-            <Lock className="size-4" aria-hidden="true" /> Documents are locked to this case number
-            and cannot be changed or deleted.
-          </p>
-        </CardHeader>
-        {detail.documents.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="No documents attached yet"
-            description="Upload petitions, statements or affidavits as PDF below."
-          />
-        ) : (
-          <div className="p-5">
-            <Table aria-label="Documents">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Uploaded</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {detail.documents.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="min-w-48 font-medium">{d.name}</TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatFileSize(d.sizeBytes)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {formatDate(d.uploadedAt)}
-                      <span className="block text-sm text-text-muted">{d.uploadedBy}</span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        loading={downloading === d.id}
-                        onClick={() => download(d)}
-                        aria-label={`Download ${d.name}`}
-                      >
-                        <Download aria-hidden="true" /> Download
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Attach more documents</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {closed ? (
-            <Alert variant="info">Documents cannot be attached to a closed case.</Alert>
-          ) : (
-            <>
-              {success && <Alert variant="success">{success}</Alert>}
-              {error && <Alert variant="error">{error}</Alert>}
-              <PdfDropZone
-                files={files}
-                onFilesChange={(next) => {
-                  setSuccess(null);
-                  setError(null);
-                  setFiles(next);
-                }}
-                disabled={upload.isPending}
-              />
-              {progress !== null && <ProgressBar value={progress} label="Uploading documents" />}
-              <Button
-                disabled={files.length === 0 || upload.isPending}
-                loading={upload.isPending}
-                onClick={() => {
-                  setSuccess(null);
-                  setError(null);
-                  upload.mutate();
-                }}
-              >
-                <Paperclip aria-hidden="true" /> Attach{' '}
-                {files.length > 1 ? `${files.length} documents` : 'document'}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 export default function CaseDetailPage() {
   const { caseId } = useParams();
+  const [search] = useSearchParams();
+  const requested = search.get('tab');
+  const initialTab = ['fees', 'documents', 'lifecycle'].includes(requested ?? '')
+    ? (requested as string)
+    : 'overview';
   const { user } = useAuth();
   const { data, isPending, error } = useQuery({
     queryKey: ['cases', 'detail', caseId],
@@ -248,10 +105,11 @@ export default function CaseDetailPage() {
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
       </div>
 
-      <Tabs defaultValue="overview">
+      <Tabs defaultValue={initialTab}>
         <TabsList aria-label="Case sections">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="documents">Documents ({data.documents.length})</TabsTrigger>
+          <TabsTrigger value="fees">Fees & Payment</TabsTrigger>
+          <TabsTrigger value="documents">Evidence Vault</TabsTrigger>
           <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
         </TabsList>
 
@@ -271,6 +129,9 @@ export default function CaseDetailPage() {
                 <Detail label="Court">
                   {data.court ? `${data.court.name}, ${data.court.city}` : 'Not yet assigned'}
                 </Detail>
+                {data.claimAmountPkr && (
+                  <Detail label="Claim value">{formatPkr(data.claimAmountPkr)}</Detail>
+                )}
                 <Detail label="Next hearing">
                   {data.nextHearing
                     ? `${formatDate(data.nextHearing.date)} at ${data.nextHearing.startTime ?? ''}, ${data.nextHearing.courtroom ?? ''}`
@@ -293,8 +154,15 @@ export default function CaseDetailPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="fees">
+          <FeesPanel caseId={data.id} claim={data.claimAmountPkr} />
+        </TabsContent>
+
         <TabsContent value="documents">
-          <DocumentsTab detail={data} />
+          <VaultPanel
+            caseId={data.id}
+            canAttachPleadings={!CLOSED_STATUSES.includes(data.status)}
+          />
         </TabsContent>
 
         <TabsContent value="lifecycle">

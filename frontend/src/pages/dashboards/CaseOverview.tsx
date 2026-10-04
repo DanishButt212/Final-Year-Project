@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Briefcase, FilePlus2, Hourglass, Scale } from 'lucide-react';
+import { Briefcase, FilePlus2, Hourglass, Receipt, Scale } from 'lucide-react';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { Alert } from '@/components/ui/alert';
@@ -87,9 +87,28 @@ export default function CaseOverview() {
       ) : (
         data && (
           <>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <Stat icon={Scale} label="Total cases" value={data.total} />
               <Stat icon={Hourglass} label="Pending assignment" value={data.pendingAssignment} />
+              <Link
+                to={portalPath(portal, 'payments')}
+                className="flex items-center gap-4 rounded-lg border border-border bg-surface p-5 text-text no-underline hover:bg-primary-soft"
+              >
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
+                  <Receipt className="size-6" aria-hidden="true" />
+                </span>
+                <span>
+                  <span
+                    className="block text-3xl font-bold leading-none"
+                    data-testid="stat-Unpaid fees"
+                  >
+                    {data.unpaidFees ?? 0}
+                  </span>
+                  <span className="mt-1 block text-sm text-text-muted">
+                    Unpaid fees · Payments & Receipts
+                  </span>
+                </span>
+              </Link>
             </div>
             <Card>
               <CardHeader className="flex-row items-center justify-between">

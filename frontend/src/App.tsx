@@ -4,6 +4,13 @@ import { useAuth } from '@/auth/useAuth';
 import { AppShell } from '@/components/layout/AppShell';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
+import FeedbackAnalysisPage from '@/pages/admin/FeedbackAnalysisPage';
+import JudgeCaseDetailPage from '@/pages/judge/JudgeCaseDetailPage';
+import ChallanPrintPage from '@/pages/payments/ChallanPrintPage';
+import PayPage from '@/pages/payments/PayPage';
+import PaymentsPage from '@/pages/payments/PaymentsPage';
+import { FeedbackPage, NotificationPreferencesPage } from '@/pages/profile/ProfileExtraPages';
+import EvidenceIndexPage from '@/pages/cases/EvidenceIndexPage';
 import AccountsPage from '@/pages/admin/AccountsPage';
 import AdminCaseDetailPage from '@/pages/admin/AdminCaseDetailPage';
 import AdminCasesPage from '@/pages/admin/AdminCasesPage';
@@ -20,6 +27,7 @@ import CaseDetailPage from '@/pages/cases/CaseDetailPage';
 import NewCasePage from '@/pages/cases/NewCasePage';
 import PortfolioPage from '@/pages/cases/PortfolioPage';
 import { CaseRoute, ComingSoonPage, PortalHome } from '@/pages/PortalPages';
+import { FinanceRoute } from '@/pages/payments/FinanceRoute';
 import ProfilePage from '@/pages/ProfilePage';
 import RegisterPage from '@/pages/RegisterPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
@@ -47,6 +55,11 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="profile" element={<ProfilePage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route
+            path="profile/notification-preferences"
+            element={<NotificationPreferencesPage />}
+          />
+          <Route path="profile/feedback" element={<FeedbackPage />} />
           <Route element={<RequireRole role="ADMIN" />}>
             <Route path="admin/accounts" element={<AccountsPage />} />
             <Route path="admin/lawyer-verification" element={<LawyerVerificationPage />} />
@@ -54,9 +67,11 @@ export default function App() {
             <Route path="admin/cases/:caseId" element={<AdminCaseDetailPage />} />
             <Route path="admin/courts" element={<CourtsPage />} />
             <Route path="admin/policies" element={<PoliciesPage />} />
+            <Route path="admin/feedback" element={<FeedbackAnalysisPage />} />
           </Route>
           <Route element={<RequireRole role="JUDGE" />}>
             <Route path="judge/cases" element={<JudgeCasesPage />} />
+            <Route path="judge/cases/:caseId" element={<JudgeCaseDetailPage />} />
           </Route>
           <Route path=":portal" element={<PortalHome />} />
           <Route
@@ -81,6 +96,54 @@ export default function App() {
               <CaseRoute detail feature="cases">
                 <CaseDetailPage />
               </CaseRoute>
+            }
+          />
+          <Route
+            path=":portal/payments"
+            element={
+              <FinanceRoute>
+                <PaymentsPage />
+              </FinanceRoute>
+            }
+          />
+          <Route
+            path=":portal/pay/:challanId"
+            element={
+              <FinanceRoute>
+                <PayPage />
+              </FinanceRoute>
+            }
+          />
+          <Route
+            path=":portal/cases/:caseId/challan"
+            element={
+              <FinanceRoute>
+                <ChallanPrintPage />
+              </FinanceRoute>
+            }
+          />
+          <Route
+            path=":portal/evidence"
+            element={
+              <FinanceRoute>
+                <EvidenceIndexPage />
+              </FinanceRoute>
+            }
+          />
+          <Route
+            path=":portal/notifications"
+            element={
+              <FinanceRoute>
+                <NotificationPreferencesPage />
+              </FinanceRoute>
+            }
+          />
+          <Route
+            path=":portal/feedback"
+            element={
+              <FinanceRoute>
+                <FeedbackPage />
+              </FinanceRoute>
             }
           />
           <Route path=":portal/hearings" element={<ScheduleFeatureRoute feature="hearings" />} />

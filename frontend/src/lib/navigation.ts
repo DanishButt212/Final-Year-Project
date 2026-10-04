@@ -84,9 +84,9 @@ export const PORTALS: Record<Role, Portal> = {
       },
       {
         slug: 'payments',
-        label: 'Challans & Payments',
+        label: 'Payments & Receipts',
         icon: Receipt,
-        description: 'Court fee challans, online payment and receipts.',
+        description: 'Court fee payments and downloadable receipts.',
       },
       {
         slug: 'evidence',
@@ -96,13 +96,13 @@ export const PORTALS: Record<Role, Portal> = {
       },
       {
         slug: 'notifications',
-        label: 'Notification Settings',
+        label: 'Notification Options',
         icon: Bell,
         description: 'Choose how you are notified.',
       },
       {
         slug: 'feedback',
-        label: 'Feedback',
+        label: 'System Feedback',
         icon: MessageSquare,
         description: 'Tell us how the service can improve.',
       },
@@ -125,6 +125,12 @@ export const PORTALS: Record<Role, Portal> = {
         label: 'My Case Portfolio',
         icon: Briefcase,
         description: 'Cases you filed or appear in, with their judge bench and full history.',
+      },
+      {
+        slug: 'payments',
+        label: 'Payments & Receipts',
+        icon: Receipt,
+        description: 'Court fee payments and downloadable receipts.',
       },
       { slug: 'clients', label: 'Clients', icon: Users, description: 'Manage chamber clients.' },
       {
@@ -265,6 +271,12 @@ export const PORTALS: Record<Role, Portal> = {
         label: 'System Policies',
         icon: Settings,
         description: 'Global variables and application constants.',
+      },
+      {
+        slug: 'feedback',
+        label: 'User Feedback',
+        icon: MessageSquare,
+        description: 'Feedback analysis and quality control.',
       },
       {
         slug: 'audit-logs',

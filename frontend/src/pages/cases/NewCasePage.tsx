@@ -5,6 +5,7 @@ import { useState } from 'react';
 import {
   useFieldArray,
   useForm,
+  useWatch,
   type Control,
   type FieldErrors,
   type Path,
@@ -28,7 +29,7 @@ import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes';
 import { parseApiError } from '@/lib/api';
 import { casesApi, type CreateCasePayload, type PartyPayload } from '@/lib/cases-api';
 import { CASE_TYPES, caseTypeLabel } from '@/lib/case-status';
-import { formatFileSize } from '@/lib/format';
+import { formatFileSize, formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import {
   CASE_STEP_FIELDS,
@@ -206,6 +207,7 @@ function NewCaseWizard() {
       caseType: undefined,
       title: '',
       reliefSought: '',
+      claimAmountPkr: '',
       // A litigant files as the first petitioner; a lawyer files on behalf of a client.
       petitioners: [
         user?.role === 'LITIGANT'
@@ -220,6 +222,8 @@ function NewCaseWizard() {
       respondents: [emptyParty()],
     },
   });
+  const caseTypeValue = useWatch({ control, name: 'caseType' });
+  const claimValue = useWatch({ control, name: 'claimAmountPkr' });
 
   const dirty = !result && (isDirty || files.length > 0);
   const leaveDialog = useUnsavedChangesGuard(dirty);
@@ -262,6 +266,9 @@ function NewCaseWizard() {
       caseType: values.caseType,
       ...(values.title.trim() ? { title: values.title.trim() } : {}),
       reliefSought: values.reliefSought.trim(),
+      ...(values.caseType === 'CIVIL_SUIT' && values.claimAmountPkr?.trim()
+        ? { claimAmountPkr: values.claimAmountPkr.trim() }
+        : {}),
       petitioners: values.petitioners.map(clean),
       respondents: values.respondents.map(clean),
     };
@@ -401,6 +408,26 @@ function NewCaseWizard() {
               >
                 {(p) => <Textarea rows={6} {...p} {...register('reliefSought')} />}
               </Field>
+              {caseTypeValue === 'CIVIL_SUIT' && (
+                <Field
+                  label="Claim value (PKR, optional)"
+                  hint={
+                    claimValue && /^\d{1,12}(\.\d{1,2})?$/.test(claimValue)
+                      ? `${formatPkr(claimValue)}. Used to calculate the claim value part of the court fee.`
+                      : 'The value of your claim. Used to calculate the claim value part of the court fee.'
+                  }
+                  error={errors.claimAmountPkr?.message}
+                >
+                  {(p) => (
+                    <Input
+                      inputMode="decimal"
+                      placeholder="1850000"
+                      {...p}
+                      {...register('claimAmountPkr')}
+                    />
+                  )}
+                </Field>
+              )}
             </CardContent>
           </Card>
         )}
@@ -474,6 +501,12 @@ function NewCaseWizard() {
                   <dt className="text-sm text-text-muted">Relief sought</dt>
                   <dd className="whitespace-pre-wrap break-words">{values.reliefSought}</dd>
                 </div>
+                {values.caseType === 'CIVIL_SUIT' && values.claimAmountPkr?.trim() && (
+                  <div>
+                    <dt className="text-sm text-text-muted">Claim value</dt>
+                    <dd>{formatPkr(values.claimAmountPkr)}</dd>
+                  </div>
+                )}
               </dl>
               <ReviewParties title="Petitioners" parties={values.petitioners} />
               <ReviewParties title="Opposing parties" parties={values.respondents} />

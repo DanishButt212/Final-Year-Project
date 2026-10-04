@@ -45,6 +45,29 @@ const policySchema = z.object({
     .trim()
     .min(1, MESSAGES.fieldRequired)
     .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Enter a time like 14:00 (24-hour).'),
+  adValoremPercent: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d{1,2}(\.\d{1,2})?$/, 'Enter a percentage with at most two decimals.')
+    .refine((v) => Number(v) >= 0 && Number(v) <= 10, 'Enter a percentage from 0 to 10.'),
+  adValoremCapPkr: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(decimal2, 'Enter an amount of 0 or more with at most two decimals.'),
+  challanDueDays: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of days.')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 90, 'Enter a value from 1 to 90 days.'),
+  maxEvidenceMb: z
+    .string()
+    .trim()
+    .min(1, MESSAGES.fieldRequired)
+    .regex(/^\d+$/, 'Enter a whole number of MB.')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 200, 'Enter a value from 1 to 200 MB.'),
   hearingSlotMinutes: z
     .string()
     .trim()
@@ -71,6 +94,10 @@ const toValues = (s: Settings): PolicyValues => ({
   courtDayStart: s.courtDayStart,
   courtDayEnd: s.courtDayEnd,
   hearingSlotMinutes: String(s.hearingSlotMinutes),
+  adValoremPercent: s.adValoremPercent,
+  adValoremCapPkr: s.adValoremCapPkr,
+  challanDueDays: String(s.challanDueDays),
+  maxEvidenceMb: String(s.maxEvidenceMb),
   fees: s.fees.map((f) => ({ caseType: f.caseType, amount: f.amount })),
 });
 
@@ -99,6 +126,10 @@ export default function PoliciesPage() {
       courtDayStart: '09:00',
       courtDayEnd: '14:00',
       hearingSlotMinutes: '30',
+      adValoremPercent: '1',
+      adValoremCapPkr: '50000',
+      challanDueDays: '7',
+      maxEvidenceMb: '100',
       fees: [],
     },
   });
@@ -115,6 +146,10 @@ export default function PoliciesPage() {
         courtDayStart: v.courtDayStart,
         courtDayEnd: v.courtDayEnd,
         hearingSlotMinutes: Number(v.hearingSlotMinutes),
+        adValoremPercent: v.adValoremPercent,
+        adValoremCapPkr: v.adValoremCapPkr,
+        challanDueDays: Number(v.challanDueDays),
+        maxEvidenceMb: Number(v.maxEvidenceMb),
         fees: v.fees.map((f) => ({
           caseType: f.caseType as Settings['fees'][number]['caseType'],
           amount: f.amount,
@@ -231,6 +266,45 @@ export default function PoliciesPage() {
                   )}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Fee calculation and evidence</CardTitle>
+              <p className="text-sm text-text-muted">
+                Civil Suits pay the base fee plus an ad valorem percentage of the claim value (up to
+                the cap). The filing fee rate modifier is then applied to the sum.
+              </p>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Ad valorem percentage (%)"
+                required
+                hint="0 to 10"
+                error={errors.adValoremPercent?.message}
+              >
+                {(p) => <Input inputMode="decimal" {...register('adValoremPercent')} {...p} />}
+              </Field>
+              <Field label="Ad valorem cap (PKR)" required error={errors.adValoremCapPkr?.message}>
+                {(p) => <Input inputMode="decimal" {...register('adValoremCapPkr')} {...p} />}
+              </Field>
+              <Field
+                label="Challan due days"
+                required
+                hint="1 to 90"
+                error={errors.challanDueDays?.message}
+              >
+                {(p) => <Input inputMode="numeric" {...register('challanDueDays')} {...p} />}
+              </Field>
+              <Field
+                label="Max evidence file size (MB)"
+                required
+                hint="1 to 200"
+                error={errors.maxEvidenceMb?.message}
+              >
+                {(p) => <Input inputMode="numeric" {...register('maxEvidenceMb')} {...p} />}
+              </Field>
             </CardContent>
           </Card>
 

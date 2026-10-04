@@ -238,7 +238,10 @@ export const mondayIso = (iso: string) => {
 export function slotPassed(iso: string, start: string, now: Date = new Date()): boolean {
   const local = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   if (iso !== local) return false;
-  return Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) <= now.getHours() * 60 + now.getMinutes();
+  return (
+    Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) <=
+    now.getHours() * 60 + now.getMinutes()
+  );
 }
 
 export const WEEKDAYS = [
@@ -262,6 +265,7 @@ export const isWeekend = (iso: string) => {
 export function notificationLink(type: string, role: string): string | null {
   const portal = role.toLowerCase().replace('_', '-');
   if (type === 'CAUSE_LIST_PUBLISHED') return role === 'ADMIN' ? null : `/${portal}/cause-lists`;
+  if (type === 'PAYMENT_RECEIVED') return role === 'ADMIN' ? null : `/${portal}/payments`;
   if (type.startsWith('HEARING_')) {
     if (role === 'JUDGE') return '/judge/schedule';
     return `/${portal}/hearings`;

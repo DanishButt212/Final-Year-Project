@@ -1,5 +1,11 @@
-import { LogOut, Menu } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { ChevronDown, LogOut, Menu, UserCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
 import { useAuth } from '@/auth/useAuth';
 import { ROLE_LABEL, roleHome } from '@/lib/navigation';
@@ -36,12 +42,41 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
         {user && (
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="hidden text-right leading-tight sm:block">
-              <p className="text-sm font-semibold">
-                {user.firstName} {user.lastName}
-              </p>
-              <p className="text-xs text-white/85">{ROLE_LABEL[user.role]}</p>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Account menu"
+                  className="flex min-h-10 items-center gap-2 rounded-md px-2 hover:bg-primary-hover focus-visible:outline-white"
+                >
+                  <span className="hidden text-right leading-tight sm:block">
+                    <span className="block text-sm font-semibold">
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="block text-xs text-white/85">{ROLE_LABEL[user.role]}</span>
+                  </span>
+                  <UserCircle className="size-6" aria-hidden="true" />
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">My Profile</Link>
+                </DropdownMenuItem>
+                {(user.role === 'LITIGANT' || user.role === 'LAWYER') && (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile/notification-preferences">
+                        Notification Options Preferences
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile/feedback">System Feedback</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <button
               type="button"
               onClick={handleLogout}

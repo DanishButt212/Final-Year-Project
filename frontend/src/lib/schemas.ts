@@ -129,13 +129,18 @@ export const caseSchema = z.object({
     .min(1, MESSAGES.fieldRequired)
     .min(20, 'Relief sought must be at least 20 characters.')
     .max(5000, 'Use 5000 characters or fewer.'),
+  claimAmountPkr: z
+    .string()
+    .trim()
+    .regex(/^(\d{1,12}(\.\d{1,2})?)?$/, 'Enter an amount of 0 or more in PKR, for example 1850000.')
+    .optional(),
   petitioners: z.array(partySchema).min(1, 'Add at least one petitioner.'),
   respondents: z.array(partySchema).min(1, 'Add at least one respondent.'),
 });
 export type CaseValues = z.infer<typeof caseSchema>;
 
 export const CASE_STEP_FIELDS = {
-  1: ['caseType', 'title', 'reliefSought'],
+  1: ['caseType', 'title', 'reliefSought', 'claimAmountPkr'],
   2: ['petitioners', 'respondents'],
 } as const;
 

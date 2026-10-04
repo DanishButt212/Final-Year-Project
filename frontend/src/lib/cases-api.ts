@@ -18,6 +18,7 @@ export interface CaseListItem {
 export interface CaseSummary {
   total: number;
   pendingAssignment: number;
+  unpaidFees?: number;
   recent: CaseListItem[];
 }
 
@@ -49,7 +50,10 @@ export interface CaseEvent {
     | 'CASE_ALLOCATED'
     | 'HEARING_SCHEDULED'
     | 'HEARING_RESCHEDULED'
-    | 'HEARING_CANCELLED';
+    | 'HEARING_CANCELLED'
+    | 'PAYMENT_RECEIVED'
+    | 'EVIDENCE_ADDED'
+    | 'EVIDENCE_LOCKED';
   description: string;
   createdAt: string;
   actor: string | null;
@@ -72,6 +76,7 @@ export interface CaseDetail {
   caseType: CaseType;
   status: CaseStatus;
   reliefSought: string;
+  claimAmountPkr?: string | null;
   filingDate: string | null;
   createdAt: string;
   filedBy: string;
@@ -91,6 +96,7 @@ export interface CreateCasePayload {
   caseType: CaseType;
   title?: string;
   reliefSought: string;
+  claimAmountPkr?: string;
   petitioners: PartyPayload[];
   respondents: PartyPayload[];
 }

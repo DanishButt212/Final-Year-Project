@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -213,6 +214,7 @@ export default function AdminCasesPage() {
                   <TableHead>Filed by</TableHead>
                   <TableHead>Judge bench</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Court fee</TableHead>
                   <TableHead>Filed</TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
@@ -240,6 +242,23 @@ export default function AdminCasesPage() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={c.status} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            c.feeStatus === 'PAID'
+                              ? 'decided'
+                              : c.feeStatus === 'UNPAID'
+                                ? 'pending'
+                                : 'neutral'
+                          }
+                        >
+                          {c.feeStatus === 'PAID'
+                            ? 'Paid'
+                            : c.feeStatus === 'UNPAID'
+                              ? 'Unpaid'
+                              : 'No challan'}
+                        </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatDate(c.filingDate)}
@@ -277,6 +296,7 @@ export default function AdminCasesPage() {
           caseId={allocating.id}
           ucn={allocating.ucn}
           reallocate={allocating.status === 'ALLOCATED'}
+          feeStatus={allocating.feeStatus}
           onOpenChange={(o) => !o && setAllocating(null)}
         />
       )}

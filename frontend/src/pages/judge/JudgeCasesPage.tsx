@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Link } from 'react-router';
 import { parseApiError } from '@/lib/api';
 import { adminApi } from '@/lib/admin-api';
 import { caseTypeLabel } from '@/lib/case-status';
@@ -104,8 +105,10 @@ export function MyAllocatedCases() {
                 <TableBody>
                   {data.data.map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell className="case-number whitespace-nowrap font-medium">
-                        {c.ucn}
+                      <TableCell className="whitespace-nowrap">
+                        <Link to={`/judge/cases/${c.id}`} className="case-number font-medium">
+                          {c.ucn}
+                        </Link>
                       </TableCell>
                       <TableCell className="min-w-48 font-medium">{c.title}</TableCell>
                       <TableCell>{caseTypeLabel(c.caseType)}</TableCell>

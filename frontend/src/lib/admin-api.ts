@@ -22,6 +22,10 @@ export interface Settings extends PublicSettings {
   courtDayStart: string;
   courtDayEnd: string;
   hearingSlotMinutes: number;
+  adValoremPercent: string;
+  adValoremCapPkr: string;
+  challanDueDays: number;
+  maxEvidenceMb: number;
   fees: FeeRow[];
 }
 
@@ -32,6 +36,10 @@ export interface UpdateSettingsPayload {
   courtDayStart?: string;
   courtDayEnd?: string;
   hearingSlotMinutes?: number;
+  adValoremPercent?: string;
+  adValoremCapPkr?: string;
+  challanDueDays?: number;
+  maxEvidenceMb?: number;
   fees?: { caseType: CaseType; amount: string }[];
 }
 
@@ -200,6 +208,7 @@ export interface AdminCaseItem {
   courtroom: string | null;
   judge: string | null;
   filedBy: string;
+  feeStatus: 'PAID' | 'UNPAID' | 'NOT_GENERATED';
 }
 
 export interface AdminCaseQuery {

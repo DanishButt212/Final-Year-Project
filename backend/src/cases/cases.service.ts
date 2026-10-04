@@ -319,9 +319,10 @@ export class CasesService {
   /** Numbers for the dashboard: total, pending assignment and the five newest cases. */
   async summary(user: AuthUser) {
     const scope = await this.scopeFor(user);
-    const [total, pendingAssignment, recent] = await this.prisma.$transaction([
+    const [total, pendingAssignment, unpaidFees, recent] = await this.prisma.$transaction([
       this.prisma.case.count({ where: scope }),
       this.prisma.case.count({ where: { AND: [scope, { status: 'PENDING_ASSIGNMENT' }] } }),
+      this.prisma.challan.count({ where: { status: 'UNPAID', case: scope } }),
       this.prisma.case.findMany({
         where: scope,
         select: listSelect,
@@ -329,7 +330,7 @@ export class CasesService {
         take: 5,
       }),
     ]);
-    return { total, pendingAssignment, recent: recent.map(toListItem) };
+    return { total, pendingAssignment, unpaidFees, recent: recent.map(toListItem) };
   }
 
   async detail(user: AuthUser, id: string) {

@@ -22,12 +22,14 @@ export function AllocateDialog({
   caseId,
   ucn,
   reallocate,
+  feeStatus,
   open,
   onOpenChange,
 }: {
   caseId: string;
   ucn: string;
   reallocate: boolean;
+  feeStatus?: 'PAID' | 'UNPAID' | 'NOT_GENERATED';
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -94,6 +96,12 @@ export function AllocateDialog({
             Random allocation picks the judge with the fewest active cases.
           </DialogDescription>
         </DialogHeader>
+        {!reallocate && feeStatus && feeStatus !== 'PAID' && (
+          <Alert variant="error" title="Court fee is unpaid for this case." className="mb-4">
+            A case can be allocated only after its court fee challan is paid. Allocation will be
+            refused until then.
+          </Alert>
+        )}
         {reallocate && (
           <Alert variant="info" className="mb-4">
             This case already has a judge. Allocating again records the previous judge in the case
