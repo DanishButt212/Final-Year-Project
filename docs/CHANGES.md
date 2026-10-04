@@ -124,6 +124,14 @@ My design where the report is silent or I added to it.
 ### Phase 4B (next, not built)
 Summons and the process server mobile app, lawyer chamber, internship, reports, audit-log screens, the virtual courtroom, and judge decisions that set `decidedAt` (which also feeds the "decided per day" chart).
 
+## Phase 4B step 0: decisions carried over from Phase 4A (04-10-2026)
+1. **Strict mock gateway.** Only `4242 4242 4242 4242` and `5555 5555 5555 4444` are approved; `4000 0000 0000 0002` is declined (insufficient funds); every other number is declined with "Payment Unsuccessful: Gateway rejected request details." This replaces the earlier rule that any Luhn-valid card was approved. Card data is still never stored or logged. The payment page lists the test numbers.
+2. **Transaction log.** Payments & Receipts shows verified (paid) payments by default, with a "Show failed attempts" toggle (`GET /payments/mine?includeFailed=true`).
+3. **Overdue challans.** An unpaid challan past its due date shows an "overdue" flag and can still be paid. There is no EXPIRED state.
+4. **Role-specific login messages.** After the generic login the toast reads "Intern session initialized successfully." (INTERN), "Field session initialized successfully." (PROCESS_SERVER), "Welcome Admin: High-clearance system operational console activated." (ADMIN); other roles keep "Logged into the system successfully.".
+5. **Deliberate deviation: one login failure message.** The report has per-role failure messages. The login failure stays the generic "Invalid username or password." so the form never reveals which role an account has (or whether it exists). The Chamber desk login has its own failure message (Phase 4B).
+6. **Not implemented: admin hardware token key.** The multi-factor hardware token for administrators in the report is not built.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).
 

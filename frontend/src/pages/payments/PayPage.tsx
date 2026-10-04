@@ -21,8 +21,9 @@ export const REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request 
 
 const TEST_CARDS = [
   ['4242 4242 4242 4242', 'Approved'],
+  ['5555 5555 5555 4444', 'Approved'],
   ['4000 0000 0000 0002', 'Declined: insufficient funds'],
-  ['Any other number failing the Luhn check', 'Declined'],
+  ['Any other number', 'Declined'],
 ];
 
 const formatCard = (v: string) =>

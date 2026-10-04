@@ -101,7 +101,7 @@ New settings (System Policies): `ad_valorem_percent` (default 1, 0 to 10), `ad_v
 
 **Environment variable `EVIDENCE_ENCRYPTION_KEY`** (required): 32 random bytes, base64. The evidence module refuses to start without it. Generate one into your local `backend/.env` with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`; `.env.example` only holds a placeholder. Never commit it. If the key is lost, existing encrypted exhibits cannot be decrypted.
 
-The payment gateway is simulated. Test cards: `4242 4242 4242 4242` approves, `4000 0000 0000 0002` is declined (insufficient funds), any other number failing the Luhn check is declined. Card details are never stored or logged.
+The payment gateway is simulated. Test cards: `4242 4242 4242 4242` and `5555 5555 5555 4444` approve, `4000 0000 0000 0002` is declined (insufficient funds), every other number is declined. Card details are never stored or logged.
 
 ### 3. Frontend (http://localhost:5173)
 ```powershell

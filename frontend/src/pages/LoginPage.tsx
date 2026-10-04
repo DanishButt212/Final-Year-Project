@@ -14,6 +14,20 @@ import { parseApiError } from '@/lib/api';
 import { roleHome } from '@/lib/navigation';
 import { loginSchema, MESSAGES, summaryFor, type LoginValues } from '@/lib/schemas';
 
+/** Role-specific success toast shown after the generic login. */
+export function loginToast(role: string, serverMessage: string) {
+  switch (role) {
+    case 'INTERN':
+      return 'Intern session initialized successfully.';
+    case 'PROCESS_SERVER':
+      return 'Field session initialized successfully.';
+    case 'ADMIN':
+      return 'Welcome Admin: High-clearance system operational console activated.';
+    default:
+      return serverMessage;
+  }
+}
+
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -31,7 +45,7 @@ export default function LoginPage() {
     setFormError(null);
     try {
       const { message, user } = await login(values.identifier, values.password);
-      toast.success(message);
+      toast.success(loginToast(user.role, message));
       const home = roleHome(user.role);
       navigate(state?.from?.startsWith(home) ? state.from : home, { replace: true });
     } catch (error) {

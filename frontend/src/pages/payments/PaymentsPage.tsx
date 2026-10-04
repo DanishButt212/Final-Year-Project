@@ -31,9 +31,10 @@ const PAGE_SIZE = 10;
 export default function PaymentsPage() {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
+  const [showFailed, setShowFailed] = useState(false);
   const { data, isPending, isError, error } = useQuery({
-    queryKey: ['payments', 'mine', page],
-    queryFn: () => feesApi.myPayments({ page, limit: PAGE_SIZE }),
+    queryKey: ['payments', 'mine', page, showFailed],
+    queryFn: () => feesApi.myPayments({ page, limit: PAGE_SIZE, includeFailed: showFailed }),
     placeholderData: keepPreviousData,
     enabled: Boolean(user),
   });
@@ -50,6 +51,18 @@ export default function PaymentsPage() {
           { label: 'Payments & Receipts' },
         ]}
       />
+      <label className="mb-4 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="size-4 accent-primary"
+          checked={showFailed}
+          onChange={(e) => {
+            setShowFailed(e.target.checked);
+            setPage(1);
+          }}
+        />
+        Show failed attempts
+      </label>
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
         <TableSkeleton rows={5} cols={6} />

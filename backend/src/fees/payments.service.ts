@@ -15,25 +15,9 @@ import { receiptPdf } from './pdf';
 
 export const PAYMENT_REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request details.';
 
-/** Test cards of the simulated gateway. Anything else is judged by the Luhn check. */
-const APPROVE_CARD = '4242424242424242';
+/** Strict gateway: only the documented test numbers are approved. Everything else is declined. */
+const APPROVE_CARDS = ['4242424242424242', '5555555555554444'];
 const INSUFFICIENT_FUNDS_CARD = '4000000000000002';
-
-function luhn(digits: string): boolean {
-  let sum = 0;
-  let double = false;
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let n = digits.charCodeAt(i) - 48;
-    if (n < 0 || n > 9) return false;
-    if (double) {
-      n *= 2;
-      if (n > 9) n -= 9;
-    }
-    sum += n;
-    double = !double;
-  }
-  return digits.length > 0 && sum % 10 === 0;
-}
 
 function brandOf(digits: string): string {
   if (digits.startsWith('4')) return 'VISA';
@@ -71,7 +55,7 @@ function decide(dto: AuthorizeDto): Decision {
     return fail('INVALID_DETAILS');
   if (expired) return fail('EXPIRED_CARD');
   if (digits === INSUFFICIENT_FUNDS_CARD) return fail('INSUFFICIENT_FUNDS');
-  if (digits !== APPROVE_CARD && !luhn(digits)) return fail('INVALID_CARD');
+  if (!APPROVE_CARDS.includes(digits)) return fail('INVALID_CARD');
   return { approved: true, reason: 'APPROVED', brand, last4 };
 }
 
@@ -235,8 +219,11 @@ export class PaymentsService {
     });
   }
 
-  async mine(user: AuthUser, q: PageQueryDto) {
-    const where = { payerId: user.id, status: { in: ['SUCCESS' as const, 'FAILED' as const] } };
+  async mine(user: AuthUser, q: PageQueryDto, includeFailed = false) {
+    const where = {
+      payerId: user.id,
+      status: { in: includeFailed ? (['SUCCESS', 'FAILED'] as const).slice() : ['SUCCESS' as const] },
+    };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.payment.count({ where }),
       this.prisma.payment.findMany({

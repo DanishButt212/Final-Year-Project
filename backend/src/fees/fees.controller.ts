@@ -63,8 +63,12 @@ export class FeesController {
   }
 
   @Get('payments/mine')
-  mine(@CurrentUser() user: AuthUser, @Query() q: PageQueryDto) {
-    return this.payments.mine(user, q);
+  mine(
+    @CurrentUser() user: AuthUser,
+    @Query() q: PageQueryDto,
+    @Query('includeFailed') includeFailed?: string,
+  ) {
+    return this.payments.mine(user, q, includeFailed === 'true');
   }
 
   @Get('payments/:id/receipt')

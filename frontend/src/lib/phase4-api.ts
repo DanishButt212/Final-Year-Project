@@ -85,7 +85,7 @@ export const feesApi = {
       }>('/mock-gateway/authorize', form)
     ).data;
   },
-  async myPayments(params: { page: number; limit: number }) {
+  async myPayments(params: { page: number; limit: number; includeFailed?: boolean }) {
     return (await api.get<Paginated<PaymentRow>>('/payments/mine', { params })).data;
   },
   downloadChallan: (c: Pick<Challan, 'id' | 'challanNo'>) =>
