@@ -13,7 +13,7 @@ import { dirname, resolve } from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { CaseType, PartyRole, PrismaClient, Role } from '../src/generated/prisma/client';
 import { generateUcn } from '../src/cases/ucn';
-import { nextChallanNo, nextReceiptNo } from '../src/common/counters';
+import { nextChallanNo, nextReceiptNo, nextSequence } from '../src/common/counters';
 import { calculateLedger, feeInputHash } from '../src/fees/fee-calculator';
 
 config({ quiet: true });
@@ -196,6 +196,14 @@ const USERS: SeedUser[] = [
     email: `lawyer3@${DOMAIN}`,
     lawyer: { barNumber: 'LH-31207', status: 'VERIFIED' },
   },
+  {
+    key: 'intern2',
+    role: 'INTERN',
+    firstName: 'Hamza',
+    lastName: 'Sheikh',
+    email: `intern2@${DOMAIN}`,
+    dev: true,
+  },
 ];
 
 const utcDate = (offsetDays: number) => {
@@ -342,6 +350,15 @@ async function seedUsers(courts: {
       userId: ids.intern,
       supervisorId: lawyerProfileIds.lawyer,
       startDate: new Date('2026-07-01'),
+    },
+  });
+  await prisma.internProfile.upsert({
+    where: { userId: ids.intern2 },
+    update: {},
+    create: {
+      userId: ids.intern2,
+      supervisorId: lawyerProfileIds.lawyer,
+      startDate: new Date('2026-09-15'),
     },
   });
   return { ids, lawyerProfileIds, credentials };
@@ -539,6 +556,9 @@ async function seedSampleData(
   const client = await prisma.chamberClient.create({
     data: {
       lawyerId: lawyers.lawyer,
+      clientCode: 'CL-000001',
+      cnic: '36302-9100001-1',
+      caseType: 'Bail Application',
       name: 'Muhammad Ali',
       phone: '+92 300 1000010',
       email: 'litigant@digitaladaalat.test',
@@ -552,6 +572,7 @@ async function seedSampleData(
       workedOn: utcDate(-4),
       hours: '2.50',
       hourlyRate: '5000.00',
+      amountPkr: '12500.00',
       description: 'Drafting bail application',
     },
   });
@@ -583,6 +604,8 @@ async function seedSampleData(
     data: {
       internId: intern.id,
       entryDate: utcDate(-1),
+      keywords: ['bail', 'procedure'],
+      citation: 'Cr.P.C. section 497',
       content: 'Attended Court Room 1, observed bail arguments, prepared index of case file.',
     },
   });
@@ -1222,6 +1245,340 @@ async function seedPhase4(ids: Record<string, string>) {
   }
 }
 
+/** Phase 4B: chambers, clients, billing, retainers, expenses, interns, research logs, attendance, geo-fences. */
+async function seedPhase4B(ids: Record<string, string>, lawyers: Record<string, string>) {
+  const settings: [string, string, string][] = [
+    ['attendance_default_radius_m', '300', 'Default court geo-fence radius in metres'],
+    [
+      'attendance_max_accuracy_m',
+      '150',
+      'Worst location accuracy accepted for attendance, in metres',
+    ],
+  ];
+  for (const [key, value, description] of settings) {
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value, description },
+    });
+  }
+
+  // Placeholder geo-fences for Multan. APPROXIMATE: the administrator sets the real coordinates on Courts & Benches.
+  const fences: [string, string, string, number][] = [
+    ['District & Sessions Court Multan', '30.157500', '71.524900', 300],
+    ['Lahore High Court Multan Bench', '30.201000', '71.469000', 300],
+  ];
+  for (const [name, latitude, longitude, geofenceRadiusM] of fences) {
+    await prisma.court.updateMany({
+      where: { name, latitude: null },
+      data: { latitude, longitude, geofenceRadiusM },
+    });
+  }
+
+  // One chamber per verified lawyer.
+  const verified = await prisma.lawyerProfile.findMany({
+    where: { verificationStatus: 'VERIFIED' },
+    include: { user: true, chamber: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  for (const l of verified) {
+    if (l.chamber) continue;
+    const n = await nextSequence(prisma, 'CHAMBER', 0);
+    await prisma.chamberProfile.create({
+      data: {
+        lawyerId: l.id,
+        chamberCode: `CH-${String(n).padStart(6, '0')}`,
+        name: `${l.user.lastName} & Associates`,
+        email: l.user.email,
+        phone: l.user.phone,
+      },
+    });
+  }
+  const main = await prisma.chamberProfile.findUniqueOrThrow({
+    where: { lawyerId: lawyers.lawyer },
+  });
+  await prisma.chamberProfile.update({
+    where: { id: main.id },
+    data: {
+      officeAddress: 'Office 4, Law Chambers Building, Kachehri Road, Multan',
+      partnerNames: ['Barrister Saad Raza', 'Ms. Hira Anwar'],
+      barMembershipIds: ['MBA-2016-0101', 'PBC-ENR-44120'],
+      practiceVerticals: ['Criminal Defence', 'Civil Litigation', 'Constitutional Writs'],
+    },
+  });
+
+  const addClients = async (
+    lawyerId: string,
+    rows: { name: string; cnic: string; phone: string; caseType: string; daysAgo: number }[],
+  ) => {
+    const out: Record<string, string> = {};
+    for (const r of rows) {
+      let c = await prisma.chamberClient.findFirst({ where: { lawyerId, cnic: r.cnic } });
+      if (!c) {
+        const n = await nextSequence(prisma, `CL:${lawyerId}`, 0);
+        c = await prisma.chamberClient.create({
+          data: {
+            lawyerId,
+            clientCode: `CL-${String(n).padStart(6, '0')}`,
+            name: r.name,
+            cnic: r.cnic,
+            phone: r.phone,
+            caseType: r.caseType,
+            onboardedOn: utcDate(-r.daysAgo),
+          },
+        });
+        out[r.cnic] = c.id;
+      }
+    }
+    return out;
+  };
+
+  // Keep the counter of the main chamber past the legacy client (CL-000001).
+  await prisma.caseCounter.upsert({
+    where: { year_typeCode: { year: 0, typeCode: `CL:${lawyers.lawyer}` } },
+    update: {},
+    create: { year: 0, typeCode: `CL:${lawyers.lawyer}`, lastValue: 1 },
+  });
+  const legacy = await prisma.chamberClient.findFirst({
+    where: { lawyerId: lawyers.lawyer, name: 'Muhammad Ali' },
+  });
+  if (legacy && !legacy.cnic) {
+    await prisma.chamberClient.update({
+      where: { id: legacy.id },
+      data: { cnic: '36302-9100001-1', caseType: 'Bail Application' },
+    });
+  }
+
+  const fresh = await addClients(lawyers.lawyer, [
+    {
+      name: 'Zainab Fatima',
+      cnic: '36302-9100002-3',
+      phone: '+92 300 1000021',
+      caseType: 'Civil Suit',
+      daysAgo: 60,
+    },
+    {
+      name: 'Rana Tahir',
+      cnic: '36302-9100003-5',
+      phone: '+92 300 1000022',
+      caseType: 'Criminal Appeal',
+      daysAgo: 45,
+    },
+    {
+      name: 'Hina Aslam',
+      cnic: '36302-9100004-7',
+      phone: '+92 300 1000023',
+      caseType: 'Writ Petition',
+      daysAgo: 20,
+    },
+  ]);
+  const other = await addClients(lawyers.lawyer2, [
+    // The same CNIC as Zainab Fatima: allowed because it is another chamber.
+    {
+      name: 'Zainab Fatima',
+      cnic: '36302-9100002-3',
+      phone: '+92 300 1000021',
+      caseType: 'Family Law',
+      daysAgo: 30,
+    },
+  ]);
+
+  const rate = '15000.00';
+  const bill = async (
+    lawyerId: string,
+    clientId: string,
+    hours: string,
+    daysAgo: number,
+    description: string,
+    charge = true,
+  ) => {
+    const amount = (Number(hours) * Number(rate)).toFixed(2);
+    const e = await prisma.billableEntry.create({
+      data: {
+        lawyerId,
+        clientId,
+        workedOn: utcDate(-daysAgo),
+        hours,
+        hourlyRate: rate,
+        amountPkr: amount,
+        description,
+      },
+    });
+    if (charge) {
+      await prisma.retainerTransaction.create({
+        data: { clientId, type: 'DEDUCTION', amount, billableEntryId: e.id, note: description },
+      });
+    }
+  };
+  const deposit = (clientId: string, amount: string, note: string) =>
+    prisma.retainerTransaction.create({
+      data: { clientId, type: 'DEPOSIT', amount, note, reference: note },
+    });
+
+  const zainab = fresh['36302-9100002-3'];
+  if (zainab) {
+    // LOW: balance PKR 15,000 against a threshold of PKR 20,000.
+    await deposit(zainab, '40000.00', 'Initial retainer');
+    await bill(lawyers.lawyer, zainab, '1.50', 38, 'Drafting plaint and annexures');
+    await bill(lawyers.lawyer, zainab, '0.75', 17, 'Conference with client on written statement');
+  }
+  const tahir = fresh['36302-9100003-5'];
+  if (tahir) {
+    // OVERDRAWN: deductions exceed deposits.
+    await deposit(tahir, '20000.00', 'Initial retainer');
+    await bill(lawyers.lawyer, tahir, '1.75', 31, 'Reviewing trial court record');
+    await bill(lawyers.lawyer, tahir, '3.50', 10, 'Drafting memorandum of appeal');
+  }
+  const hina = fresh['36302-9100004-7'];
+  if (hina) {
+    await deposit(hina, '100000.00', 'Initial retainer');
+    await bill(lawyers.lawyer, hina, '3.50', 3, 'Drafting constitutional writ petition response');
+    await bill(lawyers.lawyer, hina, '2.00', 24, 'Legal research on service matters');
+    await bill(lawyers.lawyer, hina, '1.25', 6, 'Client meeting and document review', false);
+  }
+  if (
+    legacy &&
+    (await prisma.billableEntry.count({
+      where: { clientId: legacy.id, description: 'Court attendance' },
+    })) === 0
+  ) {
+    await bill(lawyers.lawyer, legacy.id, '0.50', 12, 'Court attendance', false);
+  }
+  const zainab2 = other['36302-9100002-3'];
+  if (zainab2) {
+    await deposit(zainab2, '60000.00', 'Initial retainer');
+    await bill(
+      lawyers.lawyer2,
+      zainab2,
+      '2.00',
+      5,
+      'Drafting application under the family court act',
+    );
+  }
+
+  if (
+    (await prisma.chamberExpense.count({
+      where: { lawyerId: lawyers.lawyer, category: 'Court stationery' },
+    })) === 0
+  ) {
+    await prisma.chamberExpense.createMany({
+      data: [
+        {
+          lawyerId: lawyers.lawyer,
+          category: 'Court stationery',
+          amount: '3200.00',
+          spentOn: utcDate(-2),
+          description: 'Stamp papers and files',
+        },
+        {
+          lawyerId: lawyers.lawyer,
+          category: 'Travel',
+          amount: '4500.00',
+          spentOn: utcDate(-9),
+          description: 'Lahore trip for hearing',
+        },
+        {
+          lawyerId: lawyers.lawyer,
+          category: 'Law reports subscription',
+          amount: '12000.00',
+          spentOn: utcDate(-20),
+        },
+        {
+          lawyerId: lawyers.lawyer,
+          category: 'Office utilities',
+          amount: '8800.00',
+          spentOn: utcDate(-5),
+        },
+      ],
+    });
+  }
+
+  // Research logs in every review status, on cases where the supervising lawyer is counsel.
+  const intern = await prisma.internProfile.findUniqueOrThrow({ where: { userId: ids.intern } });
+  const caseRows = await prisma.caseParty.findMany({
+    where: { lawyerId: lawyers.lawyer, case: { status: { not: 'DRAFT' } } },
+    select: { caseId: true },
+    distinct: ['caseId'],
+    take: 3,
+  });
+  if (
+    caseRows.length > 0 &&
+    (await prisma.internDiaryEntry.count({
+      where: { internId: intern.id, citation: { startsWith: 'PLD' } },
+    })) === 0
+  ) {
+    const logs = [
+      {
+        status: 'SUBMITTED' as const,
+        keywords: ['bail', 'section 497'],
+        citation: 'PLD 2022 SC 100',
+        content:
+          'Grounds for post-arrest bail where further inquiry is required. The Supreme Court restated that bail is the rule and refusal the exception, and that tentative assessment suffices at this stage.',
+      },
+      {
+        status: 'APPROVED' as const,
+        keywords: ['limitation', 'condonation'],
+        citation: '2021 SCMR 450',
+        content:
+          'Condonation of delay requires a sufficient cause shown for every day of delay. Notes on how the courts treat counsel negligence and illness as grounds, with the leading cases listed.',
+        comment: 'Good summary. Add the date of each authority next time.',
+      },
+      {
+        status: 'NEEDS_REVISION' as const,
+        keywords: ['writ', 'article 199'],
+        citation: 'PLD 2019 Lah 211',
+        content:
+          'Maintainability of a constitutional petition when an alternate remedy exists. Rough notes only; the exceptions for want of jurisdiction still have to be traced and cited.',
+        comment: 'Please cite the exceptions properly and attach the full reference.',
+      },
+    ];
+    for (const [i, l] of logs.entries()) {
+      const reviewed = l.status !== 'SUBMITTED';
+      await prisma.internDiaryEntry.create({
+        data: {
+          internId: intern.id,
+          caseId: caseRows[i % caseRows.length].caseId,
+          entryDate: utcDate(-(i + 1) * 2),
+          keywords: l.keywords,
+          citation: l.citation,
+          content: l.content,
+          reviewStatus: l.status,
+          ...(reviewed
+            ? { reviewerId: ids.lawyer, reviewedAt: utcDate(-i), reviewComment: l.comment }
+            : {}),
+        },
+      });
+    }
+  }
+
+  // A week of verified attendance for the first intern (the second intern has none yet).
+  const sessions = await prisma.court.findUniqueOrThrow({
+    where: { name: 'District & Sessions Court Multan' },
+  });
+  for (let d = 1; d <= 7; d++) {
+    const date = utcDate(-d);
+    const dow = date.getUTCDay();
+    if (dow === 0 || dow === 6) continue;
+    const checkInAt = new Date(date.getTime() + (9 * 60 + 5 + d) * 60_000 - 5 * 3_600_000);
+    await prisma.attendance.upsert({
+      where: { internId_date: { internId: intern.id, date } },
+      update: { courtId: sessions.id },
+      create: {
+        internId: intern.id,
+        date,
+        checkInAt,
+        checkOutAt: new Date(checkInAt.getTime() + 5 * 3_600_000),
+        lat: (30.1575 + d * 0.00005).toFixed(6),
+        lng: (71.5249 - d * 0.00004).toFixed(6),
+        distanceMeters: 20 + d * 4,
+        withinGeofence: true,
+        courtId: sessions.id,
+        accuracyM: 25,
+      },
+    });
+  }
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -1240,6 +1597,7 @@ function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) 
 ${rows}
 
 Admins log in with their username or email; everyone else with email.
+Chamber desk login (lawyers): use the Chamber ID shown on Chamber Settings & Identity Profile (format CH-123456) plus the lawyer email and password.
 Two lawyers are intentionally PENDING verification: "Faisal Kharal" (bar number the mock Bar Council finds) and "Omar Cheema" (revoked bar number).
 `;
   const file = resolve(__dirname, '../../docs/DEV_ACCOUNTS.md');
@@ -1255,6 +1613,7 @@ async function main() {
   await seedAllocationSamples(ids, lawyerProfileIds, reference);
   await seedScheduling(ids, lawyerProfileIds, reference);
   await seedPhase4(ids);
+  await seedPhase4B(ids, lawyerProfileIds);
   const file = writeAccountsFile(credentials);
 
   console.log(
