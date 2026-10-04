@@ -101,7 +101,8 @@ export class SchedulingService {
   /** One advisory lock per calendar day, taken in sorted order so two writers cannot deadlock. */
   private async lock(tx: Db, dates: Date[]) {
     const keys = [...new Set(dates.map(dayLockKey))].sort((a, b) => a - b);
-    for (const key of keys) await tx.$executeRaw`SELECT pg_advisory_xact_lock(${key}::bigint)`;
+    for (const key of keys)
+      await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(${key}::bigint)) AS l`;
   }
 
   private async loadCase(db: Db, caseId: string) {

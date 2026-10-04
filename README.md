@@ -72,6 +72,19 @@ After changing `prisma/schema.prisma`, create a migration with `npx prisma migra
 
 Policy settings (table `SystemSetting` and `FeeStructure`): `max_attachment_mb` (integer 1 to 100, default 25), `case_registration_open` (true/false), `filing_fee_rate_modifier` (percent 0 to 100, default 0) and the filing fee per case type. Uploads read the limit at request time. Lawyers must be VERIFIED before they can file a case. Suspended, blocked or deleted users are refused at login and on every later request. The mock Bar Council finds numbers like `LH-45821` and reports `LH-99999` as revoked.
 
+**Hearings, cause lists and anti-clash scheduling (Phase 3B).**
+
+| Area | Routes |
+|---|---|
+| Anti-clash check (UC-3.2) | `POST /admin/scheduling/check` (dry run), `POST /admin/scheduling/run-check` (scan a court and date) |
+| Board (UC-3.1) | `GET /admin/scheduling/board?courtId&date`, `GET /admin/scheduling/week?courtId&weekStart` |
+| Vacancy mapping (UC-3.3) | `GET /admin/scheduling/available-slots?caseId&from&days&excludeHearingId`, `GET /admin/scheduling/schedulable-cases?courtId` |
+| Hearings | `POST /admin/hearings`, `PATCH /admin/hearings/:id/reschedule`, `POST /admin/hearings/:id/cancel`, `POST /admin/scheduling/auto-generate` |
+| Cause lists | `POST /admin/cause-lists/publish`, `GET /admin/cause-lists?courtId&date`, `GET /cause-lists?date&courtroomId&courtId` (any signed-in user) |
+| Users | `GET /hearings/mine?when=upcoming\|past` (litigant, lawyer), `GET /judge/hearings?from&to` (judge); `GET /cases/:id` also returns `hearings` and `nextHearing` |
+
+Extra policy settings (System Policies page): `court_day_start` (default `09:00`), `court_day_end` (`14:00`) and `hearing_slot_minutes` (`30`). Courts sit Monday to Friday. A judge, a courtroom and every lawyer of the case must be free in a slot; the database also enforces one active hearing per judge and per courtroom per date and slot with partial unique indexes (see `docs/CHANGES.md`).
+
 ### 3. Frontend (http://localhost:5173)
 ```powershell
 cd frontend
