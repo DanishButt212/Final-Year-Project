@@ -24,6 +24,7 @@ Running log of decisions and deviations from the project report. Maintained for 
 | 16 | 03-10-2026 | Frontend | Added the Process Server information page (summons are served through the mobile app, not the website) and per-role "Coming in a later phase" pages for every sidebar item. |
 | 17 | 03-10-2026 | Frontend | Fonts self-hosted through Fontsource (Merriweather, Inter, JetBrains Mono, Noto Nastaliq Urdu) instead of Google Fonts, so the portal works offline and sends no data to third parties. |
 | 18 | 03-10-2026 | Tooling | Removed the unused design skills installed with UI UX Pro Max (brand, design, design-system, slides, banner-design, ui-styling). Only `ui-ux-pro-max` remains. |
+| 20 | 04-10-2026 | Tooling | The UI UX Pro Max skill is no longer committed: `.claude/skills/` is git-ignored and each developer installs it locally (optional). The design source of truth is `design-system/digitaladaalat/MASTER.md`; the skill is used only for checklist, accessibility and layout guidance. |
 
 ## Library versions (chosen 03-10-2026)
 Backend: NestJS 12.1.2 (`@nestjs/common`, `core`, `platform-express`, `testing`), `@nestjs/config` 12.0.1, `@nestjs/jwt` 12.0.2, `@nestjs/passport` 12.0.0, `@nestjs/swagger` 12.0.2, `@nestjs/throttler` 6.7.1, Prisma 7.10.0 (`prisma`, `@prisma/client`, `@prisma/adapter-pg`), `pg` 8, passport 0.7.0, passport-jwt 4.0.1, bcrypt 6.0.0, class-validator 0.15.1, class-transformer 0.5.1, helmet 8.3.0, cookie-parser 1.4.7, Jest 30.5.2, ts-jest 29.4.14, Supertest 7.3.1, TypeScript 6.0.3, ESLint 10.12.0, Prettier 3.9.9.

@@ -57,6 +57,7 @@ docs/DEV_ACCOUNTS.md
 # Generated Prisma client
 backend/src/generated/
 
-# Claude Code local/session settings (keep .claude/skills tracked)
+# Claude Code local/session settings; skills are installed locally per developer, not committed
+.claude/skills/
 .claude/settings.json
 .claude/settings.local.json
