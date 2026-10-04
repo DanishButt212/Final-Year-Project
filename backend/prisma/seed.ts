@@ -50,6 +50,7 @@ interface SeedUser {
   email: string;
   username?: string;
   court?: 'SESSIONS' | 'LHC';
+  courtroom?: string;
   /** shown in DEV_ACCOUNTS.md */
   dev?: boolean;
   lawyer?: { barNumber: string; status: 'VERIFIED' | 'PENDING' };
@@ -72,6 +73,7 @@ const USERS: SeedUser[] = [
     lastName: 'Qureshi',
     email: `judge@${DOMAIN}`,
     court: 'SESSIONS',
+    courtroom: 'Court Room 1',
     dev: true,
   },
   {
@@ -81,6 +83,7 @@ const USERS: SeedUser[] = [
     lastName: 'Hashmi',
     email: `judge2@${DOMAIN}`,
     court: 'SESSIONS',
+    courtroom: 'Court Room 2',
   },
   {
     key: 'judge3',
@@ -89,6 +92,7 @@ const USERS: SeedUser[] = [
     lastName: 'Anwar',
     email: `judge3@${DOMAIN}`,
     court: 'LHC',
+    courtroom: 'Bench I',
   },
   {
     key: 'lawyer',
@@ -113,7 +117,7 @@ const USERS: SeedUser[] = [
     firstName: 'Faisal',
     lastName: 'Kharal',
     email: `lawyer.pending@${DOMAIN}`,
-    lawyer: { barNumber: 'MBA-2025-0303', status: 'PENDING' },
+    lawyer: { barNumber: 'LH-45821', status: 'PENDING' },
   },
   {
     key: 'intern',
@@ -146,6 +150,50 @@ const USERS: SeedUser[] = [
     lastName: 'Noreen',
     email: `litigant2@${DOMAIN}`,
   },
+  // Added in Phase 3A (appended so the CNICs of earlier accounts do not change).
+  {
+    key: 'judge4',
+    role: 'JUDGE',
+    firstName: 'Nasir',
+    lastName: 'Bajwa',
+    email: `judge4@${DOMAIN}`,
+    court: 'SESSIONS',
+    courtroom: 'Court Room 3',
+  },
+  {
+    key: 'judge5',
+    role: 'JUDGE',
+    firstName: 'Farah',
+    lastName: 'Naeem',
+    email: `judge5@${DOMAIN}`,
+    court: 'LHC',
+    courtroom: 'Bench II',
+  },
+  {
+    key: 'judge6',
+    role: 'JUDGE',
+    firstName: 'Tahir',
+    lastName: 'Mirza',
+    email: `judge6@${DOMAIN}`,
+    court: 'LHC',
+    courtroom: 'Bench III',
+  },
+  {
+    key: 'lawyer4',
+    role: 'LAWYER',
+    firstName: 'Omar',
+    lastName: 'Cheema',
+    email: `lawyer.revoked@${DOMAIN}`,
+    lawyer: { barNumber: 'LH-99999', status: 'PENDING' },
+  },
+  {
+    key: 'lawyer5',
+    role: 'LAWYER',
+    firstName: 'Maryam',
+    lastName: 'Shah',
+    email: `lawyer3@${DOMAIN}`,
+    lawyer: { barNumber: 'LH-31207', status: 'VERIFIED' },
+  },
 ];
 
 const utcDate = (offsetDays: number) => {
@@ -171,6 +219,7 @@ async function seedReference() {
     [sessions.id, 'Court Room 3', null],
     [lhc.id, 'Bench I', 1],
     [lhc.id, 'Bench II', 2],
+    [lhc.id, 'Bench III', 3],
   ];
   const courtrooms: Record<string, string> = {};
   for (const [courtId, name, benchNo] of rooms) {
@@ -200,7 +249,9 @@ async function seedReference() {
     ['geofence_radius_meters', '200', 'Allowed distance from the chamber for intern attendance'],
     ['geofence_chamber_lat', '30.1978', 'Demo chamber latitude (Multan)'],
     ['geofence_chamber_lng', '71.4697', 'Demo chamber longitude (Multan)'],
-    ['max_pleading_size_mb', '25', 'Maximum PDF pleading size'],
+    ['max_pleading_size_mb', '25', 'Maximum PDF pleading size (legacy key)'],
+    ['max_attachment_mb', '25', 'Maximum PDF attachment size in MB'],
+    ['filing_fee_rate_modifier', '0', 'Filing fee rate modifier (percent)'],
     ['hearing_slots_per_day', '8', 'Number of hearing time slots per judge per day'],
     [
       'case_registration_open',
@@ -218,7 +269,11 @@ async function seedReference() {
   return { sessions, lhc, courtrooms };
 }
 
-async function seedUsers(courts: { sessions: { id: string }; lhc: { id: string } }) {
+async function seedUsers(courts: {
+  sessions: { id: string };
+  lhc: { id: string };
+  courtrooms: Record<string, string>;
+}) {
   const credentials: { user: SeedUser; password: string }[] = [];
   const ids: Record<string, string> = {};
   const lawyerProfileIds: Record<string, string> = {};
@@ -231,9 +286,10 @@ async function seedUsers(courts: { sessions: { id: string }; lhc: { id: string }
     const courtId =
       u.court === 'SESSIONS' ? courts.sessions.id : u.court === 'LHC' ? courts.lhc.id : undefined;
 
+    const courtroomId = u.courtroom ? courts.courtrooms[u.courtroom] : undefined;
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { passwordHash, status: 'ACTIVE' },
+      update: { passwordHash, status: 'ACTIVE', courtroomId },
       create: {
         role: u.role,
         firstName: u.firstName,
@@ -244,12 +300,21 @@ async function seedUsers(courts: { sessions: { id: string }; lhc: { id: string }
         phone,
         passwordHash,
         courtId,
+        courtroomId,
         notificationPreference: { create: {} },
       },
     });
     ids[u.key] = user.id;
 
     if (u.lawyer) {
+      const existing = await prisma.lawyerProfile.findUnique({ where: { userId: user.id } });
+      // A still-pending demo lawyer gets the bar number the mock Bar Council is meant to find (or reject).
+      if (existing && existing.verificationStatus === 'PENDING' && u.lawyer.status === 'PENDING') {
+        await prisma.lawyerProfile.update({
+          where: { id: existing.id },
+          data: { barNumber: u.lawyer.barNumber },
+        });
+      }
       const profile = await prisma.lawyerProfile.upsert({
         where: { userId: user.id },
         update: {},
@@ -538,6 +603,154 @@ async function seedSampleData(
   });
 }
 
+/** Phase 3A demo data: cases waiting for allocation and one allocated case. Re-runnable (matched by title). */
+async function seedAllocationSamples(
+  ids: Record<string, string>,
+  lawyers: Record<string, string>,
+  courts: { sessions: { id: string }; courtrooms: Record<string, string> },
+) {
+  await prisma.case.updateMany({
+    where: { status: 'DECIDED', decidedAt: null },
+    data: { decidedAt: utcDate(-3) },
+  });
+
+  const samples = [
+    [
+      'CIVIL_SUIT',
+      'Hina Pervaiz vs. City Development Authority',
+      'Declaration and cancellation of the allotment order dated 02-09-2026.',
+      'litigant2',
+      null,
+      -1,
+    ],
+    [
+      'BAIL_APPLICATION',
+      'Waqas Ahmed vs. The State',
+      'Pre-arrest bail in FIR No. 391/2026, Police Station Gulgasht, Multan.',
+      'lawyer',
+      'lawyer',
+      -2,
+    ],
+    [
+      'WRIT_PETITION',
+      'Multan Traders Association vs. Provincial Government',
+      'Writ against the arbitrary levy notified on 20-09-2026.',
+      'lawyer2',
+      'lawyer2',
+      -4,
+    ],
+    [
+      'CRIMINAL_APPEAL',
+      'Shahid Mehmood vs. The State',
+      'Appeal against conviction recorded on 15-09-2026 in Sessions Case No. 140/2026.',
+      'litigant',
+      null,
+      -6,
+    ],
+    [
+      'CIVIL_SUIT',
+      'Ayesha Siddiqui vs. Kamran Siddiqui',
+      'Recovery of dower amount of PKR 500,000 and maintenance allowance.',
+      'lawyer5',
+      'lawyer5',
+      -9,
+    ],
+  ] as const;
+  for (const [type, title, relief, filer, counsel, offset] of samples) {
+    if (await prisma.case.findFirst({ where: { title } })) continue;
+    const filingDate = utcDate(offset);
+    await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, type as CaseType, filingDate.getUTCFullYear());
+      await tx.case.create({
+        data: {
+          ucn,
+          caseType: type as CaseType,
+          status: 'PENDING_ASSIGNMENT',
+          title,
+          reliefSought: relief,
+          filingDate,
+          filedById: ids[filer],
+          parties: {
+            create: [
+              {
+                role: type === 'CRIMINAL_APPEAL' ? 'APPELLANT' : 'PETITIONER',
+                name: title.split(' vs. ')[0],
+                lawyerId: counsel ? lawyers[counsel] : null,
+              },
+              { role: 'RESPONDENT', name: title.split(' vs. ')[1] },
+            ],
+          },
+          events: {
+            create: [
+              {
+                type: 'CASE_SUBMITTED',
+                description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+                actorId: ids[filer],
+                createdAt: filingDate,
+              },
+            ],
+          },
+        },
+      });
+    });
+  }
+
+  const allocatedTitle = 'Bashir Hussain vs. Multan Electric Supply Company';
+  if (!(await prisma.case.findFirst({ where: { title: allocatedTitle } }))) {
+    const filingDate = utcDate(-12);
+    await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, 'CIVIL_SUIT', filingDate.getUTCFullYear());
+      await tx.case.create({
+        data: {
+          ucn,
+          caseType: 'CIVIL_SUIT',
+          status: 'ALLOCATED',
+          title: allocatedTitle,
+          reliefSought: 'Declaration that the detection bill of PKR 640,000 is illegal and void.',
+          filingDate,
+          filedById: ids.litigant,
+          courtId: courts.sessions.id,
+          courtroomId: courts.courtrooms['Court Room 2'],
+          judgeId: ids.judge2,
+          allocatedAt: utcDate(-10),
+          parties: {
+            create: [
+              { role: 'PETITIONER', name: 'Bashir Hussain' },
+              { role: 'RESPONDENT', name: 'Multan Electric Supply Company' },
+            ],
+          },
+          events: {
+            create: [
+              {
+                type: 'CASE_SUBMITTED',
+                description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+                actorId: ids.litigant,
+                createdAt: filingDate,
+              },
+              {
+                type: 'CASE_ALLOCATED',
+                description:
+                  'Case allocated to Saba Hashmi, District & Sessions Court Multan, Court Room 2.',
+                actorId: ids.admin,
+                createdAt: utcDate(-10),
+              },
+            ],
+          },
+        },
+      });
+      await tx.notification.create({
+        data: {
+          userId: ids.litigant,
+          type: 'CASE_ALLOCATED',
+          title: 'Your case has been allocated',
+          body: `${ucn} was allocated to Saba Hashmi at District & Sessions Court Multan, Court Room 2.`,
+          sentAt: utcDate(-10),
+        },
+      });
+    });
+  }
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -556,7 +769,7 @@ function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) 
 ${rows}
 
 Admins log in with their username or email; everyone else with email.
-The lawyer "Faisal Kharal" is intentionally PENDING verification.
+Two lawyers are intentionally PENDING verification: "Faisal Kharal" (bar number the mock Bar Council finds) and "Omar Cheema" (revoked bar number).
 `;
   const file = resolve(__dirname, '../../docs/DEV_ACCOUNTS.md');
   mkdirSync(dirname(file), { recursive: true });
@@ -568,6 +781,7 @@ async function main() {
   const reference = await seedReference();
   const { ids, lawyerProfileIds, credentials } = await seedUsers(reference);
   await seedSampleData(ids, lawyerProfileIds, reference);
+  await seedAllocationSamples(ids, lawyerProfileIds, reference);
   const file = writeAccountsFile(credentials);
 
   console.log(
