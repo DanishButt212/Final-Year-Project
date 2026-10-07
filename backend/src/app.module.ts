@@ -25,6 +25,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { SettingsModule } from './settings/settings.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
+import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { UsersModule } from './users/users.module';
     ChamberModule,
     SummonsModule,
     ReportsModule,
+    VirtualCourtroomModule,
     HealthModule,
   ],
   providers: [

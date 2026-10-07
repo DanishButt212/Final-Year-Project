@@ -64,6 +64,8 @@ export function hearingView(h: ScanHearing, slots: Slot[], conflicts: Conflict[]
     endTime: slot?.end ?? null,
     status: h.status,
     purpose: h.purpose,
+    isVirtual: h.isVirtual,
+    virtualSession: h.session ? { id: h.session.id, status: h.session.status } : null,
     courtroom: h.courtroom ? { id: h.courtroom.id, name: h.courtroom.name } : null,
     judge: { id: h.judge.id, name: fullName(h.judge) },
     lawyers: lawyerNamesOf(h),
@@ -271,6 +273,8 @@ export class SchedulingService {
               timeSlot: dto.slot,
               startTime: slotInfo.start,
               purpose: dto.purpose,
+              isVirtual: dto.isVirtual ?? false,
+              type: dto.isVirtual ? 'VIRTUAL' : 'PHYSICAL',
             },
             select: { id: true },
           });
@@ -283,7 +287,7 @@ export class SchedulingService {
             data: {
               caseId: c.id,
               type: CaseEventType.HEARING_SCHEDULED,
-              description: `Hearing scheduled for ${when} in ${h.courtroom?.name ?? 'the court'} before ${fullName(h.judge)}.`,
+              description: `${h.isVirtual ? 'Virtual hearing' : 'Hearing'} scheduled for ${when} in ${h.courtroom?.name ?? 'the court'} before ${fullName(h.judge)}.`,
               actorId: actor.id,
             },
           });

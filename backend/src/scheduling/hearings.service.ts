@@ -125,6 +125,8 @@ export class HearingsService {
             const h = e.hearing;
             const v = hearingView(h, slots);
             return {
+              hearingId: h.id,
+              isVirtual: h.isVirtual,
               serialNo: e.serialNo,
               time: v.startTime,
               courtroom: v.courtroom?.name ?? null,

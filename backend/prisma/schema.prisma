@@ -79,6 +79,8 @@ enum CaseEventType {
   HEARING_COMPLETED
   HEARING_ADJOURNED
   CASE_DECIDED
+  SESSION_INITIALIZED
+  SESSION_ENDED
 }
 
 enum EvidenceCategory {
@@ -228,10 +230,9 @@ enum NotificationChannel {
 }
 
 enum SessionStatus {
-  SCHEDULED
-  LIVE
+  LOBBY_LOCKED
+  ACTIVE
   ENDED
-  CANCELLED
 }
 
 enum ParticipantRole {
@@ -239,6 +240,21 @@ enum ParticipantRole {
   LAWYER
   LITIGANT
   OBSERVER
+  ADMIN
+}
+
+enum ParticipantStatus {
+  JOINED
+  MUTED
+  VIDEO_OFF
+  EJECTED
+}
+
+enum SessionCommand {
+  MUTE_AUDIO
+  DISABLE_VIDEO
+  EJECT
+  READMIT
 }
 
 // ---------------------------------------------------------------- identity
@@ -287,7 +303,7 @@ model User {
   reviewedDiaryEntries   InternDiaryEntry[]        @relation("DiaryReviewer")
   verifiedLawyers        LawyerProfile[]           @relation("LawyerVerifier")
   sessionParticipation   CourtSessionParticipant[]
-  createdSessions        CourtSession[]
+  initializedSessions    CourtSession[]
   createdCauseLists      CauseList[]
   caseEvents             CaseEvent[]
   blockedHosts           BlockedHost[]
@@ -553,6 +569,7 @@ model Hearing {
   timeSlot     Int // 1..N slot of the day
   startTime    String? // HH:mm
   type         HearingType   @default(PHYSICAL)
+  isVirtual    Boolean       @default(false) // UC-4.1: held in the virtual courtroom (kept in sync with type)
   status       HearingStatus @default(SCHEDULED)
   purpose      String?
   orderSummary String?
@@ -1014,29 +1031,40 @@ model AuditLog {
 
 /// FR: virtual courtroom control via Jitsi embed (UC: Control Virtual Courtroom)
 model CourtSession {
-  id          String        @id @default(uuid())
-  hearingId   String        @unique
-  roomName    String        @unique
-  status      SessionStatus @default(SCHEDULED)
-  scheduledAt DateTime
-  startedAt   DateTime?
-  endedAt     DateTime?
-  createdById String
-  createdAt   DateTime      @default(now())
+  id              String        @id @default(uuid())
+  hearingId       String        @unique // only one session per hearing
+  roomName        String        @unique // random, unguessable (24 chars)
+  status          SessionStatus @default(LOBBY_LOCKED)
+  provider        String        @default("JITSI_PUBLIC") // JAAS or JITSI_PUBLIC at initialization
+  initializedById String
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  hearing      Hearing                   @relation(fields: [hearingId], references: [id])
-  createdBy    User                      @relation(fields: [createdById], references: [id])
-  participants CourtSessionParticipant[]
+  hearing       Hearing                   @relation(fields: [hearingId], references: [id])
+  initializedBy User                      @relation(fields: [initializedById], references: [id])
+  participants  CourtSessionParticipant[]
+
+  @@index([status])
 }
 
-/// FR: participants of a virtual hearing (UC: Join Virtual Hearing)
+/// FR: participants of a virtual hearing (UC-3.3 Access Virtual Courtroom Link, UC-4.2 Manage Room Participants)
 model CourtSessionParticipant {
-  id        String          @id @default(uuid())
-  sessionId String
-  userId    String
-  role      ParticipantRole
-  joinedAt  DateTime?
-  leftAt    DateTime?
+  id                    String            @id @default(uuid())
+  sessionId             String
+  userId                String
+  role                  ParticipantRole
+  status                ParticipantStatus @default(JOINED)
+  audioMuted            Boolean           @default(false)
+  videoOff              Boolean           @default(false)
+  providerParticipantId String? // the Jitsi participant id reported by the client, used for kickParticipant
+  joinedAt              DateTime?
+  leftAt                DateTime?
+  lastSeenAt            DateTime?
+  lastCommand           SessionCommand?
+  lastCommandAt         DateTime?
+  lastCommandById       String?
 
   session CourtSession @relation(fields: [sessionId], references: [id])
   user    User         @relation(fields: [userId], references: [id])

@@ -31,6 +31,7 @@ export const conflictMessages = {
 export const scanInclude = {
   courtroom: { select: { id: true, name: true, courtId: true } },
   judge: { select: { id: true, firstName: true, lastName: true } },
+  session: { select: { id: true, status: true } },
   case: {
     select: {
       id: true,

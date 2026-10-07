@@ -2587,6 +2587,208 @@ async function seedPhase4E(ids: Record<string, string>, lawyers: Record<string, 
   }
 }
 
+/**
+ * Phase 4F demo data: two virtual hearings on the current court day before judge/Court Room 1, one with an
+ * initialized ACTIVE session (and participant rows) and one still locked. They are re-created on every run so the
+ * demo always falls on the day the seed runs; run it during court hours to see an open room.
+ */
+async function seedPhase4F(ids: Record<string, string>, courtrooms: Record<string, string>) {
+  const MARKER = 'Phase 4F virtual demo';
+  const old = (
+    await prisma.hearing.findMany({
+      where: { purpose: { startsWith: MARKER } },
+      select: { id: true },
+    })
+  ).map((h) => h.id);
+  if (old.length > 0) {
+    const sessions = (
+      await prisma.courtSession.findMany({
+        where: { hearingId: { in: old } },
+        select: { id: true },
+      })
+    ).map((s) => s.id);
+    await prisma.courtSessionParticipant.deleteMany({ where: { sessionId: { in: sessions } } });
+    await prisma.courtSession.deleteMany({ where: { id: { in: sessions } } });
+    await prisma.causeListEntry.deleteMany({ where: { hearingId: { in: old } } });
+    await prisma.hearing.deleteMany({ where: { id: { in: old } } });
+  }
+
+  const setting = async (key: string, fallback: string) =>
+    (await prisma.systemSetting.findUnique({ where: { key } }))?.value ?? fallback;
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const dayStart = toMin(await setting('court_day_start', '09:00'));
+  const dayEnd = toMin(await setting('court_day_end', '14:00'));
+  const slotMin = Number(await setting('hearing_slot_minutes', '30')) || 30;
+  const slotCount = Math.max(1, Math.floor((dayEnd - dayStart) / slotMin));
+  const clock = (slot: number) => {
+    const m = dayStart + (slot - 1) * slotMin;
+    return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  };
+
+  // The local calendar day (as the scheduler stores it), moved to Monday on a weekend.
+  const now = new Date();
+  let date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  let isToday = true;
+  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
+    date = new Date(date.getTime() + 86_400_000);
+    isToday = false;
+  }
+  // The slot running now (or the next one); after court hours, the last slot of the day.
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  let target = 1;
+  if (isToday) {
+    target = slotCount;
+    for (let n = 1; n <= slotCount; n++) {
+      if (dayStart + n * slotMin > nowMin) {
+        target = n;
+        break;
+      }
+    }
+  }
+  const judgeId = ids.judge;
+  const courtroomId = courtrooms['Court Room 1'];
+  const taken = new Set(
+    (
+      await prisma.hearing.findMany({
+        where: { date, status: { not: 'CANCELLED' }, OR: [{ judgeId }, { courtroomId }] },
+        select: { timeSlot: true },
+      })
+    ).map((h) => h.timeSlot),
+  );
+  const order = [
+    ...Array.from({ length: slotCount - target + 1 }, (_, i) => target + i),
+    ...Array.from({ length: target - 1 }, (_, i) => target - 1 - i),
+  ];
+  const free = order.filter((n) => !taken.has(n));
+  if (free.length < 2) {
+    console.log('Phase 4F: no free slots for the virtual demo hearings today, skipping.');
+    return;
+  }
+
+  const n1 = await prisma.case.findFirstOrThrow({
+    where: { title: 'Muhammad Ali vs. The State' },
+    select: { id: true, ucn: true, filedById: true },
+  });
+  const c1 = await prisma.case.findFirstOrThrow({
+    where: { title: 'Imtiaz Ahmed vs. Punjab Revenue Authority' },
+    select: { id: true, ucn: true, filedById: true },
+  });
+  const iso = date.toISOString();
+  const dd = `${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)}`;
+  const make = (caseId: string, slot: number, purpose: string) =>
+    prisma.hearing.create({
+      data: {
+        caseId,
+        judgeId,
+        courtroomId,
+        date,
+        timeSlot: slot,
+        startTime: clock(slot),
+        type: 'VIRTUAL',
+        isVirtual: true,
+        purpose: `${MARKER}: ${purpose}`,
+      },
+    });
+  const live = await make(n1.id, free[0], 'bail arguments by video link');
+  const locked = await make(c1.id, free[1], 'framing of issues by video link');
+  for (const [h, c] of [
+    [live, n1],
+    [locked, c1],
+  ] as const) {
+    await prisma.case.update({ where: { id: c.id }, data: { status: 'HEARING_FIXED' } });
+    await prisma.caseEvent.create({
+      data: {
+        caseId: c.id,
+        type: 'HEARING_SCHEDULED',
+        description: `Virtual hearing scheduled for ${dd} at ${h.startTime} in Court Room 1.`,
+        actorId: ids.admin,
+      },
+    });
+  }
+
+  const ago = (min: number) => new Date(Date.now() - min * 60_000);
+  const ROOM = 'abcdefghijkmnpqrstuvwxyz23456789';
+  const roomName = Array.from({ length: 24 }, () => ROOM[randomInt(ROOM.length)]).join('');
+  await prisma.courtSession.create({
+    data: {
+      hearingId: live.id,
+      roomName,
+      status: 'ACTIVE',
+      provider: process.env.JAAS_APP_ID ? 'JAAS' : 'JITSI_PUBLIC',
+      initializedById: ids.admin,
+      startedAt: ago(12),
+      participants: {
+        create: [
+          { userId: judgeId, role: 'JUDGE', joinedAt: ago(10), lastSeenAt: ago(3) },
+          {
+            userId: ids.lawyer,
+            role: 'LAWYER',
+            status: 'MUTED',
+            audioMuted: true,
+            joinedAt: ago(9),
+            lastSeenAt: ago(3),
+            lastCommand: 'MUTE_AUDIO',
+            lastCommandAt: ago(6),
+            lastCommandById: ids.admin,
+          },
+          {
+            userId: n1.filedById,
+            role: 'LITIGANT',
+            status: 'VIDEO_OFF',
+            videoOff: true,
+            joinedAt: ago(8),
+            leftAt: ago(4),
+            lastSeenAt: ago(4),
+          },
+        ],
+      },
+    },
+  });
+  await prisma.caseEvent.create({
+    data: {
+      caseId: n1.id,
+      type: 'SESSION_INITIALIZED',
+      description: `Virtual courtroom session opened for the hearing on ${dd} at ${live.startTime}.`,
+      actorId: ids.admin,
+      createdAt: ago(12),
+    },
+  });
+  await prisma.notification.createMany({
+    data: [...new Set([n1.filedById, ids.lawyer, judgeId])].map((userId) => ({
+      userId,
+      type: 'HEARING_VIRTUAL_SESSION_OPENED',
+      title: 'Virtual courtroom open',
+      body: `The virtual courtroom for your hearing is open. ${n1.ucn}, hearing on ${dd} at ${live.startTime}.`,
+      channel: 'IN_APP' as const,
+      sentAt: ago(12),
+    })),
+  });
+
+  // Today's published cause list for the court lists both virtual hearings.
+  const { courtId } = await prisma.courtroom.findUniqueOrThrow({
+    where: { id: courtroomId },
+    select: { courtId: true },
+  });
+  const list = await prisma.causeList.upsert({
+    where: { courtId_date: { courtId, date } },
+    update: {},
+    create: { courtId, date, status: 'PUBLISHED', publishedAt: new Date(), createdById: ids.admin },
+  });
+  const max = await prisma.causeListEntry.aggregate({
+    where: { causeListId: list.id },
+    _max: { serialNo: true },
+  });
+  let serial = max._max.serialNo ?? 0;
+  for (const h of [live, locked]) {
+    await prisma.causeListEntry.create({
+      data: { causeListId: list.id, hearingId: h.id, serialNo: ++serial },
+    });
+  }
+  console.log(
+    `Phase 4F: virtual hearings on ${dd} at ${live.startTime} (session ACTIVE) and ${locked.startTime} (locked).`,
+  );
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -2624,6 +2826,7 @@ async function main() {
   await seedPhase4B(ids, lawyerProfileIds);
   await seedPhase4C(ids);
   await seedPhase4E(ids, lawyerProfileIds);
+  await seedPhase4F(ids, reference.courtrooms);
   const file = writeAccountsFile(credentials);
 
   console.log(
