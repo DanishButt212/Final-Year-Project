@@ -1,9 +1,12 @@
 /**
- * Development seed. Safe to re-run:
+ * Development and demo seed. Safe to re-run:
  *  - reference data (courts, fees, settings) and users are upserted;
  *  - sample cases are only created when the database has none;
  *  - dev passwords are regenerated on every run and written to docs/DEV_ACCOUNTS.md (git-ignored).
  * All names and CNICs are fictional (CNICs use the 36302-9xxxxxx-x range on purpose).
+ *
+ * `npm run seed:demo` (the --demo flag) is for a hosted demo: every demo account gets DEMO_PASSWORD, no
+ * accounts file is written and no password is printed. Demo data must never be loaded next to real data.
  */
 import { config } from 'dotenv';
 import * as bcrypt from 'bcrypt';
@@ -22,11 +25,25 @@ import { join } from 'node:path';
 import { unlinkSync } from 'node:fs';
 import { EvidenceCryptoService } from '../src/evidence/evidence-crypto.service';
 import { SealService } from '../src/summons/seal.service';
-import { LocalStorageService } from '../src/storage/local-storage.service';
+import { createStorage } from '../src/storage/storage.module';
+import { PASSWORD_REGEX } from '../src/common/patterns';
 
-config({ quiet: true });
+// DOTENV_CONFIG_PATH selects another env file (for example .env.production for seed:demo against Neon).
+config({ path: process.env.DOTENV_CONFIG_PATH || '.env', quiet: true });
 
-const url = new URL(process.env.DATABASE_URL ?? '');
+const DEMO = process.argv.includes('--demo');
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD?.trim() || undefined;
+if (DEMO && !DEMO_PASSWORD) {
+  console.error('seed:demo needs DEMO_PASSWORD (8 to 72 characters with upper and lower case and a digit).');
+  process.exit(1);
+}
+if (DEMO_PASSWORD && !PASSWORD_REGEX.test(DEMO_PASSWORD)) {
+  console.error('DEMO_PASSWORD must be 8 to 72 characters with upper and lower case and a digit.');
+  process.exit(1);
+}
+
+// Prefer the direct (non-pooled) connection for the seed when one is configured (Neon).
+const url = new URL(process.env.DIRECT_URL || process.env.DATABASE_URL || '');
 const schema = url.searchParams.get('schema') ?? undefined;
 url.searchParams.delete('schema');
 const prisma = new PrismaClient({
@@ -314,7 +331,7 @@ async function seedUsers(courts: {
   const lawyerProfileIds: Record<string, string> = {};
 
   for (const [index, u] of USERS.entries()) {
-    const password = generatePassword();
+    const password = DEMO_PASSWORD ?? generatePassword();
     const passwordHash = await bcrypt.hash(password, 12);
     const cnic = `36302-${String(9000001 + index)}-${index % 10}`;
     const phone = `+92 300 ${String(1000001 + index)}`;
@@ -1702,7 +1719,7 @@ async function seedPhase4C(ids: Record<string, string>) {
       return v;
     },
   } as never;
-  const storage = new LocalStorageService(cfg);
+  const storage = createStorage(cfg);
   const crypto = new EvidenceCryptoService(cfg, storage);
   const seals = new SealService(cfg);
 
@@ -2816,7 +2833,22 @@ Two lawyers are intentionally PENDING verification: "Faisal Kharal" (bar number 
   return file;
 }
 
+/** seed:demo refuses to run on a database that already holds accounts it did not create. */
+async function assertDemoDatabase() {
+  const foreign = await prisma.user.count({
+    where: { NOT: { email: { in: USERS.map((u) => u.email) } } },
+  });
+  if (foreign > 0 && process.env.SEED_DEMO_FORCE !== 'true') {
+    console.error(
+      `Refusing to load demo data: the database has ${foreign} account(s) that are not demo accounts. ` +
+        'Demo data must not be mixed with real data. Use an empty database (or set SEED_DEMO_FORCE=true for a demo-only database).',
+    );
+    process.exit(1);
+  }
+}
+
 async function main() {
+  if (DEMO) await assertDemoDatabase();
   const reference = await seedReference();
   const { ids, lawyerProfileIds, credentials } = await seedUsers(reference);
   await seedSampleData(ids, lawyerProfileIds, reference);
@@ -2827,6 +2859,14 @@ async function main() {
   await seedPhase4C(ids);
   await seedPhase4E(ids, lawyerProfileIds);
   await seedPhase4F(ids, reference.courtrooms);
+  if (DEMO_PASSWORD) {
+    console.log('\nSeed complete. Demo accounts (password: the DEMO_PASSWORD you set):');
+    for (const { user } of credentials.filter((c) => c.user.dev)) {
+      console.log(`  ${user.role.padEnd(15)} ${user.username ?? user.email}`);
+    }
+    console.log(`  ...and ${credentials.length - credentials.filter((c) => c.user.dev).length} sample accounts.`);
+    return;
+  }
   const file = writeAccountsFile(credentials);
 
   console.log(
