@@ -211,7 +211,38 @@ My design where the report is silent or I added to it.
 **Migration note.** The migration is named `20261008090000_judge_decisions_security_reports` (renamed from the generated timestamp so it sorts after the Phase 4C migration; the local migration table was updated to match, no data was touched).
 
 ### Next
-- The virtual courtroom, the React Native (Expo) process server app and deployment.
+- Done in Phase 4F: the virtual courtroom. Still next: the React Native (Expo) process server app and deployment.
+
+## Phase 4F decisions: virtual courtroom (07-10-2026)
+My design where the report is silent or I added to it.
+
+**Provider**
+1. **Jitsi behind a small `VideoProvider` interface** (`backend/src/virtual-courtroom/video-provider.ts`), so another service can replace it. Two modes chosen at startup: JaaS (`8x8.vc`) when `JAAS_APP_ID`, `JAAS_KID` and `JAAS_PRIVATE_KEY` (base64 of the PEM) are all set and the key parses; otherwise public `meet.jit.si`. In JaaS mode the API signs an RS256 token per participant with node's crypto (no new dependency): audience `jitsi`, issuer `chat`, subject the app id, scoped to the room, 10-minute expiry, moderator only for admins and the case's judge, recording, streaming and dial-out off. A partial or unreadable configuration logs a warning (never the key) and falls back. The module starts without the keys; `.env.example` has placeholders only.
+2. **Real moderation needs JaaS.** On public Jitsi our server cannot give anyone enforceable moderator rights, so the admin's mute, video and eject commands are refused (409 "Moderation controls require the JaaS configuration.") and the buttons are disabled under a banner. Public meet.jit.si also limits embedded meetings (short meeting length for embeds, and the first participant may be asked to sign in), so it is for demos only; real hearings need JaaS.
+
+**Data**
+3. **Hearing.isVirtual** (default false) is the flag the screens use. The existing, unused `Hearing.type` (PHYSICAL or VIRTUAL) is kept and set in step, so no data or enum was removed; the migration copies any VIRTUAL type into the new flag.
+4. **CourtSession** (hand-written migration, no reset): `SessionStatus` replaced by LOBBY_LOCKED, ACTIVE, ENDED (old values mapped), `createdById` renamed to `initializedById`, `scheduledAt` dropped (the time comes from the hearing), `provider` and `updatedAt` added. Initializing creates the session directly as ACTIVE; LOBBY_LOCKED remains the default for a session that exists but is not open. `hearingId` stays unique, so a hearing has at most one session in its life: once ended it cannot be opened again (409).
+5. **CourtSessionParticipant** gets `status` (JOINED, MUTED, VIDEO_OFF, EJECTED), `audioMuted`, `videoOff`, `providerParticipantId` (the Jitsi id reported by the client, used for kicking), `lastSeenAt` and the last command with its time and admin. `ParticipantRole` gained ADMIN. New case events SESSION_INITIALIZED and SESSION_ENDED; audit actions VIRTUAL_SESSION_INITIALIZED, VIRTUAL_SESSION_JOINED, VIRTUAL_SESSION_COMMAND and VIRTUAL_SESSION_ENDED.
+
+**Rules**
+6. **Who and when.** Status and join are allowed for the case's filer, its lawyers, the hearing's or case's judge and admins; anyone else, and non-virtual hearings, get 404. The room is open from 15 minutes before the slot start until 60 minutes after the slot end, in the server's local time like the scheduler. Status order: a cancelled, completed or adjourned hearing, an ended session or a passed window gives CLOSED; before the window NOT_YET ("The video room opens at HH:mm on DD-MM-YYYY, 15 minutes before the hearing."); no ACTIVE session gives LOCKED with "Court Session Lobby is currently locked by the Admin Bench."; otherwise OPEN.
+7. **Initialize preconditions** ("scheduled for virtual processing at the current hour"): the hearing must be virtual, SCHEDULED, dated today and its window not yet passed, with no session (each refusal is a 409 with its own message). The parties and the judge are notified "The virtual courtroom for your hearing is open." (type HEARING_VIRTUAL_SESSION_OPENED, which links to the hearing schedule, or My Schedule for the judge).
+8. **Attendee tracking.** The browser embeds the Jitsi IFrame API (`external_api.js` from the provider domain) and reports JOINED (with its Jitsi id), LEFT, AUDIO_MUTED, AUDIO_UNMUTED, VIDEO_OFF, VIDEO_ON and a HEARTBEAT every 15 seconds; the unmute, video-on and heartbeat events were added so the list can return to "Joined" and show "Live". A participant is "Live" when heard from within 45 seconds, otherwise "Last seen HH:mm" or "Left HH:mm". The admin list polls every 5 seconds.
+9. **Commands.** The IFrame API has no per-participant mute, and `muteEveryone` would also mute the presiding judge, so it is not used. Instead the command is recorded on the server (status, a confirmation tag such as "Audio muted · 10:32", an audit entry) and the targeted participant's own client, which polls `GET /sessions/:id/me` every 5 seconds, mutes its microphone or turns off its camera through the IFrame API. Eject also calls `kickParticipant` on the admin's moderator client. Commands cannot target the judge or the Admin Bench. An ejected participant cannot rejoin until the admin presses "Readmit" (a fourth command, READMIT, added for this); their room view closes with "You were moved to the court lobby by the Admin Bench. Please wait to be readmitted."
+10. **Ending.** "Mark session ended" sets ENDED, stamps everyone still inside as left and writes the case event and audit entry; open room views close within 5 seconds with "This virtual hearing session has ended." and the join links show the ended message.
+
+**Screens**
+11. Admin: hearing cards on the scheduling board show a "Virtual" badge and, for today's scheduled virtual hearings without a session, "Initialize Virtual Courtroom Session" (or a link to the control workspace once opened). New sidebar page "Virtual Courtroom Control": active sessions, today's virtual hearings awaiting a session (with the same initialize action) and recently ended sessions. The control workspace shows the connection status (room state, provider, live count, own connection, last refresh), the embedded room on the left and the attendee list with "Mute Audio Input", "Disable Video Broadcast", "Eject Participant to Lobby" and confirmation tags on the right. The admin enters the room with "Connect to the room" instead of automatically, so opening the page does not trigger a camera prompt or a join audit entry.
+12. Litigants and lawyers: Hearing Schedule and Daily Cause Lists rows of their own virtual hearings show "Join Remote Hearing Video Room", greyed out with the lobby or opening-time message until the room is open. The judge has the same button on My Schedule. The button opens a full-page room at `/courtroom/:hearingId` with a Leave button.
+
+**Seed**
+13. Two virtual hearings for the current court day before the main demo judge in Court Room 1 (the slot running now, or the last slot after court hours; Monday on a weekend): one with an ACTIVE session and three participant rows (the judge, the lawyer muted by the admin, the litigant with video off who has left), one without a session. They are deleted and re-created on every seed run so the demo always falls on the day it runs, and both are added to that day's published cause list. Run the seed during court hours to see an open room.
+
+**Migration note.** `20261009090000_virtual_courtroom`, written by hand (enum replacement, column and constraint rename); applied with `prisma migrate dev` without drift.
+
+### Next
+- The React Native (Expo) process server app and deployment.
 
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).

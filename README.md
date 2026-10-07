@@ -147,6 +147,17 @@ New setting (System Policies): `security_escalation_threshold` (default 3, range
 
 **Environment variables.** `REPORT_SEAL_SECRET` (required): 32 random bytes, base64, the HMAC key of the report verification seal; generate it into your local `backend/.env` with the same `node -e` command as the evidence key. The reports module refuses to start without it. Never commit it. `TRUST_PROXY` (optional): set it (for example `1`) only when the API runs behind a reverse proxy, so `req.ip` is the real client address; without it the security alerts and host blocking would see the proxy address. Exported reports are stored under `backend/uploads/reports` (git-ignored).
 
+**Virtual courtroom (Phase 4F).**
+
+| Area | Routes |
+|---|---|
+| Admin | `POST /admin/hearings/:id/virtual-session/initialize` (409 when the hearing is not virtual, already has a session, is not today or its window has passed), `GET /admin/virtual-sessions` (active, today's virtual hearings awaiting a session, recently ended), `GET /admin/virtual-sessions/:id` (room state and attendees), `POST /admin/virtual-sessions/:id/command` (`{ participantId, command: MUTE_AUDIO \| DISABLE_VIDEO \| EJECT \| READMIT }`), `POST /admin/virtual-sessions/:id/end` |
+| Parties and judge | `GET /hearings/:id/virtual-session/status` (`{ state: LOCKED \| OPEN \| NOT_YET \| CLOSED, message }`), `POST /hearings/:id/virtual-session/join` (`{ provider, domain, roomName, scriptUrl, jwt?, displayName, isModerator, sessionId }`), `POST /sessions/:id/events` (`JOINED`, `LEFT`, `AUDIO_MUTED`, `AUDIO_UNMUTED`, `VIDEO_OFF`, `VIDEO_ON`, `HEARTBEAT`), `GET /sessions/:id/me` |
+
+Hearings get a "Virtual hearing" checkbox in the Schedule hearing dialog. The room opens 15 minutes before the slot and closes 60 minutes after it ends; only the case's filer, its lawyers, its judge and admins can see or join it (anyone else gets 404). The seed re-creates two virtual hearings for the current day (judge, Court Room 1), one with an ACTIVE session; run the seed during court hours to see an open room.
+
+**Environment variables (optional): `JAAS_APP_ID`, `JAAS_KID`, `JAAS_PRIVATE_KEY`.** With all three set (the private key as base64 of the PEM file from the 8x8 JaaS console), rooms run on `8x8.vc` and the API signs a 10-minute RS256 token per participant (moderator for the admin and the case's judge), so the moderation commands work. Without them the app starts normally and uses public `meet.jit.si` with an unguessable room name; moderation buttons are disabled and public Jitsi limits embedded meetings. `.env.example` only holds placeholders; never commit real keys.
+
 **Run the backend from the build if the watcher is unreliable** (`npm run build`, then `node dist/main`): `npm run start:dev` deletes `dist` while it recompiles, and a login attempt in that moment shows "Cannot reach the server".
 
 ### 3. Frontend (http://localhost:5173)
