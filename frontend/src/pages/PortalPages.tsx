@@ -13,8 +13,10 @@ import {
   JudgeDashboard,
   LawyerDashboard,
   LitigantDashboard,
-  ProcessServerPage,
 } from './dashboards';
+
+/** Process servers work in their own console at /process-server. */
+const ProcessServerHome = () => <Navigate to="/process-server" replace />;
 
 const DASHBOARDS = {
   LITIGANT: LitigantDashboard,
@@ -22,7 +24,7 @@ const DASHBOARDS = {
   INTERN: InternDashboard,
   JUDGE: JudgeDashboard,
   ADMIN: AdminDashboard,
-  PROCESS_SERVER: ProcessServerPage,
+  PROCESS_SERVER: ProcessServerHome,
 } as const;
 
 /** /:portal → the dashboard for that portal, but only for users who belong to it. */

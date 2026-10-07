@@ -285,7 +285,7 @@ export const PORTALS: Record<Role, Portal> = {
         icon: Briefcase,
         description: 'Cases allocated to you by the registrar.',
       },
-      { slug: 'orders', label: 'Orders', icon: Gavel, description: 'Record orders and judgments.' },
+      { slug: 'orders', label: 'Orders', icon: Gavel, description: 'Hearing orders and decisions you have recorded.' },
     ],
   },
   ADMIN: {

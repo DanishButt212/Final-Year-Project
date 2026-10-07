@@ -38,6 +38,7 @@ import { parseApiError } from '@/lib/api';
 import { chamberApi, type InternRow, type LogStatus, type ResearchLog } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { LawyerCertificateCard } from '@/pages/intern/CertificateCard';
 import { CNIC_REGEX, MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { todayInput } from './helpers';
@@ -387,6 +388,7 @@ export function InternDetailPage() {
           </Button>
         }
       />
+      <LawyerCertificateCard internId={data.id} />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>

@@ -28,6 +28,8 @@ import ResearchLogsPage from '@/pages/intern/ResearchLogsPage';
 import AttendancePage from '@/pages/intern/AttendancePage';
 import FeedbackAnalysisPage from '@/pages/admin/FeedbackAnalysisPage';
 import JudgeCaseDetailPage from '@/pages/judge/JudgeCaseDetailPage';
+import JudgeOrdersPage from '@/pages/judge/JudgeOrdersPage';
+import CertificatePage from '@/pages/intern/CertificatePage';
 import ChallanPrintPage from '@/pages/payments/ChallanPrintPage';
 import PayPage from '@/pages/payments/PayPage';
 import PaymentsPage from '@/pages/payments/PaymentsPage';
@@ -128,10 +130,12 @@ export default function App() {
           <Route element={<RequireRole role="INTERN" />}>
             <Route path="intern/research-logs" element={<ResearchLogsPage />} />
             <Route path="intern/attendance" element={<AttendancePage />} />
+            <Route path="intern/certificate" element={<CertificatePage />} />
           </Route>
           <Route element={<RequireRole role="JUDGE" />}>
             <Route path="judge/cases" element={<JudgeCasesPage />} />
             <Route path="judge/cases/:caseId" element={<JudgeCaseDetailPage />} />
+            <Route path="judge/orders" element={<JudgeOrdersPage />} />
           </Route>
           <Route path=":portal" element={<PortalHome />} />
           <Route

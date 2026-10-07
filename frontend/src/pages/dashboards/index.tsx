@@ -1,22 +1,12 @@
-import {
-  Archive,
-  ClipboardList,
-  Clock,
-  GraduationCap,
-  Receipt,
-  Smartphone,
-  Users,
-  Gavel,
-} from 'lucide-react';
+import { Archive, Clock, GraduationCap, Receipt, Users } from 'lucide-react';
 import { useAuth } from '@/auth/useAuth';
-import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
 import { LAWYER_PENDING_MESSAGE } from '@/hooks/use-filing-gate';
 import { DashboardFrame, EmptyPanel, PanelGrid } from './parts';
 import AnalyticsBoard from '../admin/AnalyticsBoard';
 import { NextHearingCard } from '../scheduling/UserSchedulePages';
 import { MyAllocatedCases } from '../judge/JudgeCasesPage';
+import { RecentOrdersPanel, TodayHearingsPanel } from '../judge/JudgeDashboardPanels';
 import CaseOverview from './CaseOverview';
 import { ChamberIdCard } from '../chamber/ChamberIdCard';
 
@@ -105,27 +95,11 @@ export { default as InternDashboard } from '../intern/InternDashboardPage';
 export function JudgeDashboard() {
   return (
     <DashboardFrame description="Today's cause list and your caseload.">
-      <div className="mb-6">
-        <MyAllocatedCases />
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <TodayHearingsPanel />
+        <RecentOrdersPanel />
       </div>
-      <PanelGrid>
-        <EmptyPanel
-          title="Today's cause list"
-          icon={ClipboardList}
-          emptyTitle="No cases listed today"
-          emptyText="Cases fixed before you for today will appear here."
-          actionLabel="Open cause list"
-          actionTo="/judge/cause-lists"
-        />
-        <EmptyPanel
-          title="Recent orders"
-          icon={Gavel}
-          emptyTitle="No orders recorded"
-          emptyText="Orders and judgments you record will be shown here."
-          actionLabel="Orders"
-          actionTo="/judge/orders"
-        />
-      </PanelGrid>
+      <MyAllocatedCases />
     </DashboardFrame>
   );
 }
@@ -135,33 +109,5 @@ export function AdminDashboard() {
     <DashboardFrame description="Live metrics for the whole court system.">
       <AnalyticsBoard />
     </DashboardFrame>
-  );
-}
-
-export function ProcessServerPage() {
-  return (
-    <>
-      <PageHeader
-        title="Process Server"
-        description="Summons are served through the DigitalAdaalat mobile app."
-        crumbs={[{ label: 'Mobile app' }]}
-      />
-      <Card className="max-w-2xl">
-        <CardContent className="flex flex-col gap-4 sm:flex-row">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
-            <Smartphone className="size-6" aria-hidden="true" />
-          </span>
-          <div className="space-y-2">
-            <h2 className="text-lg font-bold">Use the mobile app</h2>
-            <p className="text-text-muted">
-              Process servers (Tamila officers) work from the mobile app, not from this website. In
-              the app you will see your pending summons, record your GPS location, take a delivery
-              photo and capture the recipient's signature.
-            </p>
-            <p className="text-sm text-text-muted">The mobile app is planned for a later phase.</p>
-          </div>
-        </CardContent>
-      </Card>
-    </>
   );
 }
