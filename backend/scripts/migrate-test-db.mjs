@@ -9,6 +9,9 @@ if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.includes('_test')) {
   process.exit(1);
 }
 
+// prisma.config.ts prefers DIRECT_URL; point it at the test database too so a stray value never wins.
+process.env.DIRECT_URL = process.env.DATABASE_URL;
+
 const result = spawnSync('npx', ['prisma', 'migrate', 'deploy'], {
   stdio: 'inherit',
   shell: true,

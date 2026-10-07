@@ -61,3 +61,6 @@ backend/src/generated/
 .claude/skills/
 .claude/settings.json
 .claude/settings.local.json
+
+# Private keys (JaaS and others)
+*.pem

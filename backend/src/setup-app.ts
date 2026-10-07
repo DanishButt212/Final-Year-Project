@@ -25,7 +25,8 @@ export function setupApp(app: INestApplication): void {
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({
-    origin: config.getOrThrow<string>('FRONTEND_ORIGIN'),
+    // With the Vercel rewrite the browser calls /api on its own origin; CORS only matters for direct calls.
+    origin: config.get<string[]>('CORS_ORIGINS') ?? config.getOrThrow<string>('FRONTEND_ORIGIN'),
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Client'],
