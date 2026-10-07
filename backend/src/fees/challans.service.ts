@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { calculateLedger, feeInputHash, FeeInputs, LedgerLine } from './fee-calculator';
 import { challanPdf } from './pdf';
+import { pkToday } from '../common/pk-time';
 
 const CASE_TYPE_LABEL: Record<string, string> = {
   CIVIL_SUIT: 'Civil Suit',
@@ -19,10 +20,8 @@ const CASE_TYPE_LABEL: Record<string, string> = {
 };
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
-const todayUtc = () => {
-  const n = new Date();
-  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
-};
+/** Today in Pakistan time (UTC midnight, as stored in @db.Date). */
+const todayUtc = () => pkToday();
 
 const challanInclude = {
   case: { select: { id: true, ucn: true, title: true, caseType: true } },

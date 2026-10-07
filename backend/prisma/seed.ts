@@ -27,6 +27,7 @@ import { EvidenceCryptoService } from '../src/evidence/evidence-crypto.service';
 import { SealService } from '../src/summons/seal.service';
 import { createStorage } from '../src/storage/storage.module';
 import { PASSWORD_REGEX } from '../src/common/patterns';
+import { pkMinutesNow, pkToday } from '../src/common/pk-time';
 
 // DOTENV_CONFIG_PATH selects another env file (for example .env.production for seed:demo against Neon).
 config({ path: process.env.DOTENV_CONFIG_PATH || '.env', quiet: true });
@@ -247,10 +248,8 @@ const USERS: SeedUser[] = [
   },
 ];
 
-const utcDate = (offsetDays: number) => {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + offsetDays));
-};
+/** A calendar date relative to today in Pakistan time, as the UTC-midnight Date stored in @db.Date. */
+const utcDate = (offsetDays: number) => new Date(pkToday().getTime() + offsetDays * 86_400_000);
 
 async function seedReference() {
   const sessions = await prisma.court.upsert({
@@ -2642,16 +2641,15 @@ async function seedPhase4F(ids: Record<string, string>, courtrooms: Record<strin
     return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   };
 
-  // The local calendar day (as the scheduler stores it), moved to Monday on a weekend.
-  const now = new Date();
-  let date = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  // Today in Pakistan time (as the scheduler stores it), moved to Monday on a weekend.
+  let date = pkToday();
   let isToday = true;
   while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
     date = new Date(date.getTime() + 86_400_000);
     isToday = false;
   }
   // The slot running now (or the next one); after court hours, the last slot of the day.
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const nowMin = pkMinutesNow();
   let target = 1;
   if (isToday) {
     target = slotCount;

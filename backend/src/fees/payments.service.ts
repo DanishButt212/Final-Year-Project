@@ -12,6 +12,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthorizeDto, CheckoutDto } from './fees.dto';
 import { receiptPdf } from './pdf';
+import { pkParts } from '../common/pk-time';
 
 export const PAYMENT_REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request details.';
 
@@ -42,9 +43,8 @@ function decide(dto: AuthorizeDto): Decision {
   const last4 = digits.slice(-4);
   const brand = brandOf(digits);
   const [mm, yy] = dto.expiry.split('/').map(Number);
-  const now = new Date();
-  const expired =
-    2000 + yy < now.getFullYear() || (2000 + yy === now.getFullYear() && mm < now.getMonth() + 1);
+  const now = pkParts();
+  const expired = 2000 + yy < now.year || (2000 + yy === now.year && mm < now.month);
   const fail = (reason: Decision['reason']): Decision => ({
     approved: false,
     reason,

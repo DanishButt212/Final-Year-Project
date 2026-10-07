@@ -10,6 +10,7 @@ import { Messages } from '../common/messages';
 import { EvidenceCryptoService } from '../evidence/evidence-crypto.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { isOverdue } from './summons-admin.service';
+import { pkDateTime } from '../common/pk-time';
 
 const GREEN = '#01411C';
 
@@ -19,10 +20,8 @@ async function toBuffer(stream: Readable): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-const dmyhm = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${p(d.getDate())}-${p(d.getMonth() + 1)}-${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-};
+/** DD-MM-YYYY HH:mm, Pakistan time. */
+const dmyhm = (d: Date) => pkDateTime(d);
 
 /** Read-only view of a case's summons and the Proof of Service PDF. */
 @Injectable()

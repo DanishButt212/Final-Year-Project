@@ -17,6 +17,7 @@ import { CaseEventType, CaseStatus, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
+import { pkToday } from '../common/pk-time';
 import { CreateCaseDto, ListCasesQueryDto, PartyDto } from './dto/create-case.dto';
 import { removeFiles, sanitizeFileName, sha256OfFile, startsWithPdfMagic } from './pdf-files';
 import { generateUcn } from './ucn';
@@ -557,7 +558,7 @@ export class CasesService {
   }
 }
 
+/** Filing date: today in Pakistan time (UTC midnight, as stored in @db.Date). */
 function todayUtc(): Date {
-  const d = new Date();
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  return pkToday();
 }

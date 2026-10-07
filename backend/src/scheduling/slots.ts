@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Messages } from '../common/messages';
+import { pkIsoDate, pkMinutesNow, pkToday } from '../common/pk-time';
 import type { SchedulePolicy } from '../settings/settings.service';
 
 export interface Slot {
@@ -51,9 +52,9 @@ export function requireDate(value: string | undefined | null, field = 'date'): D
 
 export const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
+/** Today's date in Pakistan time, as the UTC-midnight Date stored in @db.Date columns. */
 export function todayUtc(): Date {
-  const n = new Date();
-  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()));
+  return pkToday();
 }
 
 export const addDays = (d: Date, n: number) => new Date(d.getTime() + n * DAY_MS);
@@ -92,11 +93,10 @@ export const dayLockKey = (d: Date) => Math.floor(d.getTime() / DAY_MS);
 export const SLOT_PASSED_MESSAGE =
   'Cannot schedule a hearing in a time slot that has already passed.';
 
-/** True when the date is today (server local time) and the slot has already started. */
+/** True when the date is today (Pakistan time) and the slot has already started. */
 export function slotHasPassed(date: Date, slot: Slot, now: Date = new Date()): boolean {
-  const local = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  if (isoDate(date) !== local) return false;
-  return toMinutes(slot.start) <= now.getHours() * 60 + now.getMinutes();
+  if (isoDate(date) !== pkIsoDate(now)) return false;
+  return toMinutes(slot.start) <= pkMinutesNow(now);
 }
 
 function bad(field: string, text: string) {

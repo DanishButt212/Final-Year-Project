@@ -4,6 +4,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSettingsDto } from './settings.dto';
+import { pkToday } from '../common/pk-time';
 
 export const SETTING_KEYS = {
   maxAttachmentMb: 'max_attachment_mb',
@@ -298,16 +299,8 @@ export class SettingsService {
         (k) => next[k] !== before[k],
       );
       if (changed) {
-        const today = new Date();
         const upcoming = await this.prisma.hearing.count({
-          where: {
-            status: { not: 'CANCELLED' },
-            date: {
-              gte: new Date(
-                Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
-              ),
-            },
-          },
+          where: { status: { not: 'CANCELLED' }, date: { gte: pkToday() } },
         });
         if (upcoming > 0) {
           throw new ConflictException({

@@ -1,4 +1,5 @@
 import { api } from './api';
+import { pkIsoDate, pkMinutes } from './pk-time';
 import type { Paginated } from './types';
 
 export type HearingStatus = 'SCHEDULED' | 'HELD' | 'ADJOURNED' | 'CANCELLED';
@@ -229,24 +230,18 @@ export const addDaysIso = (iso: string, n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-export const todayIso = () => {
-  const n = new Date();
-  return new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate())).toISOString().slice(0, 10);
-};
+/** Today in Pakistan time (YYYY-MM-DD). */
+export const todayIso = () => pkIsoDate();
 
 export const mondayIso = (iso: string) => {
   const day = new Date(`${iso}T00:00:00Z`).getUTCDay();
   return addDaysIso(iso, day === 0 ? -6 : 1 - day);
 };
 
-/** True when the date is today (local time) and the slot start time has already passed. */
+/** True when the date is today (Pakistan time) and the slot start time has already passed. */
 export function slotPassed(iso: string, start: string, now: Date = new Date()): boolean {
-  const local = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  if (iso !== local) return false;
-  return (
-    Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) <=
-    now.getHours() * 60 + now.getMinutes()
-  );
+  if (iso !== pkIsoDate(now)) return false;
+  return Number(start.slice(0, 2)) * 60 + Number(start.slice(3, 5)) <= pkMinutes(now);
 }
 
 export const WEEKDAYS = [
@@ -277,6 +272,7 @@ export function notificationLink(type: string, role: string): string | null {
   if (type === 'CHAMBER_LOW_BALANCE') return '/lawyer/chamber/retainer';
   if (type === 'RESEARCH_SUBMITTED') return '/lawyer/chamber/research-logs';
   if (type === 'RESEARCH_REVIEWED') return '/intern/research-logs';
+  if (type === 'CERTIFICATE_ISSUED') return '/intern/certificate';
   if (type === 'PAYMENT_RECEIVED') return role === 'ADMIN' ? null : `/${portal}/payments`;
   if (type === 'HEARING_ADJOURNED' && role === 'ADMIN') return '/admin/hearings';
   if (type.startsWith('HEARING_')) {

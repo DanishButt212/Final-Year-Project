@@ -1,4 +1,5 @@
 import { api } from './api';
+import { pkParts } from './pk-time';
 
 export type RoomState = 'LOCKED' | 'OPEN' | 'NOT_YET' | 'CLOSED';
 export type ProviderKind = 'JAAS' | 'JITSI_PUBLIC';
@@ -200,9 +201,9 @@ export function loadJitsi(scriptUrl: string): Promise<JitsiCtor> {
   return promise;
 }
 
-/** HH:mm in local time. */
+/** HH:mm in Pakistan time. */
 export function hhmm(value: string | null | undefined): string {
   if (!value) return '—';
-  const d = new Date(value);
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const p = pkParts(new Date(value));
+  return `${p.hour}:${p.minute}`;
 }

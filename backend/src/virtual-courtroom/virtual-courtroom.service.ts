@@ -10,6 +10,7 @@ import { fullName, RequestMeta } from '../admin/constants';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
+import { pkAt, pkDdMmYyyy, pkHhmm, pkIsoDate } from '../common/pk-time';
 import {
   CaseEventType,
   ParticipantRole,
@@ -80,26 +81,11 @@ type ParticipantRow = Prisma.CourtSessionParticipantGetPayload<{
   include: typeof participantInclude;
 }>;
 
-const pad = (n: number) => String(n).padStart(2, '0');
-const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-const localDdMmYyyy = (d: Date) => `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`;
-
-/** The hearing's calendar date (stored as UTC midnight) at a local HH:mm, as the scheduler does. */
-function localAt(date: Date, time: string): Date {
-  const iso = isoDate(date);
-  return new Date(
-    Number(iso.slice(0, 4)),
-    Number(iso.slice(5, 7)) - 1,
-    Number(iso.slice(8, 10)),
-    Number(time.slice(0, 2)),
-    Number(time.slice(3, 5)),
-  );
-}
-
-function localToday(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}`;
-}
+// Every time here is Pakistan time, whatever the server's time zone.
+const hhmm = pkHhmm;
+const localDdMmYyyy = pkDdMmYyyy;
+const localAt = pkAt;
+const localToday = () => pkIsoDate();
 
 function randomRoomName(): string {
   let out = '';

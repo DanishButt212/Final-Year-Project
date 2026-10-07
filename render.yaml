@@ -18,6 +18,9 @@ services:
         value: '22'
       - key: NODE_ENV
         value: production
+      # Pakistan time (the API evaluates slots in Pakistan time anyway; this covers library formatting).
+      - key: TZ
+        value: Asia/Karachi
       # Vercel rewrite + Render proxy = two hops in front of the app (see docs/DEPLOYMENT.md).
       - key: TRUST_PROXY
         value: '2'

@@ -4,11 +4,19 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { PK_TZ } from './common/pk-time';
 import { setupApp } from './setup-app';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   setupApp(app);
+  // Slots and the virtual courtroom window use Pakistan time explicitly (common/pk-time.ts). TZ=Asia/Karachi
+  // (checked after ConfigModule has loaded .env) keeps library local-time formatting in Pakistan time too.
+  if (process.env.TZ !== PK_TZ) {
+    new Logger('Bootstrap').warn(
+      `TZ is not ${PK_TZ}. Set TZ=${PK_TZ} (see docs/DEPLOYMENT.md); hearing times are still evaluated in Pakistan time.`,
+    );
+  }
 
   const config = app.get(ConfigService);
   const cookieName = config.getOrThrow<string>('COOKIE_NAME');
