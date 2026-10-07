@@ -2,7 +2,9 @@ import axios, { AxiosError } from 'axios';
 import type { ApiErrorBody } from './types';
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api',
+  // Relative by default: Vite (dev) and Vercel (production) proxy /api to the backend, so the auth cookie is
+  // first-party. VITE_API_URL is only for calling an API on another origin directly.
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true, // send the httpOnly auth cookie
   headers: { 'Content-Type': 'application/json' },
 });

@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
+  // Same-origin /api in development, like the Vercel rewrite in production.
+  server: { proxy: { '/api': { target: 'http://localhost:4000', changeOrigin: false } } },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
