@@ -12,6 +12,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
+    "build:deploy": "npm run build && prisma migrate deploy",
     "lint": "eslint \"{src,test,prisma}/**/*.ts\"",
     "format": "prettier --write \"{src,test,prisma}/**/*.ts\"",
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --config jest.config.js",
@@ -20,12 +21,15 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
+    "seed:demo": "tsx prisma/seed.ts --demo",
     "db:test:migrate": "node scripts/migrate-test-db.mjs",
     "test:all": "npm run test && npm run test:e2e",
     "postinstall": "prisma generate",
     "prebuild": "prisma generate"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1147.0",
+    "@aws-sdk/lib-storage": "3.1147.0",
     "@nestjs/common": "12.1.2",
     "@nestjs/config": "12.0.1",
     "@nestjs/core": "12.1.2",
