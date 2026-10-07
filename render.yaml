@@ -1,0 +1,59 @@
+# Render Blueprint for the DigitalAdaalat API (backend/). Secrets are declared with `sync: false`: Render asks for
+# their values when the Blueprint is created; they are never stored in this file. See docs/DEPLOYMENT.md.
+services:
+  - type: web
+    name: digitaladaalat-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: singapore
+    # Dev dependencies are needed to compile (Nest CLI, TypeScript, Prisma CLI). Migrations run here with
+    # `prisma migrate deploy` (never migrate dev or reset) because the free plan has no pre-deploy command.
+    buildCommand: npm ci --include=dev && npm run build:deploy
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      # Vercel rewrite + Render proxy = two hops in front of the app (see docs/DEPLOYMENT.md).
+      - key: TRUST_PROXY
+        value: '2'
+      - key: STORAGE_DRIVER
+        value: s3
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: COOKIE_NAME
+        value: da_token
+      - key: FRONTEND_URL
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: EVIDENCE_ENCRYPTION_KEY
+        sync: false
+      - key: SUMMONS_SEAL_SECRET
+        sync: false
+      - key: REPORT_SEAL_SECRET
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        sync: false
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: JAAS_APP_ID
+        sync: false
+      - key: JAAS_KID
+        sync: false
+      - key: JAAS_PRIVATE_KEY
+        sync: false

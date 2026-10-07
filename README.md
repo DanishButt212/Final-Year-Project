@@ -164,9 +164,11 @@ Hearings get a "Virtual hearing" checkbox in the Schedule hearing dialog. The ro
 ```powershell
 cd frontend
 npm install
-Copy-Item .env.example .env      # optional: only needed if the API is not on localhost:4000
 npm run dev
 ```
+The app calls `/api` on its own origin: Vite proxies it to `http://localhost:4000` in development and Vercel rewrites it to the Render API in production, so no `.env` is needed. Set `VITE_API_URL` only to call an API on another origin directly.
+
+**Storage driver.** `STORAGE_DRIVER=local` (default) keeps files under `backend/uploads`; `STORAGE_DRIVER=s3` with `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` uses an S3-compatible bucket (Cloudflare R2, Supabase Storage). Evidence and summons proofs are encrypted before they reach either driver. The API refuses to start, naming the variables (never their values), when `DATABASE_URL`, `JWT_SECRET`, `EVIDENCE_ENCRYPTION_KEY`, `SUMMONS_SEAL_SECRET` or `REPORT_SEAL_SECRET` is missing, or, in production, `FRONTEND_URL` (the old name `FRONTEND_ORIGIN` still works).
 
 ### 4. Tests and checks
 ```powershell
@@ -181,5 +183,8 @@ npm test
 npm run lint
 npm run build
 ```
+
+### 5. Deployment (Neon, Render, Vercel)
+Step by step in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md): `render.yaml` (API; build `npm ci --include=dev && npm run build:deploy` runs `prisma migrate deploy`, start `npm run start:prod`, health check `/api/health`), `frontend/vercel.json` (rewrites `/api/*` to Render, SPA fallback) and `npm run seed:demo` (demo data with `DEMO_PASSWORD`, never next to real data). The Prisma CLI uses `DIRECT_URL` when set (Neon direct connection); the app uses `DATABASE_URL` (pooled).
 
 Never commit `.env` files or `docs/DEV_ACCOUNTS.md`. They are git-ignored; only `.env.example` files are tracked.
