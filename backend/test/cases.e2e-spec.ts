@@ -100,6 +100,12 @@ describe('Cases (e2e)', () => {
       )
       .expect(201);
 
+    // Since Phase 3A only VERIFIED lawyers may file.
+    await ctx.prisma.lawyerProfile.updateMany({
+      where: { user: { email: 'lawyer@example.test' } },
+      data: { verificationStatus: 'VERIFIED', verifiedAt: new Date() },
+    });
+
     litigant = await login('ayesha@example.test', 'Passw0rdTest');
     litigantB = await login('bilal@example.test', 'Passw0rdTest');
     lawyer = await login('lawyer@example.test', 'Passw0rdTest');
@@ -610,6 +616,7 @@ describe('Cases (e2e)', () => {
       expect((await litigant.get('/api/cases/summary').expect(200)).body).toEqual({
         total: 0,
         pendingAssignment: 0,
+        unpaidFees: 0,
         recent: [],
       });
       for (let i = 0; i < 7; i++)
