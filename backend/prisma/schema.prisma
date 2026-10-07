@@ -304,6 +304,7 @@ model User {
   verifiedLawyers        LawyerProfile[]           @relation("LawyerVerifier")
   sessionParticipation   CourtSessionParticipant[]
   initializedSessions    CourtSession[]
+  issuedCertificates     InternCertificate[]
   createdCauseLists      CauseList[]
   caseEvents             CaseEvent[]
   blockedHosts           BlockedHost[]
@@ -354,6 +355,7 @@ model InternProfile {
   diary          InternDiaryEntry[]
   attendance     Attendance[]
   serverProfiles ProcessServerProfile[]
+  certificate    InternCertificate?
 
   @@index([supervisorId])
 }
@@ -807,6 +809,32 @@ model InternDiaryEntry {
 
   @@index([internId, createdAt])
   @@index([caseId])
+}
+
+/// FR: intern completion certificate (UC: Download Completion Certificate). One per intern; the values are frozen
+/// at issue time and sealed with HMAC-SHA256, so the PDF can be regenerated and verified at any time.
+model InternCertificate {
+  id              String   @id @default(uuid())
+  /// CERT-<YYYY>-<6 digits>
+  certificateNo   String   @unique
+  internId        String   @unique
+  lawyerProfileId String
+  issuedById      String
+  internName      String
+  lawyerName      String
+  chamberName     String
+  chamberCode     String
+  periodFrom      DateTime @db.Date
+  periodTo        DateTime @db.Date
+  approvedLogs    Int
+  attendanceDays  Int
+  issuedAt        DateTime @default(now())
+  seal            String
+
+  intern   InternProfile @relation(fields: [internId], references: [id])
+  issuedBy User          @relation(fields: [issuedById], references: [id])
+
+  @@index([lawyerProfileId])
 }
 
 /// FR: geo-fenced attendance (UC: Mark Attendance)

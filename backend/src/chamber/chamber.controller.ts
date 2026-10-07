@@ -18,6 +18,7 @@ import { RequestMeta } from '../admin/constants';
 import { Roles } from '../common/decorators';
 import { PageQueryDto } from '../common/pagination';
 import { ParseIdPipe } from '../common/parse-id.pipe';
+import { CertificateService } from './certificate.service';
 import { ChamberInternsService } from './chamber-interns.service';
 import {
   BillableQueryDto,
@@ -53,6 +54,7 @@ export class ChamberController {
   constructor(
     private readonly chamber: ChamberService,
     private readonly interns: ChamberInternsService,
+    private readonly certificates: CertificateService,
   ) {}
 
   @Get('profile')
@@ -200,6 +202,35 @@ export class ChamberController {
     return this.interns.setStatus(c, id, dto, meta(req));
   }
 
+  /** Completion certificate: eligibility (at least one approved research log) and the issued certificate. */
+  @Get('interns/:id/certificate')
+  certificate(@CurrentChamber() c: ChamberContext, @Param('id', ParseIdPipe) id: string) {
+    return this.certificates.forLawyer(c, id);
+  }
+
+  @Post('interns/:id/certificate')
+  issueCertificate(
+    @CurrentChamber() c: ChamberContext,
+    @Param('id', ParseIdPipe) id: string,
+    @Req() req: Request,
+  ) {
+    return this.certificates.issue(c, id, meta(req));
+  }
+
+  @Get('interns/:id/certificate/pdf')
+  async certificatePdf(@CurrentChamber() c: ChamberContext, @Param('id', ParseIdPipe) id: string) {
+    return this.certificates.download(await this.certificates.lawyerCertificate(c, id));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('interns/:id/certificate/verify')
+  async verifyCertificate(
+    @CurrentChamber() c: ChamberContext,
+    @Param('id', ParseIdPipe) id: string,
+  ) {
+    return this.certificates.verify(await this.certificates.lawyerCertificate(c, id));
+  }
+
   @Get('research-logs')
   logs(@CurrentChamber() c: ChamberContext, @Query() q: ResearchLogQueryDto) {
     return this.interns.listLogs(c, q);
@@ -224,7 +255,26 @@ export class ChamberController {
 @UseGuards(InternGuard)
 @Controller('intern')
 export class InternController {
-  constructor(private readonly intern: InternService) {}
+  constructor(
+    private readonly intern: InternService,
+    private readonly certificates: CertificateService,
+  ) {}
+
+  @Get('certificate')
+  certificate(@CurrentIntern() i: InternContext) {
+    return this.certificates.forIntern(i);
+  }
+
+  @Get('certificate/pdf')
+  async certificatePdf(@CurrentIntern() i: InternContext) {
+    return this.certificates.download(await this.certificates.internCertificate(i));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('certificate/verify')
+  async verifyCertificate(@CurrentIntern() i: InternContext) {
+    return this.certificates.verify(await this.certificates.internCertificate(i));
+  }
 
   @Get('summary')
   summary(@CurrentIntern() i: InternContext) {

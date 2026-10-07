@@ -12,6 +12,7 @@ import { TrimOrUndefined } from '../common/validators';
 import { Prisma } from '../generated/prisma/client';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { DecideCaseDto, HearingOutcomeDto, JudgeDecisionsService } from './judge-decisions.service';
+import { JudgeOrdersQueryDto, JudgeOrdersService } from './judge-orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export class JudgeCasesQueryDto extends PageQueryDto {
@@ -83,7 +84,14 @@ export class JudgeController {
     private readonly judge: JudgeService,
     private readonly caseService: CasesService,
     private readonly decisions: JudgeDecisionsService,
+    private readonly orders: JudgeOrdersService,
   ) {}
+
+  /** Orders and decisions recorded on the judge's own cases (hearing outcomes and final decisions). */
+  @Get('orders')
+  listOrders(@CurrentUser() user: AuthUser, @Query() q: JudgeOrdersQueryDto) {
+    return this.orders.list(user, q);
+  }
 
   /** Record the outcome of a hearing dated today or earlier. */
   @Post('hearings/:id/outcome')
@@ -129,6 +137,6 @@ export class JudgeController {
 @Module({
   imports: [CasesModule, SchedulingModule],
   controllers: [JudgeController],
-  providers: [JudgeService, JudgeDecisionsService],
+  providers: [JudgeService, JudgeDecisionsService, JudgeOrdersService],
 })
 export class JudgeModule {}
