@@ -175,6 +175,9 @@ My design where the report is silent or I added to it.
 12. **Console.** The process server console is a mobile-first web console (Duty Roster and Profile with a bottom navigation, 44 px or larger touch targets, signature canvas with pointer events, camera capture input, live GPS accuracy). The roster is sorted overdue first, then urgent before normal, then due date, then sector. The "Open in Maps" link is a plain Google Maps search link built from the address (no API key). The admin "Add staff account" dialog requires badge number, precinct court and sector for the process server role.
 13. **Seed.** Three process servers (the existing dev account keeps working) with badge numbers, both courts as precincts and fictional Multan sectors; 8 summons on allocated sample cases (one unassigned, three assigned with one overdue and one urgent, one attempt-in-progress with two attempts, two executed with valid seals, one cancelled), with generated tiny PNG photo and signature stored through the encryption service.
 
+## Phase 4D note (added 07-10-2026)
+There was no separate Phase 4D session. The process server work planned for it was delivered in Phase 4C as a mobile-first web console (`/process-server`: duty roster, attempts with GPS, finalize with photo, signature and HMAC seal, profile). The native React Native (Expo) app is deferred; it will use the same `/server/*` API with a Bearer token.
+
 ## Phase 4E decisions: judge decisions, audit vault, security alerts, reports (08-10-2026)
 My design where the report is silent or I added to it.
 
@@ -259,7 +262,35 @@ Target: Neon (PostgreSQL), Render (API), Vercel (web app), an S3-compatible buck
 10. **Not verified against real services.** The S3 driver, the Vercel rewrite and the Render build were written for those services but not run against them in this session; the smoke-test checklist in `docs/DEPLOYMENT.md` covers them on the first deploy, including large uploads through the rewrite.
 
 ### Next
-- The React Native (Expo) process server app, and the first real deploy following `docs/DEPLOYMENT.md`.
+- Phase 5B (below), then the React Native (Expo) process server app and the first real deploy.
+
+## Phase 5B decisions: pre-deployment fixes and finished stubs (07-10-2026)
+
+**Time zone**
+1. **Pakistan time everywhere it matters, independent of the machine.** New `backend/src/common/pk-time.ts` (and `frontend/src/lib/pk-time.ts`) compute "today", minutes since midnight, HH:mm and DD-MM-YYYY in Asia/Karachi with `Intl`, and build slot instants as `<date>T<HH:mm>:00+05:00` (Pakistan has no daylight saving). Switched to it: today's date for scheduling, cause lists, judge outcomes and filing dates (`todayUtc()` now returns the Pakistan date), the "slot has passed" check, the virtual courtroom window and its messages, challan due and overdue dates, the card expiry check, the settings "upcoming hearings" check, the Proof of Service PDF times and the seed (demo dates and the Phase 4F slot choice). The frontend's `todayIso`, `slotPassed`, `formatDate`, `formatDateTime` and the courtroom HH:mm also use Pakistan time, so a browser in another zone shows the same dates. Unchanged on purpose: analytics day buckets and report month ranges stay UTC (logged in Phase 3A and 4E) and do not depend on the machine zone either.
+2. **TZ=Asia/Karachi** is set in `render.yaml` and `backend/.env.example`. The API logs a clear warning at startup when `TZ` is not Asia/Karachi instead of refusing to start, because the hearing logic no longer depends on it; TZ only covers local-time formatting inside libraries.
+
+**Rules**
+3. **Anti-clash per slot, not per day (deliberate deviation).** The report says a lawyer or judge must never be double-booked "on the same day". The code keeps the rule from Phase 3B: a judge, a courtroom or a lawyer cannot be in two hearings in the same slot, and several hearings per day are allowed, because a judge hears many cases in one court day and a lawyer appears in several courtrooms.
+
+**Judge**
+4. **Orders page** (`/judge/orders`, `GET /judge/orders?search&outcome&page&limit`): hearing outcomes (completed or adjourned, from `Hearing.outcomeAt`) and final decisions (judgment, dismissed, disposed of, from `Case.decidedAt`) on cases allocated to the logged-in judge, newest first. Columns: UCN (link to the read-only case page), parties, hearing date and time (for a decision, the last non-cancelled hearing), outcome, order text, recorded time. Search covers UCN, title and party names; the outcome filter covers all five values. Both sources are merged and paged in memory (at most 1,000 rows each, far above one judge's record).
+5. **Dashboard**: "Today's cause list" lists the judge's hearings today (Pakistan date) in slot order with status, a Virtual badge and "Join Remote Hearing Video Room", which is enabled only while the room is open and otherwise shows the lobby or opening-time message. "Recent orders" shows the last five orders and decisions with a link to the Orders page.
+
+**Intern completion certificate**
+6. **Rules** (the brief only says "completion certificate"): the supervising lawyer issues it from the intern's page once the intern has at least one APPROVED research log (otherwise "A certificate can be issued once the intern has at least one approved research log."). One certificate per intern; a second attempt gets 409. Issuing sets `InternProfile.certificateIssuedAt`, writes an audit entry (`CHAMBER_INTERN_CERTIFICATE_ISSUED`) and notifies the intern in-app (`CERTIFICATE_ISSUED`, links to the Certificate page).
+7. **Model** `InternCertificate` (migration `20261010090000_intern_certificate`): number `CERT-<YYYY>-<6 digits>` from the shared atomic counter (Pakistan year), intern and lawyer names, chamber name and code, period (first to last approved log by entry date), approved log count, attendance days (every logged attendance day), issue time and seal. The values are frozen at issue time, so later edits cannot change an issued certificate.
+8. **Seal and PDF.** HMAC-SHA256 over a canonical JSON of all frozen fields with a domain prefix (`intern-certificate:v1`), keyed with the existing `REPORT_SEAL_SECRET` (no new secret; the prefix keeps it distinct from report seals). The PDF (pdfkit, A4 landscape, green frame with a thin gold rule, the same diagonal "DigitalAdaalat - Verified CERT-..." watermark and footer with the seal start as the sealed reports) is generated on demand from the stored record, so nothing is written to storage. "Verify seal" recomputes the seal and answers valid or tampered.
+9. **Access.** Lawyer: `GET/POST /chamber/interns/:id/certificate`, `GET .../certificate/pdf`, `POST .../certificate/verify`. Intern: `GET /intern/certificate`, `GET /intern/certificate/pdf`, `POST /intern/certificate/verify`. Only the issuing lawyer (through the chamber guard and the stored lawyer profile) and the intern can reach a certificate; everyone else gets 404. Verification is therefore not public; a public verify page would be a later addition.
+
+**Cleanup**
+10. The unused "use the mobile app" `ProcessServerPage` was removed; `/process-server` already opens the web console, and the portal map now redirects a process server's dashboard there.
+
+**Not verified**
+11. The new pages (Orders, judge dashboard panels, certificate issue, download and verify) were built and type-checked but not opened in a browser in this session, and no tests were run (by instruction).
+
+### Next
+- The React Native (Expo) process server app and the first real deploy following `docs/DEPLOYMENT.md`.
 
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).

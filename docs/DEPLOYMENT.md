@@ -44,11 +44,13 @@ Keep the bucket private: files are only served through the API, which checks per
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | from step 2 |
 | `JAAS_APP_ID`, `JAAS_KID`, `JAAS_PRIVATE_KEY` | optional; leave empty to use public Jitsi |
 
-   Already set by the Blueprint: `NODE_VERSION=22`, `NODE_ENV=production`, `TRUST_PROXY=2`, `STORAGE_DRIVER=s3`, `JWT_EXPIRES_IN`, `COOKIE_NAME`. Render sets `PORT` itself.
+   Already set by the Blueprint: `NODE_VERSION=22`, `NODE_ENV=production`, `TZ=Asia/Karachi`, `TRUST_PROXY=2`, `STORAGE_DRIVER=s3`, `JWT_EXPIRES_IN`, `COOKIE_NAME`. Render sets `PORT` itself.
 3. First deploy: the build runs `npm ci --include=dev && npm run build:deploy` (compile, then `prisma migrate deploy`), the start command is `npm run start:prod` (`node dist/main`). If a variable is missing the service stops at startup with a message naming it (never its value).
 4. Check `https://digitaladaalat-api.onrender.com/api/health` answers `{"status":"ok","database":"up",...}`. If Render gave the service a different URL, note it for step 4.
 
 The free plan sleeps after 15 minutes without traffic; the first request then takes about a minute. Open the site a few minutes before the defense.
+
+**Time zone.** Render servers run in UTC. Hearing slots, "today", the virtual courtroom window and dates in PDFs are always computed in Pakistan time by the code (`common/pk-time.ts`), and `TZ=Asia/Karachi` keeps any other local-time formatting in Pakistan time too. If the log shows "TZ is not Asia/Karachi" at startup, add the variable. Dates shown to users stay DD-MM-YYYY.
 
 ## 4. Vercel (web app)
 
@@ -86,6 +88,7 @@ It prints the demo account names only; every account's password is `DEMO_PASSWOR
 - [ ] Upload an evidence file and download it (decrypts from the bucket).
 - [ ] Export a performance report (PDF) and download it again from the history; "Verify" says valid.
 - [ ] Open a summons execution proof photo from the admin registry.
-- [ ] Bench Scheduling board loads; Virtual Courtroom Control lists today's demo session.
+- [ ] Bench Scheduling board loads with today's Pakistan date; Virtual Courtroom Control lists today's demo session.
+- [ ] Judge dashboard shows today's hearings and recent orders; an intern certificate PDF downloads and "Verify seal" says valid.
 - [ ] Security Alerts: a refused admin route by a test litigant records the real client IP (not a Vercel or Render address). If not, adjust `TRUST_PROXY` before anyone blocks a host.
 - [ ] Log out and confirm protected pages redirect to the login page.

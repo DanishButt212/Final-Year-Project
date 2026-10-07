@@ -158,6 +158,16 @@ Hearings get a "Virtual hearing" checkbox in the Schedule hearing dialog. The ro
 
 **Environment variables (optional): `JAAS_APP_ID`, `JAAS_KID`, `JAAS_PRIVATE_KEY`.** With all three set (the private key as base64 of the PEM file from the 8x8 JaaS console), rooms run on `8x8.vc` and the API signs a 10-minute RS256 token per participant (moderator for the admin and the case's judge), so the moderation commands work. Without them the app starts normally and uses public `meet.jit.si` with an unguessable room name; moderation buttons are disabled and public Jitsi limits embedded meetings. `.env.example` only holds placeholders; never commit real keys.
 
+**Judge orders, intern certificate and Pakistan time (Phase 5B).**
+
+| Area | Routes |
+|---|---|
+| Judge | `GET /judge/orders?search&outcome&page&limit` (hearing orders and final decisions on the judge's own cases) |
+| Lawyer | `GET /chamber/interns/:id/certificate`, `POST /chamber/interns/:id/certificate` (needs one approved research log; once per intern), `GET .../certificate/pdf`, `POST .../certificate/verify` |
+| Intern | `GET /intern/certificate`, `GET /intern/certificate/pdf`, `POST /intern/certificate/verify` |
+
+Certificates are numbered `CERT-YYYY-000001`, sealed with HMAC-SHA256 (keyed with `REPORT_SEAL_SECRET`) and rendered as a PDF on demand. Hearing slots, "today" and the virtual courtroom window are always computed in Pakistan time; set `TZ=Asia/Karachi` (in `.env.example` and `render.yaml`) so library formatting matches, otherwise the API logs a warning at startup. Project status: `docs/PROJECT_STATUS.md`.
+
 **Run the backend from the build if the watcher is unreliable** (`npm run build`, then `node dist/main`): `npm run start:dev` deletes `dist` while it recompiles, and a login attempt in that moment shows "Cannot reach the server".
 
 ### 3. Frontend (http://localhost:5173)
