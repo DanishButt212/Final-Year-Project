@@ -28,6 +28,7 @@ import {
   NotebookPen,
   Shuffle,
   ScrollText,
+  Video,
   ShieldAlert,
   UserCircle,
 } from 'lucide-react';
@@ -363,6 +364,12 @@ export const PORTALS: Record<Role, Portal> = {
         label: 'Bench Scheduling',
         icon: CalendarClock,
         description: 'Master board, anti-clash checks and cause lists.',
+      },
+      {
+        slug: 'virtual-courtroom',
+        label: 'Virtual Courtroom Control',
+        icon: Video,
+        description: 'Live virtual hearing sessions and room participants.',
       },
     ],
   },

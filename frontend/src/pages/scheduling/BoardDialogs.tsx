@@ -81,6 +81,7 @@ export function ScheduleHearingDialog({
   const [date, setDate] = useState(initial.date);
   const [slot, setSlot] = useState(initial.slot ?? board.slots[0]?.slot ?? 1);
   const [purpose, setPurpose] = useState('');
+  const [isVirtual, setIsVirtual] = useState(false);
   const [serverError, setServerError] = useState<{ text: string; conflicts: Conflict[] } | null>(
     null,
   );
@@ -115,6 +116,7 @@ export function ScheduleHearingDialog({
         date,
         slot,
         purpose: purpose.trim() || undefined,
+        isVirtual,
       }),
     onSuccess: async (res) => {
       toast.success(res.message);
@@ -230,6 +232,21 @@ export function ScheduleHearingDialog({
               />
             )}
           </Field>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 size-4 accent-primary"
+              checked={isVirtual}
+              onChange={(e) => setIsVirtual(e.target.checked)}
+            />
+            <span>
+              <span className="font-semibold">Virtual hearing</span>
+              <span className="block text-text-muted">
+                Held in the virtual courtroom. The parties get a join link once the Admin Bench
+                opens the session.
+              </span>
+            </span>
+          </label>
 
           <div aria-live="polite" className="space-y-2">
             {ready && check.isPending && (

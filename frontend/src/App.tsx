@@ -8,6 +8,11 @@ import SummonsRegistryPage from '@/pages/admin/SummonsRegistryPage';
 import AuditVaultPage from '@/pages/admin/AuditVaultPage';
 import PerformancePage from '@/pages/admin/PerformancePage';
 import SecurityAlertsPage from '@/pages/admin/SecurityAlertsPage';
+import {
+  VirtualCourtroomControlPage,
+  VirtualCourtroomListPage,
+} from '@/pages/admin/VirtualCourtroomPages';
+import RoomPage from '@/pages/virtual/RoomPage';
 import { ServerShell } from '@/pages/server/ServerShell';
 import { RosterPage, ServerProfilePage, SummonsPage } from '@/pages/server/ServerPages';
 import { AttemptPage, FinalizePage } from '@/pages/server/ProgressPages';
@@ -69,6 +74,7 @@ export default function App() {
       </Route>
 
       <Route element={<RequireAuth />}>
+        <Route path="courtroom/:hearingId" element={<RoomPage />} />
         <Route element={<RequireRole role="PROCESS_SERVER" />}>
           <Route element={<ServerShell />}>
             <Route path="process-server" element={<RosterPage />} />
@@ -98,6 +104,11 @@ export default function App() {
             <Route path="admin/audit-logs" element={<AuditVaultPage />} />
             <Route path="admin/security" element={<SecurityAlertsPage />} />
             <Route path="admin/reports" element={<PerformancePage />} />
+            <Route path="admin/virtual-courtroom" element={<VirtualCourtroomListPage />} />
+            <Route
+              path="admin/virtual-courtroom/:sessionId"
+              element={<VirtualCourtroomControlPage />}
+            />
           </Route>
           <Route element={<RequireRole role="LAWYER" />}>
             <Route element={<ChamberGate />}>

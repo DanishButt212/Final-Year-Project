@@ -35,6 +35,7 @@ import {
   type HearingView,
 } from '@/lib/scheduling-api';
 import { cn } from '@/lib/utils';
+import { JoinRoomButton, VirtualBadge } from '@/pages/virtual/JoinRoomButton';
 
 const STATUS: Record<
   HearingStatus,
@@ -140,8 +141,14 @@ export function HearingSchedulePage() {
                         </Link>
                         <span className="block">{h.title}</span>
                       </TableCell>
-                      <TableCell>
-                        <HearingStatusBadge status={h.status} />
+                      <TableCell className="space-y-2">
+                        <div className="flex flex-wrap gap-1">
+                          <HearingStatusBadge status={h.status} />
+                          {h.isVirtual && <VirtualBadge />}
+                        </div>
+                        {h.isVirtual && when === 'upcoming' && h.status === 'SCHEDULED' && (
+                          <JoinRoomButton hearingId={h.id} />
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -273,10 +280,14 @@ export function CauseListsPage() {
                               <TableCell className="min-w-48">
                                 <span className="case-number block font-medium">{e.ucn}</span>
                                 {e.title}
-                                {e.isMine && (
-                                  <Badge variant="accent" className="mt-1">
-                                    Your case
-                                  </Badge>
+                                <span className="mt-1 flex flex-wrap gap-1">
+                                  {e.isMine && <Badge variant="accent">Your case</Badge>}
+                                  {e.isVirtual && <VirtualBadge />}
+                                </span>
+                                {e.isMine && e.isVirtual && e.status === 'SCHEDULED' && (
+                                  <div className="mt-2">
+                                    <JoinRoomButton hearingId={e.hearingId} />
+                                  </div>
                                 )}
                               </TableCell>
                               <TableCell>{e.judge}</TableCell>
@@ -375,7 +386,15 @@ export function JudgeSchedulePage() {
                           <span className="block font-semibold">{h.title}</span>
                           <span className="block text-sm text-text-muted">{h.courtroom?.name}</span>
                         </span>
-                        <HearingStatusBadge status={h.status} />
+                        <span className="flex flex-col items-end gap-2">
+                          <span className="flex flex-wrap gap-1">
+                            <HearingStatusBadge status={h.status} />
+                            {h.isVirtual && <VirtualBadge />}
+                          </span>
+                          {h.isVirtual && h.status === 'SCHEDULED' && d >= todayIso() && (
+                            <JoinRoomButton hearingId={h.id} />
+                          )}
+                        </span>
                       </li>
                     ))}
                   </ul>
