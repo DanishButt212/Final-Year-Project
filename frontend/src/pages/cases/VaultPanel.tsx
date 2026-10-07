@@ -1,3 +1,4 @@
+import { vaultKey } from '@/lib/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Copy,
@@ -46,7 +47,6 @@ export const LOCKED_TOOLTIP = 'Action Denied: Document is locked by order of the
 export const EXHIBIT_ADDED = 'Digital Exhibit Log Added Successfully.';
 const MIN_DESC = 10;
 const MAX_DESC = 500;
-export const vaultKey = (caseId: string) => ['vault', caseId];
 
 const categoryLabel = (c: EvidenceCategory | null) =>
   EVIDENCE_CATEGORIES.find((x) => x.value === c)?.label ?? '—';

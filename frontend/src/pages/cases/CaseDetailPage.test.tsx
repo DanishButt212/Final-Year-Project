@@ -2,7 +2,9 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CaseDetailPage from './CaseDetailPage';
-import { casesApi, type CaseDetail } from '@/lib/cases-api';
+import { type CaseDetail } from '@/lib/cases-api';
+import { evidenceApi } from '@/lib/phase4-api';
+import { toast } from '@/components/ui/toaster';
 import { makeAuth, mockApi, renderPage, sampleUser } from '@/test/utils';
 
 vi.mock('@/components/ui/toaster', () => ({
@@ -126,26 +128,52 @@ describe('CaseDetailPage', () => {
     expect(screen.getByText('District & Sessions Court Multan, Multan')).toBeInTheDocument();
   });
 
-  it('Documents tab lists files with name, size, date and a download button', async () => {
-    const user = userEvent.setup();
-    restore = mockApi(() => ({ data: detail() }));
-    const download = vi.spyOn(casesApi, 'download').mockResolvedValue(undefined);
-    render();
-    await user.click(await screen.findByRole('tab', { name: /documents/i }));
+  // Since Phase 4A the Documents tab is the Evidence Vault: pleadings (PDF, locked) plus exhibits.
+  const vault = () => ({
+    caseId: 'c1',
+    canUpload: true,
+    uploadBlockedReason: null,
+    pleadings: [
+      {
+        id: 'd1',
+        kind: 'PLEADING',
+        name: 'Petition.pdf',
+        category: null,
+        description: null,
+        sizeBytes: 2048,
+        sha256: 'a'.repeat(64),
+        uploadedBy: 'Ayesha Siddiqui',
+        uploadedAt: '2026-10-03T08:00:00.000Z',
+        locked: true,
+        lockReason: null,
+        canEdit: false,
+      },
+    ],
+    exhibits: [],
+  });
+  const routes = (req: { method: string; url: string }, override?: ReturnType<typeof detail>) =>
+    req.url.endsWith('/vault')
+      ? { data: vault() }
+      : req.url.startsWith('/fees') || req.url.includes('/challan') || req.url.includes('/summons')
+        ? { status: 404, data: { statusCode: 404, code: 'NOT_FOUND', message: 'Not found' } }
+        : { data: override ?? detail() };
 
-    const table = screen.getByRole('table', { name: 'Documents' });
-    expect(within(table).getByText('Petition.pdf')).toBeInTheDocument();
+  it('Evidence Vault tab lists pleadings with name, size, date and a download button', async () => {
+    const user = userEvent.setup();
+    restore = mockApi((req) => routes(req));
+    const download = vi.spyOn(evidenceApi, 'downloadPleading').mockResolvedValue(undefined);
+    render();
+    await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
+
+    const table = await screen.findByRole('table', { name: 'Pleadings' });
+    expect(within(table).getByText(/Petition\.pdf/)).toBeInTheDocument();
     expect(within(table).getByText('2 KB')).toBeInTheDocument();
     expect(within(table).getByText('03-10-2026')).toBeInTheDocument();
-    expect(screen.getByText(/locked to this case number/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete petition/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Download Petition.pdf' }));
     await waitFor(() =>
-      expect(download).toHaveBeenCalledWith(
-        'c1',
-        expect.objectContaining({ id: 'd1', name: 'Petition.pdf' }),
-      ),
+      expect(download).toHaveBeenCalledWith('c1', expect.objectContaining({ id: 'd1' })),
     );
   });
 
@@ -154,13 +182,13 @@ describe('CaseDetailPage', () => {
     const mock = mockApi((req) =>
       req.method === 'post'
         ? { status: 201, data: { message: 'Legal document attached successfully.', attached: 1 } }
-        : { data: detail() },
+        : routes(req),
     );
     restore = mock;
     render();
-    await user.click(await screen.findByRole('tab', { name: /documents/i }));
+    await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
 
-    const attach = screen.getByRole('button', { name: /attach document/i });
+    const attach = await screen.findByRole('button', { name: /attach document/i });
     expect(attach).toBeDisabled();
     fireEvent.change(screen.getByTestId('pdf-input'), {
       target: { files: [new File(['%PDF-1.4'], 'Statement.pdf', { type: 'application/pdf' })] },
@@ -168,7 +196,9 @@ describe('CaseDetailPage', () => {
     expect(await screen.findByText('Statement.pdf')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /attach document/i }));
 
-    expect(await screen.findByText('Legal document attached successfully.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Legal document attached successfully.'),
+    );
     const post = mock.calls.find((c) => c.method === 'post');
     expect(post?.url).toBe('/cases/c1/documents');
     expect((post?.data as FormData).getAll('files')).toHaveLength(1);
@@ -176,11 +206,11 @@ describe('CaseDetailPage', () => {
 
   it('rejects a non-PDF in the upload box with the exact message and does not call the API', async () => {
     const user = userEvent.setup();
-    const mock = mockApi(() => ({ data: detail() }));
+    const mock = mockApi((req) => routes(req));
     restore = mock;
     render();
-    await user.click(await screen.findByRole('tab', { name: /documents/i }));
-    fireEvent.change(screen.getByTestId('pdf-input'), {
+    await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
+    fireEvent.change(await screen.findByTestId('pdf-input'), {
       target: { files: [new File(['x'], 'virus.exe', { type: 'application/octet-stream' })] },
     });
     expect(
@@ -190,13 +220,14 @@ describe('CaseDetailPage', () => {
     expect(mock.calls.filter((c) => c.method === 'post')).toHaveLength(0);
   });
 
-  it('disables uploads on a closed case', async () => {
+  it('offers no pleading upload on a closed case', async () => {
     const user = userEvent.setup();
-    restore = mockApi(() => ({ data: detail({ status: 'DECIDED' }) }));
+    restore = mockApi((req) => routes(req, detail({ status: 'DECIDED' })));
     render();
-    await user.click(await screen.findByRole('tab', { name: /documents/i }));
-    expect(screen.getByText('Documents cannot be attached to a closed case.')).toBeInTheDocument();
-    expect(screen.queryByTestId('pdf-input')).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
+    await screen.findByRole('table', { name: 'Pleadings' });
+    expect(screen.queryByText('Attach more pleadings')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /attach document/i })).not.toBeInTheDocument();
   });
 
   it('Lifecycle tab shows a chronological timeline with DD-MM-YYYY HH:mm', async () => {

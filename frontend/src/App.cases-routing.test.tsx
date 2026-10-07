@@ -95,10 +95,11 @@ describe('case filing routes and sidebar', () => {
     expect(await screen.findByText(/403: you do not have access/i)).toBeInTheDocument();
   });
 
-  it("keeps the judge's own /judge/cases page (Case Status, later phase) instead of the case-filing page", async () => {
+  it("keeps the judge's own /judge/cases page (My Allocated Cases) instead of the case-filing page", async () => {
     renderApp('/judge/cases', 'JUDGE');
-    expect(await screen.findByText('Coming in a later phase')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 1, name: 'Case Status' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'My Allocated Cases' }),
+    ).toBeInTheDocument();
   });
 
   it('gives judges no case-filing pages', async () => {

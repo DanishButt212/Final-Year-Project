@@ -34,7 +34,8 @@ import { parseApiError } from '@/lib/api';
 import { adminApi, type BarCheckResult, type LawyerItem } from '@/lib/admin-api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { VerificationStatus } from '@/lib/types';
-import { fullName, UserStatusBadge, VerificationBadge } from './shared';
+import { fullName } from './admin-helpers';
+import { UserStatusBadge, VerificationBadge } from './shared';
 
 const PAGE_SIZE = 10;
 const REJECT_REASON_REQUIRED = 'Please enter a reason for rejection.';

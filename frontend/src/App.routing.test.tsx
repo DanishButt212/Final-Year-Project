@@ -43,12 +43,12 @@ function renderApp(route: string, role?: Role) {
 const HOME: Record<Role, { path: string; heading: RegExp; portal: string }> = {
   LITIGANT: { path: '/litigant', heading: /welcome, ayesha siddiqui/i, portal: 'Litigant Portal' },
   LAWYER: { path: '/lawyer', heading: /welcome, ayesha siddiqui/i, portal: 'Lawyer Chamber' },
-  INTERN: { path: '/intern', heading: /welcome, ayesha siddiqui/i, portal: 'Legal Intern Portal' },
+  INTERN: { path: '/intern', heading: /^dashboard$/i, portal: 'Legal Intern Portal' },
   JUDGE: { path: '/judge', heading: /welcome, ayesha siddiqui/i, portal: 'Judge Portal' },
   ADMIN: { path: '/admin', heading: /welcome, ayesha siddiqui/i, portal: 'Administration' },
   PROCESS_SERVER: {
     path: '/process-server',
-    heading: /^process server$/i,
+    heading: /my duty roster/i,
     portal: 'Process Server',
   },
 };
@@ -62,14 +62,20 @@ describe('role-based routing', () => {
       expect(
         await screen.findByRole('heading', { level: 1, name: expected.heading }),
       ).toBeInTheDocument();
-      expect(screen.getAllByText(expected.portal).length).toBeGreaterThan(0);
-      expect(screen.getByRole('navigation', { name: /portal navigation/i })).toBeInTheDocument();
+      // The process server console is a mobile shell with a bottom bar instead of the portal sidebar.
+      if (role !== 'PROCESS_SERVER') {
+        expect(screen.getAllByText(expected.portal).length).toBeGreaterThan(0);
+        expect(screen.getByRole('navigation', { name: /portal navigation/i })).toBeInTheDocument();
+      }
     },
   );
 
-  it('shows the admin user table (empty state) only on the admin dashboard', async () => {
+  it('shows the operations and analytics board on the admin dashboard', async () => {
     renderApp('/admin', 'ADMIN');
-    expect(await screen.findByText('No users found')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /welcome, ayesha siddiqui/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Operations & Analytics').length).toBeGreaterThan(0);
   });
 
   it.each([
@@ -87,12 +93,12 @@ describe('role-based routing', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /log in/i })).toBeInTheDocument();
   });
 
-  it('shows a clear "coming in a later phase" page for sidebar items', async () => {
+  it('opens real pages for sidebar items (no "coming later" pages are left)', async () => {
     renderApp('/litigant/hearings', 'LITIGANT');
-    expect(await screen.findByText('Coming in a later phase')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Hearings & Cause List' }),
+      await screen.findByRole('heading', { level: 1, name: 'Hearing Schedule' }),
     ).toBeInTheDocument();
+    expect(screen.queryByText('Coming in a later phase')).not.toBeInTheDocument();
   });
 
   it('shows the 404 page for unknown routes, for guests and signed-in users', async () => {

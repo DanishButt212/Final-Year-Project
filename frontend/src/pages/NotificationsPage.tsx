@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { Bell, CheckCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/auth/useAuth';
-import { NOTIFICATIONS_KEY } from '@/components/layout/NotificationBell';
+import { NOTIFICATIONS_KEY } from '@/lib/query-keys';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

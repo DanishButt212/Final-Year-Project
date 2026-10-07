@@ -63,7 +63,8 @@ import { formatDate } from '@/lib/format';
 import { ROLE_LABEL } from '@/lib/navigation';
 import { CNIC_REGEX, MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import type { Role, UserStatus } from '@/lib/types';
-import { fullName, USER_STATUS_LABEL, UserStatusBadge, VerificationBadge } from './shared';
+import { fullName, USER_STATUS_LABEL } from './admin-helpers';
+import { UserStatusBadge, VerificationBadge } from './shared';
 
 const PAGE_SIZE = 10;
 const STAFF_ROLES: CreateStaffPayload['role'][] = ['JUDGE', 'INTERN', 'PROCESS_SERVER', 'ADMIN'];

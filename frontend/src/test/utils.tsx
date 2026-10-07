@@ -82,8 +82,11 @@ export function mockApi(handler: (req: MockRequest) => MockResponse | Promise<Mo
       data: config.data,
       params: config.params,
     };
-    calls.push(req);
-    const res = await handler(req);
+    // Public settings are read by every filing gate; answer them here so tests only see their own calls.
+    const res =
+      req.method === 'get' && req.url === '/settings/public'
+        ? { data: { maxAttachmentMb: 25, caseRegistrationOpen: true } }
+        : (calls.push(req), await handler(req));
     const status = res.status ?? 200;
     const response = {
       data: res.data,

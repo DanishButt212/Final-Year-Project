@@ -76,6 +76,7 @@ function show(kind: Kind, message: string) {
   });
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- the imperative toast API lives next to its store
 export const toast = {
   success: (message: string) => show('success', message),
   error: (message: string) => show('error', message),

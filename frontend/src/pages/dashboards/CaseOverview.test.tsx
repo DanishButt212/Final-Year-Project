@@ -21,7 +21,17 @@ const recent = (n: number) =>
   }));
 
 const render = (role: 'LITIGANT' | 'LAWYER' = 'LITIGANT') =>
-  renderPage(<CaseOverview />, { auth: makeAuth({ user: sampleUser({ role }) }) });
+  renderPage(<CaseOverview />, {
+    auth: makeAuth({
+      user: sampleUser({
+        role,
+        // Only verified lawyers may file (Phase 3A).
+        ...(role === 'LAWYER'
+          ? { lawyerProfile: { barNumber: 'LH-1234', verificationStatus: 'VERIFIED' as const } }
+          : {}),
+      }),
+    }),
+  });
 
 describe('CaseOverview (dashboard)', () => {
   it('shows real totals, the recent cases and a clear New Case Submission button', async () => {

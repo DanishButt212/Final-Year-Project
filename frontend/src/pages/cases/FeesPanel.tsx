@@ -24,7 +24,7 @@ import { PORTALS, portalPath } from '@/lib/navigation';
 import { feesApi, type Challan } from '@/lib/phase4-api';
 import { cn } from '@/lib/utils';
 
-export const challanKey = (caseId: string) => ['fees', 'challan', caseId];
+const challanKey = (caseId: string) => ['fees', 'challan', caseId];
 
 export function ChallanStatusBadge({ challan }: { challan: Pick<Challan, 'status' | 'overdue'> }) {
   if (challan.status === 'PAID') return <Badge variant="decided">Paid</Badge>;

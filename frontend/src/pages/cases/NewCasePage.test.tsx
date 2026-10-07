@@ -11,7 +11,12 @@ vi.mock('@/components/ui/toaster', () => ({
 
 const litigant = makeAuth({ user: sampleUser({ role: 'LITIGANT' }) });
 const lawyer = makeAuth({
-  user: sampleUser({ role: 'LAWYER', firstName: 'Hamza', lastName: 'Bukhari' }),
+  user: sampleUser({
+    role: 'LAWYER',
+    firstName: 'Hamza',
+    lastName: 'Bukhari',
+    lawyerProfile: { barNumber: 'LH-1234', verificationStatus: 'VERIFIED' },
+  }),
 });
 const RELIEF = 'Recovery of PKR 500,000 under the sale agreement dated 01-01-2026.';
 

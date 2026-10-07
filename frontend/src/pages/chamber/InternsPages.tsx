@@ -43,7 +43,7 @@ import { CNIC_REGEX, MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { todayInput } from './helpers';
 
-export const LOG_STATUS: Record<
+const LOG_STATUS: Record<
   LogStatus,
   { variant: 'pending' | 'decided' | 'rejected'; label: string }
 > = {

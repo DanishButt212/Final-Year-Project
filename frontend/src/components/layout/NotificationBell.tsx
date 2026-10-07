@@ -1,3 +1,4 @@
+import { NOTIFICATIONS_KEY } from '@/lib/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -31,7 +32,6 @@ function NotificationRow({
   );
 }
 
-export const NOTIFICATIONS_KEY = ['notifications'];
 const POLL_MS = 60_000;
 
 /** Header bell: unread badge, latest notifications, mark as read. Polls every 60 seconds. */

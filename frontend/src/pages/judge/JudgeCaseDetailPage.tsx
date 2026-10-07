@@ -23,7 +23,8 @@ import { NotFoundPage } from '@/pages/ErrorPages';
 import { DecisionBlock } from '@/pages/cases/DecisionBlock';
 import SummonsPanel from '@/pages/cases/SummonsPanel';
 import { DecideDialog, OutcomeDialog } from './JudgeActions';
-import VaultPanel, { vaultKey } from '@/pages/cases/VaultPanel';
+import { vaultKey } from '@/lib/query-keys';
+import VaultPanel from '@/pages/cases/VaultPanel';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (

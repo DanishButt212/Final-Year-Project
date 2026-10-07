@@ -11,13 +11,6 @@ const USER_STATUS: Record<
   DEACTIVATED: { variant: 'neutral', label: 'Deleted' },
 };
 
-export const USER_STATUS_LABEL: Record<UserStatus, string> = {
-  ACTIVE: 'Active',
-  SUSPENDED: 'Suspended',
-  BLOCKED: 'Access revoked',
-  DEACTIVATED: 'Deleted',
-};
-
 export function UserStatusBadge({ status }: { status: UserStatus }) {
   const { variant, label } = USER_STATUS[status];
   return <Badge variant={variant}>{label}</Badge>;
@@ -37,5 +30,3 @@ export function VerificationBadge({ status }: { status: VerificationStatus }) {
   return <Badge variant={variant}>{label}</Badge>;
 }
 
-export const fullName = (p: { firstName: string; lastName: string }) =>
-  `${p.firstName} ${p.lastName}`;
