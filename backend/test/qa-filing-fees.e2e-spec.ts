@@ -12,7 +12,6 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
   let w: World;
   let litigant: Api;
   let litigant2: Api;
-  let lawyer: Api;
   let admin: Api;
   let judge: Api;
 
@@ -22,7 +21,6 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
     w = await buildWorld(ctx.prisma);
     litigant = await login(ctx, w.emails.litigant);
     litigant2 = await login(ctx, w.emails.litigant2);
-    lawyer = await login(ctx, w.emails.lawyer);
     admin = await login(ctx, w.emails.admin);
     judge = await login(ctx, w.emails.judge);
   });
