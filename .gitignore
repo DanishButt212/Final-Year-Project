@@ -64,3 +64,8 @@ backend/src/generated/
 
 # Private keys (JaaS and others)
 *.pem
+
+# Playwright output (screenshots, traces, reports)
+frontend/e2e/artifacts/
+frontend/test-results/
+frontend/playwright-report/

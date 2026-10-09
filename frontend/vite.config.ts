@@ -7,11 +7,16 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   // Same-origin /api in development, like the Vercel rewrite in production.
-  server: { proxy: { '/api': { target: 'http://localhost:4000', changeOrigin: false } } },
+  server: {
+    proxy: {
+      '/api': { target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,
+    exclude: ['e2e/**', 'node_modules/**'],
   },
 });
