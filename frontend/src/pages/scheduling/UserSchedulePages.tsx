@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { parseApiError } from '@/lib/api';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import {
@@ -86,84 +86,91 @@ export function HearingSchedulePage() {
           <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
           <TabsTrigger value="past">Past</TabsTrigger>
         </TabsList>
+        {(['upcoming', 'past'] as const).map((tab) => (
+          // Both panels exist (only the active one is shown), so each tab controls a real panel.
+          <TabsContent key={tab} value={tab} forceMount className="pt-0">
+            {when === tab && (
+              <div className="mt-5">
+                {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+                {isPending ? (
+                  <TableSkeleton rows={5} cols={6} />
+                ) : data && data.data.length === 0 ? (
+                  <Card>
+                    <EmptyState
+                      icon={CalendarX2}
+                      title={
+                        when === 'upcoming'
+                          ? 'No upcoming hearings have been scheduled for your cases yet.'
+                          : 'No past hearings.'
+                      }
+                      description="You will be notified as soon as a hearing is fixed or changed."
+                    />
+                  </Card>
+                ) : (
+                  data && (
+                    <>
+                      <Table aria-label={`${when} hearings`}>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Courtroom</TableHead>
+                            <TableHead>Bench</TableHead>
+                            <TableHead>Case</TableHead>
+                            <TableHead>Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data.data.map((h) => (
+                            <TableRow key={h.id}>
+                              <TableCell className="whitespace-nowrap font-medium">
+                                {isoToDdMmYyyy(h.date)}
+                                <span className="block text-sm font-normal text-text-muted">
+                                  {h.weekday}
+                                </span>
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap font-mono">
+                                {h.startTime}
+                                {h.endTime && `–${h.endTime}`}
+                              </TableCell>
+                              <TableCell>{h.courtroom?.name ?? '—'}</TableCell>
+                              <TableCell>{h.judge.name}</TableCell>
+                              <TableCell className="min-w-48">
+                                <Link
+                                  to={portalPath(portal, `cases/${h.caseId}`)}
+                                  className="case-number font-medium"
+                                >
+                                  {h.ucn}
+                                </Link>
+                                <span className="block">{h.title}</span>
+                              </TableCell>
+                              <TableCell className="space-y-2">
+                                <div className="flex flex-wrap gap-1">
+                                  <HearingStatusBadge status={h.status} />
+                                  {h.isVirtual && <VirtualBadge />}
+                                </div>
+                                {h.isVirtual && when === 'upcoming' && h.status === 'SCHEDULED' && (
+                                  <JoinRoomButton hearingId={h.id} />
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <Pagination
+                        page={data.meta.page}
+                        totalPages={data.meta.totalPages}
+                        total={data.meta.total}
+                        onPageChange={setPage}
+                      />
+                    </>
+                  )
+                )}
+              </div>
+            )}
+          </TabsContent>
+        ))}
       </Tabs>
-      <div className="mt-5">
-        {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
-        {isPending ? (
-          <TableSkeleton rows={5} cols={6} />
-        ) : data && data.data.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={CalendarX2}
-              title={
-                when === 'upcoming'
-                  ? 'No upcoming hearings have been scheduled for your cases yet.'
-                  : 'No past hearings.'
-              }
-              description="You will be notified as soon as a hearing is fixed or changed."
-            />
-          </Card>
-        ) : (
-          data && (
-            <>
-              <Table aria-label={`${when} hearings`}>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Courtroom</TableHead>
-                    <TableHead>Bench</TableHead>
-                    <TableHead>Case</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.data.map((h) => (
-                    <TableRow key={h.id}>
-                      <TableCell className="whitespace-nowrap font-medium">
-                        {isoToDdMmYyyy(h.date)}
-                        <span className="block text-sm font-normal text-text-muted">
-                          {h.weekday}
-                        </span>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap font-mono">
-                        {h.startTime}
-                        {h.endTime && `–${h.endTime}`}
-                      </TableCell>
-                      <TableCell>{h.courtroom?.name ?? '—'}</TableCell>
-                      <TableCell>{h.judge.name}</TableCell>
-                      <TableCell className="min-w-48">
-                        <Link
-                          to={portalPath(portal, `cases/${h.caseId}`)}
-                          className="case-number font-medium"
-                        >
-                          {h.ucn}
-                        </Link>
-                        <span className="block">{h.title}</span>
-                      </TableCell>
-                      <TableCell className="space-y-2">
-                        <div className="flex flex-wrap gap-1">
-                          <HearingStatusBadge status={h.status} />
-                          {h.isVirtual && <VirtualBadge />}
-                        </div>
-                        {h.isVirtual && when === 'upcoming' && h.status === 'SCHEDULED' && (
-                          <JoinRoomButton hearingId={h.id} />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              <Pagination
-                page={data.meta.page}
-                totalPages={data.meta.totalPages}
-                total={data.meta.total}
-                onPageChange={setPage}
-              />
-            </>
-          )
-        )}
-      </div>
     </>
   );
 }

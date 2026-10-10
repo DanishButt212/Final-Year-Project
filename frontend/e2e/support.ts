@@ -34,18 +34,14 @@ export const password = () => {
 export async function login(page: Page, who: keyof typeof ACCOUNTS) {
   await page.goto('/login');
   await page.getByLabel('Email or username').fill(ACCOUNTS[who]);
-  await page.getByLabel('Password', { exact: true }).fill(password());
+  await page.getByLabel(/^Password/).first().fill(password());
   await page.getByRole('button', { name: 'Log in', exact: true }).click();
   await page.waitForURL((u) => u.pathname.startsWith(PORTAL[who]), { timeout: 20_000 });
 }
 
 export async function logout(page: Page) {
-  const menu = page.getByRole('button', { name: 'Account menu' });
-  if (await menu.isVisible()) {
-    await menu.click();
-    await page.getByRole('menuitem', { name: /log out/i }).click();
-  }
-  await page.waitForURL(/\/login|\/$/);
+  await page.getByRole('button', { name: 'Log out' }).click();
+  await page.waitForURL(/\/login/);
 }
 
 /** Collects uncaught errors and console errors for the whole test. */

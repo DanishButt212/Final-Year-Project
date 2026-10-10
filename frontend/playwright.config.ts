@@ -27,6 +27,8 @@ export default defineConfig({
     channel: process.env.PW_CHANNEL ?? 'chrome',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     timezoneId: 'Asia/Karachi',
     locale: 'en-GB',
   },

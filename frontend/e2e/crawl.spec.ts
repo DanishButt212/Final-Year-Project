@@ -114,8 +114,8 @@ test('logged-out deep links redirect to the login page', async ({ page }) => {
 
 test('logout ends the session', async ({ page }) => {
   await login(page, 'LITIGANT');
-  await page.getByRole('button', { name: 'Account menu' }).click();
-  await page.getByRole('menuitem', { name: /log out/i }).click();
+  await page.getByRole('button', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(/\/login/);
   await page.goto('/litigant/cases');
   await expect(page).toHaveURL(/\/login/);
 });

@@ -25,8 +25,8 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
 
   return (
     <header className="no-print bg-primary text-on-primary">
-      <div className="flex min-h-14 items-center justify-between gap-3 px-4">
-        <div className="flex items-center gap-2">
+      <div className="flex min-h-14 items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-1 sm:gap-2">
           <button
             type="button"
             onClick={onMenuClick}
@@ -40,7 +40,7 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
           <Logo to={user ? roleHome(user.role) : '/'} />
         </div>
         {user && (
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -80,10 +80,10 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex min-h-10 items-center gap-2 rounded-md border border-white/60 px-3 text-sm font-semibold hover:bg-primary-hover focus-visible:outline-white"
+              className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-md border border-white/60 px-2 text-sm font-semibold hover:bg-primary-hover focus-visible:outline-white sm:px-3"
             >
               <LogOut className="size-4" aria-hidden="true" />
-              <span>Log out</span>
+              <span className="sr-only sm:not-sr-only">Log out</span>
             </button>
           </div>
         )}
