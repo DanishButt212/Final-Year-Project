@@ -93,6 +93,22 @@ export class EvidenceService {
     return { case: c, isFiler, isParty: party, canUpload: party };
   }
 
+  /** Who may add exhibits: a party of an allocated, undecided case. Also run by EvidenceUploadGuard. */
+  async assertCanUpload(user: AuthUser, caseId: string) {
+    const a = await this.access(user, caseId);
+    if (!a.canUpload) throw this.forbidden();
+    if (a.case.status === 'DECIDED') {
+      throw new ConflictException({
+        code: 'CASE_DECIDED',
+        message: 'This case has been decided. No new exhibits can be added.',
+      });
+    }
+    if (a.case.judgeId === null) {
+      throw new ConflictException({ code: 'NOT_ALLOCATED', message: NOT_ALLOCATED_MESSAGE });
+    }
+    return a;
+  }
+
   private forbidden() {
     return new ForbiddenException({ code: 'FORBIDDEN', message: Messages.FORBIDDEN });
   }
@@ -176,17 +192,7 @@ export class EvidenceService {
     files: Express.Multer.File[],
     meta: RequestMeta,
   ) {
-    const a = await this.access(user, caseId);
-    if (!a.canUpload) throw this.forbidden();
-    if (a.case.status === 'DECIDED') {
-      throw new ConflictException({
-        code: 'CASE_DECIDED',
-        message: 'This case has been decided. No new exhibits can be added.',
-      });
-    }
-    if (a.case.judgeId === null) {
-      throw new ConflictException({ code: 'NOT_ALLOCATED', message: NOT_ALLOCATED_MESSAGE });
-    }
+    const a = await this.assertCanUpload(user, caseId);
     const dto = await this.parseBody(body);
     if (!files || files.length === 0) {
       throw new BadRequestException({

@@ -644,6 +644,8 @@ export class SchedulingService {
         courtId,
         status: { in: SCHEDULABLE },
         judgeId: { not: null },
+        // A case that already has an upcoming hearing is not schedulable again (auto-generate would skip it).
+        hearings: { none: { status: 'SCHEDULED', date: { gte: todayUtc() } } },
         ...(search
           ? {
               OR: [

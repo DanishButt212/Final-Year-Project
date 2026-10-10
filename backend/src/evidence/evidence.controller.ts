@@ -10,6 +10,7 @@ import {
   Post,
   Req,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
@@ -19,6 +20,7 @@ import { RequestMeta } from '../admin/constants';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { ParseIdPipe } from '../common/parse-id.pipe';
 import { LockEvidenceDto } from './evidence.dto';
+import { EvidenceUploadGuard } from './evidence-upload.guard';
 import { EvidenceUploadInterceptor } from './evidence-upload.interceptor';
 import { EvidenceService } from './evidence.service';
 
@@ -42,6 +44,7 @@ export class EvidenceController {
 
   /** "Submit Exhibit Entry to Vault": multipart with `files`, `category` and `description`. */
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @UseGuards(EvidenceUploadGuard)
   @UseInterceptors(EvidenceUploadInterceptor)
   @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)

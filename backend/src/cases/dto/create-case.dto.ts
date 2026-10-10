@@ -17,7 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { CNIC_MESSAGE, CNIC_REGEX, PHONE_MESSAGE, PHONE_REGEX } from '../../common/patterns';
-import { Trim, TrimOrUndefined } from '../../common/validators';
+import { Trim, TrimOrUndefined, NoHtml } from '../../common/validators';
 import { CaseStatus, CaseType } from '../../generated/prisma/client';
 
 export class PartyDto {
@@ -25,6 +25,7 @@ export class PartyDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(120)
+  @NoHtml()
   name: string;
 
   /** Optional. Format 12345-1234567-1. */
@@ -37,6 +38,7 @@ export class PartyDto {
   @IsOptional()
   @IsString()
   @MaxLength(300)
+  @NoHtml()
   address?: string;
 
   /** Optional. Format +92 3XX XXXXXXX. */

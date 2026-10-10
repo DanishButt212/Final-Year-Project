@@ -11,6 +11,7 @@ import { AuditAction, AuditService } from '../audit/audit.service';
 import { hashToken } from '../auth/auth.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
+import { assertPhoneFree } from '../common/phone-check';
 import { pageMeta } from '../common/pagination';
 import { Prisma, UserStatus } from '../generated/prisma/client';
 import { MockMailerService } from '../integrations/mock-mailer.service';
@@ -84,6 +85,7 @@ export class AdminUsersService {
 
   /** Creates INTERN, PROCESS_SERVER, JUDGE or ADMIN accounts. No password is ever chosen by the admin. */
   async provision(actor: AuthUser, dto: CreateStaffDto, meta: RequestMeta) {
+    await assertPhoneFree(this.prisma, dto.phone);
     let courtId: string | null = null;
     let courtroomId: string | null = null;
     let serverCourtId: string | null = null;

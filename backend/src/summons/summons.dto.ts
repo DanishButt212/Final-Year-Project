@@ -14,7 +14,7 @@ import {
 } from 'class-validator';
 import { PageQueryDto } from '../common/pagination';
 import { CNIC_MESSAGE, CNIC_REGEX, PHONE_MESSAGE, PHONE_REGEX } from '../common/patterns';
-import { Trim, TrimOrUndefined } from '../common/validators';
+import { Trim, TrimOrUndefined, NoHtml } from '../common/validators';
 import { NoticeType, SummonsPriority, SummonsStatus } from '../generated/prisma/client';
 
 export const TELEMETRY_ERROR =
@@ -31,6 +31,7 @@ export class IssueSummonsDto {
   @IsNotEmpty({ message: 'Enter the recipient name.' })
   @IsString()
   @MaxLength(120)
+  @NoHtml()
   recipientName: string;
 
   @TrimOrUndefined()
@@ -42,6 +43,7 @@ export class IssueSummonsDto {
   @IsNotEmpty({ message: 'Enter the service address.' })
   @MinLength(10, { message: 'Enter the full service address (at least 10 characters).' })
   @MaxLength(300)
+  @NoHtml()
   serviceAddress: string;
 
   @Trim()

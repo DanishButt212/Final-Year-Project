@@ -14,6 +14,7 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { Messages } from '../common/messages';
+import { assertPhoneFree } from '../common/phone-check';
 import { Prisma } from '../generated/prisma/client';
 import { MockMailerService } from '../integrations/mock-mailer.service';
 import { MockNadraService } from '../integrations/nadra/mock-nadra.service';
@@ -63,6 +64,7 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
+    await assertPhoneFree(this.prisma, dto.phone);
     const barNumber = dto.role === 'LAWYER' && dto.barNumber ? dto.barNumber : undefined;
     const duplicate = await this.prisma.user.findFirst({
       where: { OR: [{ cnic: dto.cnic }, { email: dto.email }] },
@@ -201,7 +203,12 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date(), failedLoginCount: 0, failedLoginWindowAt: null, lockedUntil: null },
+      data: {
+        lastLoginAt: new Date(),
+        failedLoginCount: 0,
+        failedLoginWindowAt: null,
+        lockedUntil: null,
+      },
     });
     await this.audit.log({
       action: AuditAction.LOGIN_SUCCESS,
@@ -213,7 +220,12 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
     });
 
     // jti lets logout revoke this one token; ims (issued-at in ms) is compared with sessionsInvalidatedAt.
-    const token = await this.jwt.signAsync({ sub: user.id, role: user.role, jti: randomUUID(), ims: Date.now() });
+    const token = await this.jwt.signAsync({
+      sub: user.id,
+      role: user.role,
+      jti: randomUUID(),
+      ims: Date.now(),
+    });
     return {
       message: dto.chamberCode ? Messages.CHAMBER_LOGIN_SUCCESS : Messages.LOGIN_SUCCESS,
       user: toPublicUser(user),
@@ -236,14 +248,22 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       select: { failedLoginCount: true, failedLoginWindowAt: true },
     });
     const windowOpen =
-      u.failedLoginWindowAt && now.getTime() - u.failedLoginWindowAt.getTime() < LOCK_WINDOW_MINUTES * 60_000;
+      u.failedLoginWindowAt &&
+      now.getTime() - u.failedLoginWindowAt.getTime() < LOCK_WINDOW_MINUTES * 60_000;
     const count = windowOpen ? u.failedLoginCount + 1 : 1;
     const lock = count >= LOCK_THRESHOLD;
     await this.prisma.user.update({
       where: { id: userId },
       data: lock
-        ? { failedLoginCount: 0, failedLoginWindowAt: null, lockedUntil: new Date(now.getTime() + LOCK_MINUTES * 60_000) }
-        : { failedLoginCount: count, failedLoginWindowAt: windowOpen ? u.failedLoginWindowAt : now },
+        ? {
+            failedLoginCount: 0,
+            failedLoginWindowAt: null,
+            lockedUntil: new Date(now.getTime() + LOCK_MINUTES * 60_000),
+          }
+        : {
+            failedLoginCount: count,
+            failedLoginWindowAt: windowOpen ? u.failedLoginWindowAt : now,
+          },
     });
     if (lock) {
       await this.audit.log({

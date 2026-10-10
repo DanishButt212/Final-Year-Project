@@ -467,6 +467,7 @@ model Case {
   @@index([courtId, status])
   @@index([caseType, status])
   @@index([filingDate])
+  @@index([decidedAt])
 }
 
 /// FR: parties and their counsel on a case (UC: File Case); lawyerId drives lawyer anti-clash checks
@@ -593,6 +594,7 @@ model Hearing {
   // One judge / one courtroom per date and slot is enforced by PARTIAL unique indexes that ignore
   // CANCELLED hearings (hand-written SQL in migration hearing_scheduling; Prisma cannot express them).
   @@index([judgeId, date, timeSlot])
+  @@index([outcomeAt])
   @@index([caseId])
   @@index([date, status])
   @@index([courtroomId, date])
@@ -1067,6 +1069,7 @@ model AuditLog {
   userAgent String?
   createdAt DateTime @default(now())
 
+  @@index([createdAt])
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([entity, entityId])

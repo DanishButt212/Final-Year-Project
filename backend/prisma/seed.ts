@@ -35,7 +35,9 @@ config({ path: process.env.DOTENV_CONFIG_PATH || '.env', quiet: true });
 const DEMO = process.argv.includes('--demo');
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD?.trim() || undefined;
 if (DEMO && !DEMO_PASSWORD) {
-  console.error('seed:demo needs DEMO_PASSWORD (8 to 72 characters with upper and lower case and a digit).');
+  console.error(
+    'seed:demo needs DEMO_PASSWORD (8 to 72 characters with upper and lower case and a digit).',
+  );
   process.exit(1);
 }
 if (DEMO_PASSWORD && !PASSWORD_REGEX.test(DEMO_PASSWORD)) {
@@ -2832,6 +2834,94 @@ Two lawyers are intentionally PENDING verification: "Faisal Kharal" (bar number 
   return file;
 }
 
+/**
+ * Final pass so the demo data obeys the business rules (QA-031):
+ *  - a case allocated to a judge always has a PAID challan with a successful payment (allocation needs one);
+ *  - every intern diary entry is linked to a case of the intern's supervising lawyer.
+ */
+async function seedConsistency() {
+  const rate = async (key: string, fallback: string) =>
+    (await prisma.systemSetting.findUnique({ where: { key } }))?.value ?? fallback;
+  const percent = await rate('ad_valorem_percent', '1');
+  const cap = await rate('ad_valorem_cap_pkr', '50000');
+  const modifier = await rate('filing_fee_rate_modifier', '0');
+
+  const allocated = await prisma.case.findMany({
+    where: { judgeId: { not: null }, challans: { none: { status: 'PAID' } } },
+    include: { challans: { where: { status: 'UNPAID' } } },
+  });
+  for (const c of allocated) {
+    const fee = await prisma.feeStructure.findFirst({
+      where: { caseType: c.caseType, isActive: true },
+      orderBy: { effectiveFrom: 'desc' },
+    });
+    const inputs = {
+      caseType: c.caseType,
+      baseFee: fee?.amount.toString() ?? '0',
+      claimAmountPkr: c.claimAmountPkr?.toString() ?? null,
+      adValoremPercent: percent,
+      adValoremCapPkr: cap,
+      rateModifierPercent: modifier,
+    };
+    const { lines, total } = calculateLedger(inputs);
+    const paidAt = c.allocatedAt ? new Date(c.allocatedAt.getTime() - 86_400_000) : utcDate(-20);
+    await prisma.$transaction(async (tx) => {
+      const challan = c.challans[0]
+        ? await tx.challan.update({
+            where: { id: c.challans[0].id },
+            data: {
+              status: 'PAID',
+              amount: total,
+              ledger: lines as never,
+              inputHash: feeInputHash(inputs),
+            },
+          })
+        : await tx.challan.create({
+            data: {
+              challanNo: await nextChallanNo(tx),
+              caseId: c.id,
+              payerId: c.filedById,
+              amount: total,
+              status: 'PAID',
+              dueDate: paidAt,
+              ledger: lines as never,
+              inputHash: feeInputHash(inputs),
+            },
+          });
+      await tx.payment.create({
+        data: {
+          challanId: challan.id,
+          payerId: c.filedById,
+          amount: total,
+          method: 'MOCK_CARD',
+          status: 'SUCCESS',
+          gatewayRef: `MOCK-SEED-${challan.challanNo.slice(-6)}`,
+          receiptNo: await nextReceiptNo(tx),
+          cardBrand: 'VISA',
+          cardLast4: '4242',
+          paidAt,
+        },
+      });
+    });
+  }
+
+  const loose = await prisma.internDiaryEntry.findMany({
+    where: { caseId: null },
+    include: { intern: { select: { supervisorId: true } } },
+  });
+  for (const e of loose) {
+    const c = await prisma.case.findFirst({
+      where: { parties: { some: { lawyerId: e.intern.supervisorId } } },
+      orderBy: { filingDate: 'asc' },
+      select: { id: true },
+    });
+    if (c) await prisma.internDiaryEntry.update({ where: { id: e.id }, data: { caseId: c.id } });
+  }
+  console.log(
+    `Consistency: ${allocated.length} allocated case(s) given a paid challan, ${loose.length} diary entr(ies) linked to a case.`,
+  );
+}
+
 /** seed:demo refuses to run on a database that already holds accounts it did not create. */
 async function assertDemoDatabase() {
   const foreign = await prisma.user.count({
@@ -2858,12 +2948,15 @@ async function main() {
   await seedPhase4C(ids);
   await seedPhase4E(ids, lawyerProfileIds);
   await seedPhase4F(ids, reference.courtrooms);
+  await seedConsistency();
   if (DEMO_PASSWORD) {
     console.log('\nSeed complete. Demo accounts (password: the DEMO_PASSWORD you set):');
     for (const { user } of credentials.filter((c) => c.user.dev)) {
       console.log(`  ${user.role.padEnd(15)} ${user.username ?? user.email}`);
     }
-    console.log(`  ...and ${credentials.length - credentials.filter((c) => c.user.dev).length} sample accounts.`);
+    console.log(
+      `  ...and ${credentials.length - credentials.filter((c) => c.user.dev).length} sample accounts.`,
+    );
     return;
   }
   const file = writeAccountsFile(credentials);

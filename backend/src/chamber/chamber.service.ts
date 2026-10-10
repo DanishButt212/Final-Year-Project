@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { RequestMeta } from '../admin/constants';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { nextSequence } from '../common/counters';
@@ -614,6 +620,14 @@ export class ChamberService {
   // ------------------------------------------------------------ expenses
 
   async createExpense(ctx: ChamberContext, dto: CreateExpenseDto, meta: RequestMeta) {
+    // An expense is something already spent: no dates after today (Pakistan time).
+    if (dto.spentOn.slice(0, 10) > karachiDate()) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: Messages.INVALID_FIELDS,
+        details: [{ field: 'spentOn', messages: ['The expense date cannot be in the future.'] }],
+      });
+    }
     const row = await this.prisma.$transaction(async (tx) => {
       const e = await tx.chamberExpense.create({
         data: {

@@ -1,10 +1,21 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ApiBearerAuth, ApiCookieAuth, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { CookieOptions, Request, Response } from 'express';
 import { AuthUser, CurrentUser, Public } from '../common/decorators';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt.guard';
 import { parseDurationMs } from '../common/utils/duration';
 import { AuthService, RequestMeta } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -118,6 +129,17 @@ export class AuthController {
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
     return this.auth.resetPassword(dto, meta(req));
+  }
+
+  /**
+   * Session check for the web app: 200 with the user, or 200 with { user: null } when nobody is signed in
+   * (so public pages do not log a 401). Protected code keeps using GET /auth/me.
+   */
+  @Public()
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get('session')
+  async session(@Req() req: Request & { user?: AuthUser }) {
+    return req.user ? this.auth.me(req.user.id) : { user: null };
   }
 
   /** The currently logged-in user. */

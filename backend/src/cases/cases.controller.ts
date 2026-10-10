@@ -9,6 +9,7 @@ import {
   Query,
   Req,
   UploadedFiles,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
@@ -18,6 +19,7 @@ import { AuthUser, CurrentUser, Roles } from '../common/decorators';
 import { ParseIdPipe } from '../common/parse-id.pipe';
 import { CasesService, RequestMeta } from './cases.service';
 import { ListCasesQueryDto } from './dto/create-case.dto';
+import { FilingGateGuard } from './filing-gate.guard';
 import { PdfUploadInterceptor } from './pdf-upload.interceptor';
 
 /** Uploads are limited per client (UPLOAD_THROTTLE_LIMIT per minute, default 20). */
@@ -50,6 +52,7 @@ export class CasesController {
 
   /** UC-2.1 / UC-2.2: submit a new case with 0..10 PDF pleadings. Generates the UCN. */
   @Throttle(uploadThrottle())
+  @UseGuards(FilingGateGuard)
   @UseInterceptors(PdfUploadInterceptor)
   @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: multipartSchema })

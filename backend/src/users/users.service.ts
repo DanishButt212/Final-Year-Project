@@ -1,3 +1,4 @@
+import { assertPhoneFree } from '../common/phone-check';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
@@ -29,7 +30,10 @@ export class UsersService {
     meta: { ip?: string; userAgent?: string },
   ) {
     const data: Prisma.UserUpdateInput = {};
-    if (dto.phone !== undefined) data.phone = dto.phone;
+    if (dto.phone !== undefined) {
+      await assertPhoneFree(this.prisma, dto.phone, actor.id);
+      data.phone = dto.phone;
+    }
     if (dto.profileImage !== undefined) data.profileImage = dto.profileImage;
     if (Object.keys(data).length === 0) {
       throw new BadRequestException({

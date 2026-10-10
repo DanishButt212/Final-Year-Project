@@ -6,6 +6,7 @@ import { RequestMeta } from '../admin/constants';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { hashToken } from '../auth/auth.service';
 import { Messages } from '../common/messages';
+import { assertPhoneFree } from '../common/phone-check';
 import { pageMeta } from '../common/pagination';
 import { Prisma } from '../generated/prisma/client';
 import { MockMailerService } from '../integrations/mock-mailer.service';
@@ -134,6 +135,7 @@ export class ChamberInternsService {
   }
 
   async create(ctx: ChamberContext, dto: CreateInternDto, meta: RequestMeta) {
+    await assertPhoneFree(this.prisma, dto.phone);
     const duplicate = await this.prisma.user.findFirst({
       where: { OR: [{ cnic: dto.cnic }, { email: dto.email }] },
       select: { id: true },
@@ -208,7 +210,10 @@ export class ChamberInternsService {
     }
     const to = dto.action === 'deactivate' ? 'SUSPENDED' : 'ACTIVE';
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: intern.user.id }, data: { status: to, ...(to !== 'ACTIVE' ? { sessionsInvalidatedAt: new Date() } : {}) } });
+      await tx.user.update({
+        where: { id: intern.user.id },
+        data: { status: to, ...(to !== 'ACTIVE' ? { sessionsInvalidatedAt: new Date() } : {}) },
+      });
       await this.audit.logWithin(tx, {
         action: AuditAction.INTERN_STATUS_CHANGED,
         actorId: ctx.userId,

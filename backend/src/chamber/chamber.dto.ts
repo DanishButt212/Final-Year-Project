@@ -23,7 +23,7 @@ import {
 } from 'class-validator';
 import { PageQueryDto } from '../common/pagination';
 import { CNIC_MESSAGE, CNIC_REGEX, PHONE_MESSAGE, PHONE_REGEX } from '../common/patterns';
-import { Trim, TrimLower, TrimOrUndefined } from '../common/validators';
+import { Trim, TrimLower, TrimOrUndefined, NoHtml } from '../common/validators';
 
 const trimList = ({ value }: { value: unknown }) =>
   Array.isArray(value)
@@ -55,12 +55,14 @@ export class UpdateChamberProfileDto {
   @IsNotEmpty({ message: 'Enter the chamber name.' })
   @IsString()
   @MaxLength(120)
+  @NoHtml()
   name: string;
 
   @Trim()
   @IsNotEmpty({ message: 'Enter the office physical address.' })
   @IsString()
   @MaxLength(300)
+  @NoHtml()
   officeAddress: string;
 
   @Transform(trimList)
@@ -68,6 +70,7 @@ export class UpdateChamberProfileDto {
   @ArrayMaxSize(10, { message: 'Add at most 10 sub-partners.' })
   @IsString({ each: true })
   @MaxLength(80, { each: true, message: 'Each name can be at most 80 characters.' })
+  @NoHtml({ each: true })
   partnerNames: string[];
 
   @Transform(trimList)
@@ -119,6 +122,7 @@ export class CreateClientDto {
   @IsNotEmpty({ message: 'Enter the client name.' })
   @IsString()
   @MaxLength(120)
+  @NoHtml()
   name: string;
 
   @Trim()
@@ -165,6 +169,7 @@ export class UpdateClientDto {
   @IsOptional()
   @IsString()
   @MaxLength(300)
+  @NoHtml()
   address?: string;
 
   @TrimOrUndefined()
@@ -266,12 +271,14 @@ export class CreateInternDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(50)
+  @NoHtml()
   firstName: string;
 
   @Trim()
   @IsNotEmpty()
   @IsString()
   @MaxLength(50)
+  @NoHtml()
   lastName: string;
 
   @Trim()

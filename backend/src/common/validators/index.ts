@@ -1,5 +1,10 @@
 import { Transform } from 'class-transformer';
-import { registerDecorator, ValidationArguments, ValidationOptions } from 'class-validator';
+import {
+  Matches,
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
+} from 'class-validator';
 
 /** Trims whitespace on string values (non-strings pass through to be rejected by validators). */
 export const Trim = () =>
@@ -35,3 +40,13 @@ export function Match(property: string, options?: ValidationOptions) {
     });
   };
 }
+
+/**
+ * Refuses HTML in names and free text: any "<" or ">" is rejected (React escapes output, but PDFs, exports and
+ * e-mails reuse these values). Arrays: pass { each: true }.
+ */
+export const NoHtml = (options: ValidationOptions = {}) =>
+  Matches(/^[^<>]*$/, {
+    message: 'Remove the < and > characters. HTML is not allowed.',
+    ...options,
+  });

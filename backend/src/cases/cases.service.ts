@@ -169,14 +169,9 @@ export class CasesService {
     files: Express.Multer.File[],
     meta: RequestMeta,
   ) {
-    if (!(await this.settings.caseRegistrationOpen())) {
-      throw new ForbiddenException({
-        code: 'REGISTRATION_CLOSED',
-        message: Messages.CASE_REGISTRATION_CLOSED,
-      });
-    }
+    // Permission first (also enforced by FilingGateGuard before the upload), then input validation.
+    const counselId = await this.assertCanFile(user);
     const dto = await this.parseBody(body);
-    const counselId = await this.counselIdFor(user);
 
     const caseId = randomUUID();
     const prepared = await this.prepareFiles(caseId, files);
@@ -466,6 +461,17 @@ export class CasesService {
   }
 
   /** For lawyers: the LawyerProfile id stored as CaseParty.lawyerId on petitioners. */
+  /** Registration must be open and a lawyer must be verified. Returns the lawyer's profile id (null for litigants). */
+  async assertCanFile(user: AuthUser): Promise<string | null> {
+    if (!(await this.settings.caseRegistrationOpen())) {
+      throw new ForbiddenException({
+        code: 'REGISTRATION_CLOSED',
+        message: Messages.CASE_REGISTRATION_CLOSED,
+      });
+    }
+    return this.counselIdFor(user);
+  }
+
   private async counselIdFor(user: AuthUser): Promise<string | null> {
     if (user.role !== 'LAWYER') return null;
     const profile = await this.prisma.lawyerProfile.findUnique({

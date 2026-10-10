@@ -18,7 +18,7 @@ import {
 } from 'class-validator';
 import { CNIC_MESSAGE, CNIC_REGEX, PHONE_MESSAGE, PHONE_REGEX } from '../../common/patterns';
 import { PageQueryDto } from '../../common/pagination';
-import { Trim, TrimLower, TrimOrUndefined } from '../../common/validators';
+import { Trim, TrimLower, TrimOrUndefined, NoHtml } from '../../common/validators';
 import { CaseStatus, CaseType, Role, UserStatus } from '../../generated/prisma/client';
 
 export const PROVISIONABLE_ROLES = ['INTERN', 'PROCESS_SERVER', 'JUDGE', 'ADMIN'] as const;
@@ -55,12 +55,14 @@ export class CreateStaffDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(50)
+  @NoHtml()
   firstName: string;
 
   @Trim()
   @IsNotEmpty()
   @IsString()
   @MaxLength(50)
+  @NoHtml()
   lastName: string;
 
   @Trim()
@@ -141,6 +143,7 @@ export class CreateCourtroomDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(60)
+  @NoHtml()
   name: string;
 
   @IsOptional()
@@ -160,6 +163,7 @@ export class UpdateCourtroomDto {
   @IsNotEmpty()
   @IsString()
   @MaxLength(60)
+  @NoHtml()
   name?: string;
 
   @IsOptional()

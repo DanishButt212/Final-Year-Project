@@ -21,14 +21,20 @@ async function bootstrap() {
   const config = app.get(ConfigService);
   const cookieName = config.getOrThrow<string>('COOKIE_NAME');
 
-  const swagger = new DocumentBuilder()
-    .setTitle('DigitalAdaalat API')
-    .setDescription('Judicial ERP for the courts of Pakistan. Phase 1: authentication and users.')
-    .setVersion('0.1.0')
-    .addBearerAuth()
-    .addCookieAuth(cookieName)
-    .build();
-  SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swagger));
+  // API docs are public, so production serves them only when ENABLE_SWAGGER=true.
+  const swaggerOn =
+    config.get<string>('NODE_ENV') !== 'production' ||
+    config.get<string>('ENABLE_SWAGGER') === 'true';
+  if (swaggerOn) {
+    const swagger = new DocumentBuilder()
+      .setTitle('DigitalAdaalat API')
+      .setDescription('Judicial ERP for the courts of Pakistan. Phase 1: authentication and users.')
+      .setVersion('0.1.0')
+      .addBearerAuth()
+      .addCookieAuth(cookieName)
+      .build();
+    SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swagger));
+  }
 
   const port = config.getOrThrow<number>('PORT');
   await app.listen(port);

@@ -48,7 +48,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // ims has millisecond precision; older tokens only carry iat (whole seconds), compared in seconds.
     const stale =
       cutoff !== undefined &&
-      (payload.ims !== undefined ? payload.ims < cutoff : (payload.iat ?? 0) < Math.floor(cutoff / 1000));
+      (payload.ims !== undefined
+        ? payload.ims < cutoff
+        : (payload.iat ?? 0) < Math.floor(cutoff / 1000));
     if (stale) {
       throw new UnauthorizedException({
         code: 'SESSION_TERMINATED',
@@ -56,9 +58,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       });
     }
     if (payload.jti) {
-      const revoked = await this.prisma.revokedToken.findUnique({ where: { jti: payload.jti }, select: { jti: true } });
+      const revoked = await this.prisma.revokedToken.findUnique({
+        where: { jti: payload.jti },
+        select: { jti: true },
+      });
       if (revoked) {
-        throw new UnauthorizedException({ code: 'SESSION_REVOKED', message: Messages.SESSION_REVOKED });
+        throw new UnauthorizedException({
+          code: 'SESSION_REVOKED',
+          message: Messages.SESSION_REVOKED,
+        });
       }
     }
     return { id: user.id, role: user.role, email: user.email };

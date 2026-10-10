@@ -16,7 +16,8 @@ import { pkParts } from '../common/pk-time';
 
 /** A PENDING payment session older than this is abandoned (cancelled when the challan is recalculated). */
 export const PAYMENT_SESSION_MINUTES = 30;
-export const AMOUNT_CHANGED_MESSAGE = 'The challan amount has changed. Please start the payment again.';
+export const AMOUNT_CHANGED_MESSAGE =
+  'The challan amount has changed. Please start the payment again.';
 export const PAYMENT_REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request details.';
 
 /** Strict gateway: only the documented test numbers are approved. Everything else is declined. */
@@ -264,7 +265,9 @@ export class PaymentsService {
   async mine(user: AuthUser, q: PageQueryDto, includeFailed = false) {
     const where = {
       payerId: user.id,
-      status: { in: includeFailed ? (['SUCCESS', 'FAILED'] as const).slice() : ['SUCCESS' as const] },
+      status: {
+        in: includeFailed ? (['SUCCESS', 'FAILED'] as const).slice() : ['SUCCESS' as const],
+      },
     };
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.payment.count({ where }),

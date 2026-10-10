@@ -14,6 +14,7 @@ import { dateOnly, karachiDate } from '../chamber/chamber.util';
 import { caseAudience } from '../common/case-access';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
+import { ddmmyyyy } from '../scheduling/slots';
 import { pageMeta } from '../common/pagination';
 import { EvidenceCryptoService } from '../evidence/evidence-crypto.service';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
@@ -188,7 +189,7 @@ export class SummonsAdminService {
           {
             type: 'SUMMONS_ASSIGNED',
             title: 'New summons assigned',
-            body: `${dto.recipientName} (${c.ucn}), due ${due}.`,
+            body: `${dto.recipientName} (${c.ucn}), due ${ddmmyyyy(dateOnly(due))}.`,
           },
           tx,
         );
