@@ -14,10 +14,9 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { RequestMeta } from '../admin/constants';
 import { AuthUser, CurrentUser, Roles } from '../common/decorators';
-import { PageQueryDto } from '../common/pagination';
 import { ParseIdPipe } from '../common/parse-id.pipe';
 import { ChallansService } from './challans.service';
-import { AuthorizeDto, CheckoutDto } from './fees.dto';
+import { AuthorizeDto, CheckoutDto, MyPaymentsQueryDto } from './fees.dto';
 import { PaymentsService } from './payments.service';
 
 const meta = (req: Request): RequestMeta => ({ ip: req.ip, userAgent: req.headers['user-agent'] });
@@ -63,12 +62,8 @@ export class FeesController {
   }
 
   @Get('payments/mine')
-  mine(
-    @CurrentUser() user: AuthUser,
-    @Query() q: PageQueryDto,
-    @Query('includeFailed') includeFailed?: string,
-  ) {
-    return this.payments.mine(user, q, includeFailed === 'true');
+  mine(@CurrentUser() user: AuthUser, @Query() q: MyPaymentsQueryDto) {
+    return this.payments.mine(user, q, q.includeFailed === true);
   }
 
   @Get('payments/:id/receipt')

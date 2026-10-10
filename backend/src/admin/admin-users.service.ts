@@ -286,7 +286,11 @@ export class AdminUsersService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id }, data: { status: next } });
+      // Suspend, block and delete end the account's sessions at once (reactivation keeps the cut-off).
+      await tx.user.update({
+        where: { id },
+        data: { status: next, ...(next !== 'ACTIVE' ? { sessionsInvalidatedAt: new Date() } : {}) },
+      });
       // A suspended, blocked or deleted lawyer suspends the chamber licence; reactivation restores it.
       await tx.processServerProfile.updateMany({
         where: { userId: id },

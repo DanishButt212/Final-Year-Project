@@ -14,6 +14,9 @@ import { AuthorizeDto, CheckoutDto } from './fees.dto';
 import { receiptPdf } from './pdf';
 import { pkParts } from '../common/pk-time';
 
+/** A PENDING payment session older than this is abandoned (cancelled when the challan is recalculated). */
+export const PAYMENT_SESSION_MINUTES = 30;
+export const AMOUNT_CHANGED_MESSAGE = 'The challan amount has changed. Please start the payment again.';
 export const PAYMENT_REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request details.';
 
 /** Strict gateway: only the documented test numbers are approved. Everything else is declined. */
@@ -90,8 +93,16 @@ export class PaymentsService {
       where: { challanId: challan.id, payerId: user.id, status: 'PENDING' },
       orderBy: { createdAt: 'desc' },
     });
+    // A session opened before the challan was recalculated carries the old amount: close it and start a new one.
+    if (pending && !pending.amount.equals(challan.amount)) {
+      await this.prisma.payment.updateMany({
+        where: { id: pending.id, status: 'PENDING' },
+        data: { status: 'CANCELLED', failureReason: 'AMOUNT_CHANGED' },
+      });
+    }
+    const reusable = pending && pending.amount.equals(challan.amount) ? pending : null;
     const payment =
-      pending ??
+      reusable ??
       (await this.prisma.payment.create({
         data: {
           challanId: challan.id,
@@ -150,8 +161,35 @@ export class PaymentsService {
       throw new HttpException({ code: 'PAYMENT_REJECTED', message: PAYMENT_REJECTED_MESSAGE }, 402);
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT 1 AS locked FROM (SELECT pg_advisory_xact_lock(hashtext(${payment.challan.id}))) AS l`;
+      // The challan may have been recalculated after this session started: never settle it at another amount.
+      const current = await tx.challan.findUniqueOrThrow({
+        where: { id: payment.challan.id },
+        select: { amount: true },
+      });
+      if (!current.amount.equals(payment.amount)) {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: { status: 'CANCELLED', failureReason: 'AMOUNT_CHANGED' },
+        });
+        await this.audit.logWithin(tx, {
+          action: AuditAction.PAYMENT_FAILED,
+          actorId: user.id,
+          actorRole: user.role,
+          entity: 'Payment',
+          entityId: payment.id,
+          success: false,
+          metadata: {
+            challanNo: payment.challan.challanNo,
+            reason: 'AMOUNT_CHANGED',
+            sessionAmount: payment.amount.toFixed(2),
+            challanAmount: current.amount.toFixed(2),
+          },
+          ...meta,
+        });
+        return null;
+      }
       // Conditional update: the challan can only go UNPAID -> PAID once.
       const flipped = await tx.challan.updateMany({
         where: { id: payment.challan.id, status: 'UNPAID' },
@@ -217,6 +255,10 @@ export class PaymentsService {
         paidAt,
       };
     });
+    if (!result) {
+      throw new ConflictException({ code: 'AMOUNT_CHANGED', message: AMOUNT_CHANGED_MESSAGE });
+    }
+    return result;
   }
 
   async mine(user: AuthUser, q: PageQueryDto, includeFailed = false) {

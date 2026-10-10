@@ -244,6 +244,19 @@ function NewCaseWizard() {
     setStep((s) => Math.min(4, s + 1));
   }
 
+  /**
+   * The form submits only from step 4. Enter in a field on steps 1-3 behaves like Next (validates the step and
+   * moves on), so the case is never filed before the review step.
+   */
+  function onFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (step < 4) {
+      e.preventDefault();
+      void goNext();
+      return;
+    }
+    void handleSubmit(onValid, onInvalid)(e);
+  }
+
   function goBack() {
     setAttempted(false);
     setFormError(null);
@@ -368,7 +381,7 @@ function NewCaseWizard() {
       {leaveDialog}
       <Stepper steps={STEPS} current={step} />
 
-      <form noValidate onSubmit={handleSubmit(onValid, onInvalid)} className="max-w-3xl space-y-6">
+      <form noValidate onSubmit={onFormSubmit} className="max-w-3xl space-y-6">
         {(formError || (attempted && stepHasErrors)) && (
           <Alert variant="error">{formError ?? caseSummaryFor(errors)}</Alert>
         )}
@@ -542,11 +555,13 @@ function NewCaseWizard() {
             <ArrowLeft aria-hidden="true" /> Back
           </Button>
           {step < 4 ? (
-            <Button type="button" onClick={goNext}>
+            // Different keys: React must not turn the Next element into the submit button during the click
+            // that moves to step 4 (that re-used element would submit the form).
+            <Button key="next" type="button" onClick={goNext}>
               Next <ArrowRight aria-hidden="true" />
             </Button>
           ) : (
-            <Button type="submit" loading={submitting} disabled={submitting}>
+            <Button key="submit" type="submit" loading={submitting} disabled={submitting}>
               <Send aria-hidden="true" /> Submit case
             </Button>
           )}

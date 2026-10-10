@@ -7,6 +7,7 @@ import { Messages } from '../common/messages';
 import { nextChallanNo } from '../common/counters';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { PAYMENT_SESSION_MINUTES } from './payments.service';
 import { SettingsService } from '../settings/settings.service';
 import { calculateLedger, feeInputHash, FeeInputs, LedgerLine } from './fee-calculator';
 import { challanPdf } from './pdf';
@@ -122,6 +123,19 @@ export class ChallansService {
         return { id: existing.id, message: 'Your challan is ready.' };
       }
       if (existing) {
+        // A payment session in progress pins the amount: recalculating now would let the payer settle the
+        // challan at the old amount. Sessions older than PAYMENT_SESSION_MINUTES are abandoned and cancelled.
+        const since = new Date(Date.now() - PAYMENT_SESSION_MINUTES * 60_000);
+        await tx.payment.updateMany({
+          where: { challanId: existing.id, status: 'PENDING', createdAt: { lt: since } },
+          data: { status: 'CANCELLED', failureReason: 'SESSION_EXPIRED' },
+        });
+        const inProgress = await tx.payment.count({
+          where: { challanId: existing.id, status: 'PENDING' },
+        });
+        if (inProgress > 0) {
+          return { id: existing.id, message: 'A payment for this challan is in progress.' };
+        }
         await tx.challan.update({
           where: { id: existing.id },
           data: {

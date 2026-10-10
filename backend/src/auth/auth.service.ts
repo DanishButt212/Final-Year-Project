@@ -255,7 +255,11 @@ export class AuthService {
         message: Messages.RESET_INVALID,
       });
     }
-    await this.prisma.user.update({ where: { id: record.userId }, data: { passwordHash } });
+    // A new password ends every existing session (tokens issued before now are refused by JwtStrategy).
+    await this.prisma.user.update({
+      where: { id: record.userId },
+      data: { passwordHash, sessionsInvalidatedAt: new Date() },
+    });
 
     await this.audit.log({
       action: AuditAction.PASSWORD_RESET_COMPLETED,

@@ -181,7 +181,7 @@ export class AdminLawyersService {
         where: { id },
         data: { verificationStatus: 'REJECTED', rejectionReason: reason, verifiedById: actor.id },
       });
-      await tx.user.update({ where: { id: lawyer.user.id }, data: { status: 'SUSPENDED' } });
+      await tx.user.update({ where: { id: lawyer.user.id }, data: { status: 'SUSPENDED', sessionsInvalidatedAt: new Date() } });
       await this.audit.logWithin(tx, {
         action: AuditAction.LAWYER_REJECTED,
         actorId: actor.id,

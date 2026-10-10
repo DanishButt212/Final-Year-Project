@@ -41,7 +41,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || user.status !== 'ACTIVE') throw new UnauthorizedException(Messages.UNAUTHORIZED);
     // The security engine ended this account's sessions: tokens issued before that moment are rejected.
     const cutoff = user.sessionsInvalidatedAt?.getTime();
-    if (cutoff !== undefined && (payload.iat ?? 0) * 1000 < cutoff) {
+    // iat has whole-second precision: compare in seconds so a login right after the cut-off is not refused.
+    if (cutoff !== undefined && (payload.iat ?? 0) < Math.floor(cutoff / 1000)) {
       throw new UnauthorizedException({
         code: 'SESSION_TERMINATED',
         message: Messages.SESSION_TERMINATED,

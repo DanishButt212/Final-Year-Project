@@ -1,4 +1,6 @@
-import { IsNotEmpty, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { PageQueryDto } from '../common/pagination';
 
 export class CheckoutDto {
   @IsUUID()
@@ -23,4 +25,12 @@ export class AuthorizeDto {
 
   @Matches(/^\d{3,4}$/, { message: 'Enter the 3 or 4 digit security code.' })
   cvv: string;
+}
+
+/** GET /payments/mine: page query plus the "Show failed attempts" toggle ("true"/"false" in the query string). */
+export class MyPaymentsQueryDto extends PageQueryDto {
+  @IsOptional()
+  @Transform(({ value }) => (value === 'true' || value === true ? true : value === 'false' || value === false ? false : value))
+  @IsBoolean({ message: 'includeFailed must be true or false.' })
+  includeFailed?: boolean;
 }

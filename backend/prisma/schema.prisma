@@ -176,6 +176,8 @@ enum PaymentStatus {
   SUCCESS
   FAILED
   REFUNDED
+  /// Session closed without payment (challan amount changed, or abandoned).
+  CANCELLED
 }
 
 enum SummonsStatus {

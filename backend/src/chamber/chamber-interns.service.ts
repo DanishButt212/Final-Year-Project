@@ -208,7 +208,7 @@ export class ChamberInternsService {
     }
     const to = dto.action === 'deactivate' ? 'SUSPENDED' : 'ACTIVE';
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: intern.user.id }, data: { status: to } });
+      await tx.user.update({ where: { id: intern.user.id }, data: { status: to, ...(to !== 'ACTIVE' ? { sessionsInvalidatedAt: new Date() } : {}) } });
       await this.audit.logWithin(tx, {
         action: AuditAction.INTERN_STATUS_CHANGED,
         actorId: ctx.userId,
