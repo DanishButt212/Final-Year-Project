@@ -13,7 +13,18 @@ export interface SealInput {
   notes: string;
   photoSha256: string;
   signatureSha256: string | null;
+  /** Version 2 also binds the proof to the case and to who/where was served. Absent: version 1. */
+  subject?: {
+    caseId: string;
+    ucn: string;
+    recipientName: string;
+    recipientCnic: string | null;
+    serviceAddress: string;
+  };
 }
+
+/** Seal version used for new proofs. */
+export const CURRENT_SEAL_VERSION = 2;
 
 /**
  * Metadata seal of an execution proof: HMAC-SHA256 over a canonical JSON, keyed with SUMMONS_SEAL_SECRET
@@ -34,9 +45,9 @@ export class SealService {
     this.secret = key;
   }
 
-  /** Fixed key order so the same data always gives the same seal. */
-  private canonical(i: SealInput): string {
-    return JSON.stringify({
+  /** Fixed key order so the same data always gives the same seal. Version 1 payload is kept unchanged. */
+  private canonical(i: SealInput, version: number): string {
+    const v1 = {
       summonsId: i.summonsId,
       serverId: i.serverId,
       serviceMode: i.serviceMode,
@@ -47,15 +58,27 @@ export class SealService {
       notes: i.notes,
       photoSha256: i.photoSha256,
       signatureSha256: i.signatureSha256,
+    };
+    if (version === 1) return JSON.stringify(v1);
+    if (!i.subject) throw new Error('A version 2 seal needs the case and recipient details.');
+    return JSON.stringify({
+      v: 2,
+      ...v1,
+      caseId: i.subject.caseId,
+      ucn: i.subject.ucn,
+      recipientName: i.subject.recipientName,
+      recipientCnic: i.subject.recipientCnic,
+      serviceAddress: i.subject.serviceAddress,
     });
   }
 
-  seal(input: SealInput): string {
-    return createHmac('sha256', this.secret).update(this.canonical(input)).digest('hex');
+  /** Seals with version 2 when the case/recipient details are given, otherwise version 1 (seed data). */
+  seal(input: SealInput, version = input.subject ? CURRENT_SEAL_VERSION : 1): string {
+    return createHmac('sha256', this.secret).update(this.canonical(input, version)).digest('hex');
   }
 
-  matches(input: SealInput, seal: string): boolean {
-    const a = Buffer.from(this.seal(input), 'hex');
+  matches(input: SealInput, seal: string, version = 1): boolean {
+    const a = Buffer.from(this.seal(input, version), 'hex');
     const b = Buffer.from(seal, 'hex');
     return a.length === b.length && timingSafeEqual(a, b);
   }

@@ -88,7 +88,7 @@ export class AuthController {
     const cookieName = this.config.getOrThrow<string>('COOKIE_NAME');
     res.clearCookie(cookieName, this.cookieOptions());
 
-    let actor: { sub?: string; role?: AuthUser['role'] } = {};
+    let actor: { sub?: string; role?: AuthUser['role']; jti?: string; exp?: number } = {};
     const token =
       (req.cookies?.[cookieName] as string | undefined) ??
       req.headers.authorization?.replace(/^Bearer\s+/i, '');
@@ -99,7 +99,8 @@ export class AuthController {
         // expired or invalid token: still log out, just without an actor
       }
     }
-    return this.auth.logout(actor.sub, actor.role, meta(req));
+    const revoke = actor.jti && actor.exp ? { jti: actor.jti, exp: actor.exp } : undefined;
+    return this.auth.logout(actor.sub, actor.role, meta(req), revoke);
   }
 
   /** Always answers with the same message so registered emails cannot be discovered. */

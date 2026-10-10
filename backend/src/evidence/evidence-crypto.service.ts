@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   createCipheriv,
@@ -9,7 +9,13 @@ import {
 } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { PassThrough, pipeline, type Readable } from 'node:stream';
+import type { RequestMeta } from '../admin/constants';
+import { AuditAction, AuditService } from '../audit/audit.service';
+import type { AuthUser } from '../common/decorators';
 import { StorageService } from '../storage/storage.service';
+
+export const INTEGRITY_FAILED_MESSAGE =
+  'This file failed its integrity check and cannot be opened. The registry has been notified.';
 
 const ALGORITHM = 'aes-256-gcm';
 
@@ -31,6 +37,7 @@ export class EvidenceCryptoService {
   constructor(
     config: ConfigService,
     private readonly storage: StorageService,
+    private readonly audit: AuditService,
   ) {
     const raw = config.get<string>('EVIDENCE_ENCRYPTION_KEY');
     const key = raw && raw !== 'CHANGE_ME' ? Buffer.from(raw, 'base64') : null;
@@ -64,7 +71,44 @@ export class EvidenceCryptoService {
     };
   }
 
-  /** Decrypts while streaming. A tampered file makes the stream fail at the end (GCM authentication). */
+  /**
+   * Decrypts the whole file into memory and verifies the GCM authentication tag before any byte is released
+   * (files are capped by the upload limits). A tampered file, IV or tag is refused with 409 and audited.
+   */
+  async decryptVerified(
+    storageKey: string,
+    ivB64: string,
+    tagB64: string,
+    ctx: { user: AuthUser; entity: string; entityId: string; meta?: RequestMeta },
+  ): Promise<Buffer> {
+    const decipher = createDecipheriv(ALGORITHM, this.key, Buffer.from(ivB64, 'base64'));
+    decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
+    const parts: Buffer[] = [];
+    try {
+      for await (const chunk of this.storage.createReadStream(storageKey)) {
+        parts.push(decipher.update(chunk as Buffer));
+      }
+      parts.push(decipher.final());
+    } catch {
+      await this.audit.log({
+        action: AuditAction.FILE_INTEGRITY_FAILED,
+        actorId: ctx.user.id,
+        actorRole: ctx.user.role,
+        entity: ctx.entity,
+        entityId: ctx.entityId,
+        success: false,
+        metadata: { reason: 'GCM authentication failed' },
+        ...ctx.meta,
+      });
+      throw new ConflictException({ code: 'INTEGRITY_FAILED', message: INTEGRITY_FAILED_MESSAGE });
+    }
+    return Buffer.concat(parts);
+  }
+
+  /**
+   * Decrypts while streaming, for internal hashing only (seal checks, proof PDFs). A tampered file makes the
+   * stream fail at the end; never send this stream to a client.
+   */
   decryptStream(storageKey: string, ivB64: string, tagB64: string): Readable {
     const decipher = createDecipheriv(ALGORITHM, this.key, Buffer.from(ivB64, 'base64'));
     decipher.setAuthTag(Buffer.from(tagB64, 'base64'));

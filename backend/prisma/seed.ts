@@ -1719,7 +1719,8 @@ async function seedPhase4C(ids: Record<string, string>) {
     },
   } as never;
   const storage = createStorage(cfg);
-  const crypto = new EvidenceCryptoService(cfg, storage);
+  // The seed only encrypts; the audit writer is used for failed decryptions, which the seed never does.
+  const crypto = new EvidenceCryptoService(cfg, storage, null as never);
   const seals = new SealService(cfg);
 
   const cases = await prisma.case.findMany({

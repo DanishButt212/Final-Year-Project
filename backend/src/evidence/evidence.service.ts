@@ -374,7 +374,13 @@ export class EvidenceService {
       ...meta,
     });
     const ascii = e.originalName.replace(/[^\x20-\x7e]/g, '_');
-    return new StreamableFile(this.crypto.decryptStream(e.filePath, e.iv, e.authTag), {
+    const plain = await this.crypto.decryptVerified(e.filePath, e.iv, e.authTag, {
+      user,
+      entity: 'Evidence',
+      entityId: e.id,
+      meta,
+    });
+    return new StreamableFile(plain, {
       type: e.mimeType,
       length: e.sizeBytes,
       disposition: `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(e.originalName)}`,

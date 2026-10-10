@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
 import { adminApi, type BarCheckResult, type LawyerItem } from '@/lib/admin-api';
@@ -275,106 +275,116 @@ export default function LawyerVerificationPage() {
           <TabsTrigger value="VERIFIED">Verified ({data?.counts.VERIFIED ?? 0})</TabsTrigger>
           <TabsTrigger value="REJECTED">Rejected ({data?.counts.REJECTED ?? 0})</TabsTrigger>
         </TabsList>
-      </Tabs>
-
-      {isError && (
-        <Alert variant="error" className="mt-4">
-          {parseApiError(error).message}
-        </Alert>
-      )}
-
-      <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div>
-          {isPending ? (
-            <TableSkeleton rows={5} cols={4} />
-          ) : data && data.data.length === 0 ? (
-            <Card>
-              <EmptyState
-                icon={UserCheck}
-                title={
-                  tab === 'PENDING' ? 'No approvals pending' : `No ${tab.toLowerCase()} lawyers`
-                }
-                description={
-                  tab === 'PENDING'
-                    ? 'New lawyer registrations will appear here for review.'
-                    : 'Nothing to show in this list yet.'
-                }
-              />
-            </Card>
-          ) : (
-            data && (
+        {(['PENDING', 'VERIFIED', 'REJECTED'] as const).map((s) => (
+          // One panel per tab (only the active one has content), so each tab controls a real panel.
+          <TabsContent key={s} value={s} forceMount className="pt-0">
+            {tab === s && (
               <>
-                <Table aria-label={titles[tab]}>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Lawyer</TableHead>
-                      <TableHead>Bar number</TableHead>
-                      <TableHead>Registered</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.data.map((l) => (
-                      <TableRow
-                        key={l.id}
-                        className={selectedId === l.id ? 'bg-primary-soft' : undefined}
-                      >
-                        <TableCell className="min-w-40">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedId(l.id)}
-                            aria-pressed={selectedId === l.id}
-                            className="text-left font-semibold text-primary underline-offset-4 hover:underline"
-                          >
-                            {fullName(l.user)}
-                          </button>
-                          <span className="block text-text-muted">{l.user.email}</span>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <span className="case-number">{l.barNumber ?? '—'}</span>
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDate(l.registeredAt)}
-                        </TableCell>
-                        <TableCell>
-                          <VerificationBadge status={l.verificationStatus} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <Pagination
-                  page={data.meta.page}
-                  totalPages={data.meta.totalPages}
-                  total={data.meta.total}
-                  onPageChange={setPage}
-                />
-              </>
-            )
-          )}
-        </div>
+                {isError && (
+                  <Alert variant="error" className="mt-4">
+                    {parseApiError(error).message}
+                  </Alert>
+                )}
 
-        <div>
-          {selected ? (
-            <LawyerPanel
-              key={selected.id}
-              lawyer={selected}
-              onDone={(m) => {
-                setBanner(m);
-                setSelectedId(null);
-              }}
-            />
-          ) : (
-            <Card>
-              <EmptyState
-                icon={ShieldX}
-                title="Select a lawyer"
-                description="Choose a name from the list to see the submitted credentials."
-              />
-            </Card>
-          )}
-        </div>
-      </div>
+                <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                  <div>
+                    {isPending ? (
+                      <TableSkeleton rows={5} cols={4} />
+                    ) : data && data.data.length === 0 ? (
+                      <Card>
+                        <EmptyState
+                          icon={UserCheck}
+                          title={
+                            tab === 'PENDING'
+                              ? 'No approvals pending'
+                              : `No ${tab.toLowerCase()} lawyers`
+                          }
+                          description={
+                            tab === 'PENDING'
+                              ? 'New lawyer registrations will appear here for review.'
+                              : 'Nothing to show in this list yet.'
+                          }
+                        />
+                      </Card>
+                    ) : (
+                      data && (
+                        <>
+                          <Table aria-label={titles[tab]}>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Lawyer</TableHead>
+                                <TableHead>Bar number</TableHead>
+                                <TableHead>Registered</TableHead>
+                                <TableHead>Status</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {data.data.map((l) => (
+                                <TableRow
+                                  key={l.id}
+                                  className={selectedId === l.id ? 'bg-primary-soft' : undefined}
+                                >
+                                  <TableCell className="min-w-40">
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedId(l.id)}
+                                      aria-pressed={selectedId === l.id}
+                                      className="text-left font-semibold text-primary underline-offset-4 hover:underline"
+                                    >
+                                      {fullName(l.user)}
+                                    </button>
+                                    <span className="block text-text-muted">{l.user.email}</span>
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    <span className="case-number">{l.barNumber ?? '—'}</span>
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">
+                                    {formatDate(l.registeredAt)}
+                                  </TableCell>
+                                  <TableCell>
+                                    <VerificationBadge status={l.verificationStatus} />
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                          <Pagination
+                            page={data.meta.page}
+                            totalPages={data.meta.totalPages}
+                            total={data.meta.total}
+                            onPageChange={setPage}
+                          />
+                        </>
+                      )
+                    )}
+                  </div>
+
+                  <div>
+                    {selected ? (
+                      <LawyerPanel
+                        key={selected.id}
+                        lawyer={selected}
+                        onDone={(m) => {
+                          setBanner(m);
+                          setSelectedId(null);
+                        }}
+                      />
+                    ) : (
+                      <Card>
+                        <EmptyState
+                          icon={ShieldX}
+                          title="Select a lawyer"
+                          description="Choose a name from the list to see the submitted credentials."
+                        />
+                      </Card>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
     </>
   );
 }

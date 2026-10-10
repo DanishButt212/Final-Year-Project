@@ -278,6 +278,9 @@ model User {
   courtroomId           String? // and optionally to a courtroom
   lastLoginAt           DateTime?
   sessionsInvalidatedAt DateTime? // tokens issued before this moment are rejected
+  failedLoginCount      Int        @default(0) // failed passwords in the current 15-minute window
+  failedLoginWindowAt   DateTime? // start of that window
+  lockedUntil           DateTime? // per-account lockout after 5 failures in 15 minutes
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -732,6 +735,8 @@ model Summons {
   signatureSha256  String?
   seal             String?
   sealedAt         DateTime?
+  /// 1: execution fields only (proofs sealed before Phase 5C); 2: also case, UCN, recipient and address.
+  sealVersion      Int              @default(1)
   updatedAt        DateTime        @updatedAt
 
   case     Case             @relation(fields: [caseId], references: [id])
@@ -1038,6 +1043,16 @@ model Feedback {
 
 /// FR: immutable audit logs (UC: View Audit Logs). Append-only: UPDATE/DELETE blocked by trigger.
 /// actorId is intentionally not a foreign key so the log never depends on other rows.
+/// Tokens ended by logout (by jti). Rows are removed once the token would have expired anyway.
+model RevokedToken {
+  jti       String   @id
+  userId    String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   actorId   String?

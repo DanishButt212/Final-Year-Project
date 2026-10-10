@@ -25,7 +25,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
 import { isOverdue, OPEN_STATUSES } from './summons-admin.service';
-import { SealService } from './seal.service';
+import { CURRENT_SEAL_VERSION, SealService } from './seal.service';
 import {
   isImage,
   MAX_PHOTO_BYTES,
@@ -300,6 +300,13 @@ export class ServerService {
         notes: dto.notes,
         photoSha256: p.sha256,
         signatureSha256: sg?.sha256 ?? null,
+        subject: {
+          caseId: s.caseId,
+          ucn: s.case.ucn,
+          recipientName: s.recipientName,
+          recipientCnic: s.recipientCnic,
+          serviceAddress: s.serviceAddress,
+        },
       });
       await this.prisma.$transaction(async (tx) => {
         const done = await tx.summons.updateMany({
@@ -321,6 +328,7 @@ export class ServerService {
             signatureTag: sg?.authTag ?? null,
             signatureSha256: sg?.sha256 ?? null,
             seal,
+            sealVersion: CURRENT_SEAL_VERSION,
             sealedAt: executedAt,
           },
         });
@@ -456,7 +464,12 @@ export class ServerService {
     if (!p.photoPath || !p.photoIv || !p.photoTag || !(await this.storage.exists(p.photoPath))) {
       throw new NotFoundException(Messages.NOT_FOUND);
     }
-    return new StreamableFile(this.crypto.decryptStream(p.photoPath, p.photoIv, p.photoTag), {
+    const plain = await this.crypto.decryptVerified(p.photoPath, p.photoIv, p.photoTag, {
+      user: { id: ctx.userId, role: 'PROCESS_SERVER', email: '' },
+      entity: 'ProcessServerProfile',
+      entityId: ctx.profileId,
+    });
+    return new StreamableFile(plain, {
       type: 'image/jpeg',
     });
   }

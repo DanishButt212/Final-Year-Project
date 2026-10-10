@@ -66,6 +66,12 @@
     background: var(--color-background);
   }
 
+  /* Grid and flex-column items default to min-width: auto, so a wide table inside one widened the whole page
+     on phones. Letting them shrink keeps wide content scrolling inside its own box. */
+  .grid > * {
+    min-width: 0;
+  }
+
   body {
     margin: 0;
     min-height: 100vh;

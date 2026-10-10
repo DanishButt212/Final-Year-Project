@@ -1,12 +1,21 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-/** Scrolls horizontally inside its own box on small screens, so the page itself never does. */
+/**
+ * Scrolls horizontally inside its own box on small screens, so the page itself never does.
+ * The box is `relative` so absolutely positioned children (sr-only labels) stay inside it instead of widening
+ * the page, and it is a focusable, labelled region so keyboard users can scroll it (WCAG 2.1.1).
+ */
 export const Table = React.forwardRef<
   HTMLTableElement,
   React.TableHTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="w-full overflow-x-auto rounded-lg border border-border bg-surface">
+  <div
+    role="region"
+    aria-label={props['aria-label'] ?? 'Table'}
+    tabIndex={0}
+    className="relative w-full overflow-x-auto rounded-lg border border-border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+  >
     <table
       ref={ref}
       className={cn('w-full border-collapse text-left text-sm', className)}

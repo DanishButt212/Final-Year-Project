@@ -69,6 +69,7 @@ export interface AdminSummonsDetail extends AdminSummons {
     photoSha256: string | null;
     signatureSha256: string | null;
     sealedAt: string | null;
+    sealVersion: number;
     seal: string | null;
   } | null;
 }
@@ -115,7 +116,12 @@ export const adminSummonsApi = {
     (await api.post<Msg>(`/admin/summons/${id}/cancel`, { reason })).data,
   verify: async (id: string) =>
     (
-      await api.post<{ result: 'valid' | 'tampered'; message: string; sealedAt: string }>(
+      await api.post<{
+        result: 'valid' | 'tampered';
+        message: string;
+        sealedAt: string;
+        sealVersion: number;
+      }>(
         `/admin/summons/${id}/verify-seal`,
       )
     ).data,

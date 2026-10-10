@@ -85,10 +85,13 @@ export default function NotificationsPage() {
                     <div className="min-w-0">
                       <p className="font-semibold">
                         {!n.readAt && (
-                          <span
-                            className="mr-2 inline-block size-2 rounded-full bg-primary align-middle"
-                            aria-label="Unread"
-                          />
+                          <>
+                            <span
+                              className="mr-2 inline-block size-2 rounded-full bg-primary align-middle"
+                              aria-hidden="true"
+                            />
+                            <span className="sr-only">Unread: </span>
+                          </>
                         )}
                         {n.title}
                       </p>

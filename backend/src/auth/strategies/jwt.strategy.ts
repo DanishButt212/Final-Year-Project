@@ -12,6 +12,10 @@ interface JwtPayload {
   sub: string;
   role: Role;
   iat?: number;
+  /** Issued-at in milliseconds (tokens from Phase 5C on). */
+  ims?: number;
+  /** Token id: logout revokes this one token. */
+  jti?: string;
 }
 
 /** Reads the JWT from the httpOnly cookie first, then from "Authorization: Bearer" (mobile app). */
@@ -41,12 +45,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user || user.status !== 'ACTIVE') throw new UnauthorizedException(Messages.UNAUTHORIZED);
     // The security engine ended this account's sessions: tokens issued before that moment are rejected.
     const cutoff = user.sessionsInvalidatedAt?.getTime();
-    // iat has whole-second precision: compare in seconds so a login right after the cut-off is not refused.
-    if (cutoff !== undefined && (payload.iat ?? 0) < Math.floor(cutoff / 1000)) {
+    // ims has millisecond precision; older tokens only carry iat (whole seconds), compared in seconds.
+    const stale =
+      cutoff !== undefined &&
+      (payload.ims !== undefined ? payload.ims < cutoff : (payload.iat ?? 0) < Math.floor(cutoff / 1000));
+    if (stale) {
       throw new UnauthorizedException({
         code: 'SESSION_TERMINATED',
         message: Messages.SESSION_TERMINATED,
       });
+    }
+    if (payload.jti) {
+      const revoked = await this.prisma.revokedToken.findUnique({ where: { jti: payload.jti }, select: { jti: true } });
+      if (revoked) {
+        throw new UnauthorizedException({ code: 'SESSION_REVOKED', message: Messages.SESSION_REVOKED });
+      }
     }
     return { id: user.id, role: user.role, email: user.email };
   }

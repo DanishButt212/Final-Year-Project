@@ -414,7 +414,7 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const [verdict, setVerdict] = useState<{ result: 'valid' | 'tampered'; message: string } | null>(
+  const [verdict, setVerdict] = useState<{ result: 'valid' | 'tampered'; message: string; sealVersion: number } | null>(
     null,
   );
 
@@ -557,6 +557,11 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
                   <p className="break-all font-mono text-xs text-text-muted">
                     Seal: {data.proof.seal}
                   </p>
+                  <p className="text-xs text-text-muted">
+                    {data.proof.sealVersion === 1
+                      ? 'Seal version 1: covers the execution details, photo and signature.'
+                      : 'Seal version 2: also covers the case number, recipient and service address.'}
+                  </p>
                   <div className="flex flex-wrap items-center gap-3">
                     <Button
                       variant="secondary"
@@ -576,7 +581,7 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
                       {verdict.result === 'tampered' && (
                         <ShieldAlert className="mr-1 inline size-4" aria-hidden="true" />
                       )}
-                      {verdict.message}
+                      {verdict.message} (seal version {verdict.sealVersion})
                     </Alert>
                   )}
                 </section>

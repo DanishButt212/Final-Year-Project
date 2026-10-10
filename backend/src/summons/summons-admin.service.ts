@@ -276,6 +276,7 @@ export class SummonsAdminService {
               photoSha256: s.photoSha256,
               signatureSha256: s.signatureSha256,
               sealedAt: s.sealedAt,
+              sealVersion: s.sealVersion,
               seal: s.seal,
             }
           : null,
@@ -412,7 +413,13 @@ export class SummonsAdminService {
       metadata: { kind },
       ...meta,
     });
-    return new StreamableFile(this.crypto.decryptStream(f.path, f.iv, f.tag), {
+    const plain = await this.crypto.decryptVerified(f.path, f.iv, f.tag, {
+      user,
+      entity: 'Summons',
+      entityId: id,
+      meta,
+    });
+    return new StreamableFile(plain, {
       type: kind === 'photo' ? 'image/jpeg' : 'image/png',
       disposition: `inline; filename="${kind}-${id}"`,
     });
@@ -430,7 +437,10 @@ export class SummonsAdminService {
 
   /** Recomputes the seal and re-hashes the stored files. */
   async verifySeal(actor: AuthUser, id: string, meta: RequestMeta) {
-    const s = await this.prisma.summons.findUnique({ where: { id } });
+    const s = await this.prisma.summons.findUnique({
+      where: { id },
+      include: { case: { select: { ucn: true } } },
+    });
     if (!s) throw new NotFoundException(Messages.NOT_FOUND);
     if (s.status !== 'EXECUTED' || !s.seal || !s.executedAt || !s.photoSha256) {
       throw conflict('NO_PROOF', 'This summons has no sealed execution proof.');
@@ -447,8 +457,16 @@ export class SummonsAdminService {
         notes: s.executionNotes ?? '',
         photoSha256: s.photoSha256,
         signatureSha256: s.signatureSha256,
+        subject: {
+          caseId: s.caseId,
+          ucn: s.case.ucn,
+          recipientName: s.recipientName,
+          recipientCnic: s.recipientCnic,
+          serviceAddress: s.serviceAddress,
+        },
       },
       s.seal,
+      s.sealVersion,
     );
     if (valid && s.photoPath && s.photoIv && s.photoTag) {
       valid =
@@ -468,7 +486,7 @@ export class SummonsAdminService {
       entity: 'Summons',
       entityId: id,
       success: valid,
-      metadata: { result: valid ? 'valid' : 'tampered' },
+      metadata: { result: valid ? 'valid' : 'tampered', sealVersion: s.sealVersion },
       ...meta,
     });
     return {
@@ -477,6 +495,7 @@ export class SummonsAdminService {
         ? 'The seal is valid: the proof is unchanged since it was sealed.'
         : 'The seal does not match: the proof or its files were altered.',
       sealedAt: s.sealedAt,
+      sealVersion: s.sealVersion,
     };
   }
 

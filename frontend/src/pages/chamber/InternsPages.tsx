@@ -140,7 +140,7 @@ function AddInternDialog({
               </DialogDescription>
             </DialogHeader>
             <Alert variant="error" title="Shown only once">
-              This link is not stored and cannot be shown again. Copy it now and give it to the
+              The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it now and give it to the
               intern. It is valid for 72 hours.
             </Alert>
             <div className="mt-4 space-y-2">
