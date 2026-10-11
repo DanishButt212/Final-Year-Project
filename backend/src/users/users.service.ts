@@ -40,6 +40,8 @@ export class UsersService {
     const profileFields = Object.keys(data).length;
     if (dto.preferredLanguage !== undefined) data.preferredLanguage = dto.preferredLanguage;
     if (dto.fontScale !== undefined) data.fontScale = dto.fontScale;
+    if (dto.tourCompletedVersion !== undefined)
+      data.tourCompletedVersion = dto.tourCompletedVersion;
     if (Object.keys(data).length === 0) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
@@ -67,7 +69,7 @@ export class UsersService {
       metadata: { fields: Object.keys(data) },
       ...meta,
     });
-    // Language and text size alone are display preferences, not profile details.
+    // Language, text size and the tour version alone are display preferences, not profile details.
     const message = profileFields ? Messages.PROFILE_UPDATED : PREFERENCES_SAVED_MESSAGE;
     return { message, user: toPublicUser(user) };
   }

@@ -289,6 +289,7 @@ model User {
   lockedUntil           DateTime? // per-account lockout after 5 failures in 15 minutes
   preferredLanguage     UiLanguage @default(en) // UX upgrade: interface language
   fontScale             Float      @default(1) // UX upgrade: root text size, 1 / 1.125 / 1.25
+  tourCompletedVersion  Int        @default(0) // UX upgrade: guided tour version finished or skipped (0 = never)
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 

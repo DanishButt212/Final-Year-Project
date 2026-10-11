@@ -43,6 +43,13 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(FONT_SCALES, { message: 'Text size must be 1, 1.125 or 1.25.' })
   fontScale?: number;
+
+  /** The guided tour version the user finished or skipped. */
+  @IsOptional()
+  @IsInt({ message: 'Tour version must be a whole number.' })
+  @Min(0, { message: 'Tour version must be between 0 and 1000.' })
+  @Max(1000, { message: 'Tour version must be between 0 and 1000.' })
+  tourCompletedVersion?: number;
 }
 
 export class ListUsersQueryDto {

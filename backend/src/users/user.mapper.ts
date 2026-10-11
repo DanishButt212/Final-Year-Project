@@ -17,6 +17,7 @@ export function toPublicUser(user: UserWithProfile) {
     status: user.status,
     preferredLanguage: user.preferredLanguage,
     fontScale: user.fontScale,
+    tourCompletedVersion: user.tourCompletedVersion,
     createdAt: user.createdAt,
     ...(user.lawyerProfile
       ? {
