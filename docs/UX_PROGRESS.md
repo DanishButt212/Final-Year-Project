@@ -12,7 +12,7 @@ frontend tests 115/115; backend e2e 207/207.
 - [x] C. Case progress stepper, next-hearing reminders, add to calendar, reminder job
 - [x] D. Global search (command palette)
 - [x] E. PDF preview, skeleton loading, feedback and micro-interactions
-- [ ] F. Dashboard charts
+- [x] F. Dashboard charts
 - [ ] G. Guided tour and legal glossary
 - [ ] H. Final verification and docs
 
@@ -33,3 +33,6 @@ frontend tests 115/115; backend e2e 207/207.
 - Phase E (11-10-2026): done. No new endpoints or database fields. Viewer checked at 1280 px (challan PDF, summons
   photo lightbox over the detail dialog) and 375 px in English and Urdu. Frontend 115/115, backend unit 34/34 (two
   stale Phase 5C auth tests fixed). Main chunk 560.2 kB (172.6 kB gzip); the viewer and the pdf.js worker are lazy.
+- Phase F (11-10-2026): done. New endpoint `GET /api/insights` (role-scoped, cached 60 s per user); no database
+  changes. Checked the litigant, judge and admin dashboards at 1280 px and the litigant dashboard in Urdu at 375 px;
+  interns get 403. Frontend 115/115, backend unit 34/34. Main chunk 560.5 kB (172.6 kB gzip).
