@@ -13,7 +13,9 @@ import { chromium } from '@playwright/test';
 const [name, path = '/', ...rest] = process.argv.slice(2);
 const opt = Object.fromEntries(
   rest.map((a) => {
-    const [k, v = 'true'] = a.replace(/^--/, '').split('=');
+    const raw = a.replace(/^--/, '');
+    const at = raw.indexOf('=');
+    const [k, v] = at < 0 ? [raw, 'true'] : [raw.slice(0, at), raw.slice(at + 1)];
     return [k, v];
   }),
 );
@@ -94,6 +96,11 @@ if (opt.frames) {
   }
 } else {
   await page.waitForLoadState('networkidle').catch(() => {});
+  if (opt.click) {
+    // e.g. --click=a[href*="/cases/"] opens the first case of a list
+    await page.locator(opt.click).first().click();
+    await page.waitForLoadState('networkidle').catch(() => {});
+  }
   if (opt.full) {
     // Scroll through once so on-scroll reveals have run, then back to the top.
     await page.evaluate(async () => {

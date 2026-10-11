@@ -92,7 +92,9 @@ function HearingCell({ h }: { h: VirtualHearing }) {
   return (
     <>
       <span className="case-number block font-medium text-primary">{h.ucn}</span>
-      <span className="block">{h.title}</span>
+      <span className="block">
+        <bdi>{h.title}</bdi>
+      </span>
     </>
   );
 }

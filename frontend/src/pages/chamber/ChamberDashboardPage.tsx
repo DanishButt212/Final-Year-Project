@@ -181,7 +181,9 @@ export default function ChamberDashboardPage() {
                           >
                             {h.ucn}
                           </Link>{' '}
-                          <span className="text-text-muted">{h.title}</span>
+                          <span className="text-text-muted">
+                            <bdi>{h.title}</bdi>
+                          </span>
                         </span>
                         <span>
                           {formatDate(h.date)} {h.startTime ?? ''} ·{' '}

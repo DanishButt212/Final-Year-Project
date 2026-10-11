@@ -358,7 +358,9 @@ export default function AnalyticsBoard() {
                             <span className="case-number block text-sm font-medium text-primary">
                               {c.ucn}
                             </span>
-                            <span className="block break-words font-semibold">{c.title}</span>
+                            <span className="block break-words font-semibold">
+                              <bdi>{c.title}</bdi>
+                            </span>
                             <span className="block text-sm text-text-muted">
                               {t('{{caseTypeLabel}} · Filed {{date}}', {
                                 caseTypeLabel: caseTypeLabel(c.caseType),

@@ -1,3 +1,4 @@
+import { CaseStatusCell } from '@/components/case/CaseStatusCell';
 import { useQuery } from '@tanstack/react-query';
 import { Briefcase, FilePlus2, Hourglass, Receipt, Scale } from 'lucide-react';
 import { Link } from 'react-router';
@@ -8,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFilingGate } from '@/hooks/use-filing-gate';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { parseApiError } from '@/lib/api';
 import { casesApi } from '@/lib/cases-api';
 import { caseTypeLabel, judgeBench } from '@/lib/case-status';
@@ -148,7 +148,9 @@ export default function CaseOverview() {
                           <span className="case-number block text-sm font-medium text-primary">
                             {c.ucn}
                           </span>
-                          <span className="block break-words font-semibold">{c.title}</span>
+                          <span className="block break-words font-semibold">
+                            <bdi>{c.title}</bdi>
+                          </span>
                           <span className="block text-sm text-text-muted">
                             {t('{{caseTypeLabel}} · {{judgeBench}} · Filed {{date}}', {
                               caseTypeLabel: caseTypeLabel(c.caseType),
@@ -157,7 +159,7 @@ export default function CaseOverview() {
                             })}
                           </span>
                         </span>
-                        <StatusBadge status={c.status} />
+                        <CaseStatusCell status={c.status} progress={c.progress} />
                       </Link>
                     </li>
                   ))}

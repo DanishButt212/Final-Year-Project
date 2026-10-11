@@ -414,5 +414,9 @@ export const SERVER_MESSAGES = [
   msg('Base filing fee'),
   msg('Total payable'),
   msg('Database is unreachable.'),
+  msg('Hearing reminder'),
+  msg('Reminder: your hearing for {{ucn}} is tomorrow at {{time}} in {{courtroom}}.'),
+  msg('Reminder: your hearing for {{ucn}} is tomorrow at {{time}}.'),
+  msg('Hearing reminders sent.'),
   // GENERATED-STATIC-END
 ];

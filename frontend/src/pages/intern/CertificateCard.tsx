@@ -89,7 +89,7 @@ export function CertificateDetails({
           variant={check.valid ? 'success' : 'error'}
           title={check.valid ? t('Valid') : t('Tampered')}
         >
-          {check.message}
+          {translateText(check.message)}
         </Alert>
       )}
     </div>

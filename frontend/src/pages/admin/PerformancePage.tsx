@@ -316,7 +316,7 @@ function HistorySection() {
                                 aria-hidden="true"
                               />
                             )}
-                            {v.message}
+                            {translateText(v.message)}
                           </p>
                         )}
                       </TableCell>

@@ -376,7 +376,9 @@ export function ServerProfilePage() {
                     )}
                   </span>
                   <div>
-                    <p className="text-lg font-bold">{data.name}</p>
+                    <p className="text-lg font-bold">
+                      <bdi>{data.name}</bdi>
+                    </p>
                     <p className="text-sm text-text-muted">{data.email}</p>
                   </div>
                 </div>

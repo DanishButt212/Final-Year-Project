@@ -1,3 +1,6 @@
+import { AddToCalendar } from '@/components/hearing/AddToCalendar';
+import { CopyButton } from '@/components/ui/copy-button';
+import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
 import { translateText } from '@/lib/server-messages';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router';
@@ -37,7 +40,9 @@ function PartyList({ title, parties }: { title: string; parties: CaseDetail['par
       <ul className="space-y-2">
         {parties.map((p) => (
           <li key={p.id} className="rounded-md border border-border bg-surface p-3">
-            <p className="font-semibold">{p.name}</p>
+            <p className="font-semibold">
+              <bdi>{p.name}</bdi>
+            </p>
             <p className="text-sm text-text-muted">
               {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
                 t('No further details given')}
@@ -109,10 +114,12 @@ export default function CaseDetailPage() {
         >
           {data.ucn}
         </span>
+        <CopyButton value={data.ucn} label={t('Copy UCN')} />
         <StatusBadge status={data.status} />
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
       </div>
 
+      <CaseProgressPanel progress={data.progress} />
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue={initialTab}>
@@ -144,16 +151,41 @@ export default function CaseDetailPage() {
                   <Detail label={t('Claim value')}>{formatPkr(data.claimAmountPkr)}</Detail>
                 )}
                 <Detail label={t('Next hearing')}>
-                  {data.nextHearing
-                    ? `${formatDate(data.nextHearing.date)} at ${data.nextHearing.startTime ?? ''}, ${data.nextHearing.courtroom ?? ''}`
-                    : t('No hearing scheduled yet')}
+                  {data.nextHearing ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span>
+                        {[
+                          formatDate(data.nextHearing.date),
+                          data.nextHearing.startTime,
+                          data.nextHearing.courtroom,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </span>
+                      <AddToCalendar
+                        hearing={{
+                          id: data.nextHearing.id,
+                          ucn: data.ucn,
+                          date: data.nextHearing.date,
+                          startTime: data.nextHearing.startTime,
+                          courtroom: data.nextHearing.courtroom,
+                          court: data.court?.name,
+                        }}
+                        casePath={portalPath(portal, `cases/${data.id}`)}
+                      />
+                    </span>
+                  ) : (
+                    t('No hearing scheduled yet')
+                  )}
                 </Detail>
                 <Detail label={t('Judge bench')}>
                   {judgeBench({ judge: data.judge, courtroom: data.courtroom?.name ?? null })}
                 </Detail>
                 <div className="sm:col-span-2">
                   <Detail label={t('Relief sought')}>
-                    <span className="whitespace-pre-wrap font-normal">{data.reliefSought}</span>
+                    <span className="whitespace-pre-wrap font-normal">
+                      <bdi>{data.reliefSought}</bdi>
+                    </span>
                   </Detail>
                 </div>
               </dl>

@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import i18n from '@/i18n';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
@@ -119,7 +120,7 @@ function HearingCard({
       {clash && (
         <p className="flex items-start gap-1 text-xs font-semibold text-status-rejected-fg">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          <span>{h.conflicts[0].message}</span>
+          <span>{translateText(h.conflicts[0].message)}</span>
         </p>
       )}
       <div className="flex gap-1 pt-1">

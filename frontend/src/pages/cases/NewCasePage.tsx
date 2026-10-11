@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, CheckCircle2, Plus, Send, Trash2 } from 'lucide-react';
@@ -173,7 +174,9 @@ function ReviewParties({ title, parties }: { title: string; parties: PartyValues
       <ul className="mt-1 space-y-1">
         {parties.map((p, i) => (
           <li key={i}>
-            <span className="font-medium">{p.name}</span>
+            <span className="font-medium">
+              <bdi>{p.name}</bdi>
+            </span>
             <span className="text-sm text-text-muted">
               {[p.cnic, p.phone, p.address]
                 .filter(Boolean)
@@ -338,7 +341,7 @@ function NewCaseWizard() {
           <CardContent className="space-y-5 text-center">
             <CheckCircle2 className="mx-auto size-12 text-primary" aria-hidden="true" />
             <div role="status">
-              <h2 className="text-xl font-bold">{result.message}</h2>
+              <h2 className="text-xl font-bold">{translateText(result.message)}</h2>
               <p className="mt-1 text-text-muted">
                 {t(
                   'Your case is registered and is pending assignment to a judge. Keep this number for all future reference.',

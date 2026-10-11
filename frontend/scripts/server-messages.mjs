@@ -55,7 +55,8 @@ function userFacing(node) {
 }
 
 /** API strings that never reach the web UI (developer docs, PDF-only titles, internal errors). */
-const NOT_UI = /^(JSON:|Send "mobile"|GCM authentication|Audit Trail$|Judicial Performance Report$)/;
+const NOT_UI =
+  /^(JSON:|Send "mobile"|GCM authentication|Audit Trail$|Judicial Performance Report$)/;
 const statics = new Set();
 const dyn = new Set();
 for (const f of walk(BACKEND)) {
@@ -67,7 +68,8 @@ for (const f of walk(BACKEND)) {
       /^[A-Z{]/.test(node.text) &&
       /\s/.test(node.text)
     ) {
-      if (userFacing(node) && node.text.length >= 6 && !NOT_UI.test(node.text)) statics.add(node.text);
+      if (userFacing(node) && node.text.length >= 6 && !NOT_UI.test(node.text))
+        statics.add(node.text);
     } else if (ts.isTemplateExpression(node) && userFacing(node)) {
       dyn.add(`${f.slice(BACKEND.length + 1)}: ${node.getText(sf).slice(0, 160)}`);
     }

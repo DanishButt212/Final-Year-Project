@@ -1,12 +1,13 @@
+import { AddToCalendar } from '@/components/hearing/AddToCalendar';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { CalendarClock, CalendarX2, ClipboardList } from 'lucide-react';
+import { CalendarX2, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -135,7 +136,7 @@ export function HearingSchedulePage() {
                               <TableCell className="whitespace-nowrap font-medium">
                                 {isoToDdMmYyyy(h.date)}
                                 <span className="block text-sm font-normal text-text-muted">
-                                  {h.weekday}
+                                  {weekdayName(h.date)}
                                 </span>
                               </TableCell>
                               <TableCell className="whitespace-nowrap font-mono">
@@ -151,7 +152,9 @@ export function HearingSchedulePage() {
                                 >
                                   {h.ucn}
                                 </Link>
-                                <span className="block">{h.title}</span>
+                                <span className="block">
+                                  <bdi>{h.title}</bdi>
+                                </span>
                               </TableCell>
                               <TableCell className="space-y-2">
                                 <div className="flex flex-wrap gap-1">
@@ -160,6 +163,20 @@ export function HearingSchedulePage() {
                                 </div>
                                 {h.isVirtual && when === 'upcoming' && h.status === 'SCHEDULED' && (
                                   <JoinRoomButton hearingId={h.id} />
+                                )}
+                                {when === 'upcoming' && h.status === 'SCHEDULED' && (
+                                  <AddToCalendar
+                                    hearing={{
+                                      id: h.id,
+                                      ucn: h.ucn,
+                                      date: h.date,
+                                      startTime: h.startTime,
+                                      endTime: h.endTime,
+                                      courtroom: h.courtroom?.name,
+                                      isVirtual: h.isVirtual,
+                                    }}
+                                    casePath={portalPath(portal, `cases/${h.caseId}`)}
+                                  />
                                 )}
                               </TableCell>
                             </TableRow>
@@ -406,7 +423,9 @@ export function JudgeSchedulePage() {
                           <span className="case-number text-sm font-medium text-primary">
                             {h.ucn}
                           </span>
-                          <span className="block font-semibold">{h.title}</span>
+                          <span className="block font-semibold">
+                            <bdi>{h.title}</bdi>
+                          </span>
                           <span className="block text-sm text-text-muted">{h.courtroom?.name}</span>
                         </span>
                         <span className="flex flex-col items-end gap-2">
@@ -416,6 +435,20 @@ export function JudgeSchedulePage() {
                           </span>
                           {h.isVirtual && h.status === 'SCHEDULED' && d >= todayIso() && (
                             <JoinRoomButton hearingId={h.id} />
+                          )}
+                          {h.status === 'SCHEDULED' && d >= todayIso() && (
+                            <AddToCalendar
+                              hearing={{
+                                id: h.id,
+                                ucn: h.ucn,
+                                date: h.date,
+                                startTime: h.startTime,
+                                endTime: h.endTime,
+                                courtroom: h.courtroom?.name,
+                                isVirtual: h.isVirtual,
+                              }}
+                              casePath={`/judge/cases/${h.caseId}`}
+                            />
                           )}
                         </span>
                       </li>
@@ -428,58 +461,5 @@ export function JudgeSchedulePage() {
         )
       )}
     </>
-  );
-}
-
-/** Dashboard card for litigants and lawyers: the next hearing across their cases. */
-export function NextHearingCard() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const { data, isPending } = useQuery({
-    queryKey: ['hearings', 'mine', 'upcoming', 1],
-    queryFn: () => schedulingApi.myHearings({ when: 'upcoming', page: 1, limit: PAGE_SIZE }),
-    enabled: Boolean(user),
-  });
-  if (!user) return null;
-  const portal = PORTALS[user.role];
-  const next = data?.data[0];
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarClock className="size-5 text-primary" aria-hidden="true" /> {t('Next hearing')}
-        </CardTitle>
-      </CardHeader>
-      {isPending ? (
-        <CardContent>
-          <Skeleton className="h-16" />
-        </CardContent>
-      ) : next ? (
-        <CardContent className="space-y-1">
-          <p className="text-2xl font-bold">
-            {isoToDdMmYyyy(next.date)} <span className="font-mono text-lg">{next.startTime}</span>
-          </p>
-          <p className="text-text-muted">
-            {next.weekday} · {next.courtroom?.name} · {next.judge.name}
-          </p>
-          <p>
-            <span className="case-number text-sm font-medium text-primary">{next.ucn}</span>{' '}
-            {next.title}
-          </p>
-          <Link
-            to={portalPath(portal, 'hearings')}
-            className="inline-block pt-1 text-sm font-semibold"
-          >
-            {t('Full hearing schedule')}
-          </Link>
-        </CardContent>
-      ) : (
-        <EmptyState
-          icon={CalendarX2}
-          title={t('No upcoming hearings')}
-          description={t('No upcoming hearings have been scheduled for your cases yet.')}
-        />
-      )}
-    </Card>
   );
 }

@@ -424,7 +424,9 @@ export function ClientDetailPage() {
                   <Link to={`/lawyer/cases/${c.id}`} className="case-number font-medium">
                     {c.ucn}
                   </Link>{' '}
-                  <span className="text-text-muted">{c.title}</span>
+                  <span className="text-text-muted">
+                    <bdi>{c.title}</bdi>
+                  </span>
                 </li>
               ))}
             </ul>

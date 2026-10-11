@@ -13,7 +13,6 @@ import { ltr } from './format';
  */
 // The static messages are listed in server-messages.catalog.ts (read by the extractor only, never bundled).
 
-
 interface Pattern {
   re: RegExp;
   key: string;
@@ -265,8 +264,29 @@ const PATTERNS: Pattern[] = [
   ),
 ];
 
+// Anti-clash conflicts (backend/src/scheduling/scheduling.engine.ts).
+PATTERNS.push(
+  p(
+    /^Scheduling Conflict: Lawyer has a matching court appearance time in (.+)\.$/,
+    msg('Scheduling Conflict: Lawyer has a matching court appearance time in {{room}}.'),
+    'room',
+  ),
+  p(
+    /^Scheduling Conflict: Judge has a matching hearing at the same time in (.+)\.$/,
+    msg('Scheduling Conflict: Judge has a matching hearing at the same time in {{room}}.'),
+    'room',
+  ),
+  p(
+    /^Scheduling Conflict: (.+) is already booked for this time slot\.$/,
+    msg('Scheduling Conflict: {{room}} is already booked for this time slot.'),
+    'room',
+  ),
+);
+
 /** Words the API puts inside sentences (categories, decision types) that have their own translation. */
 export const SERVER_WORDS = [
+  msg('another courtroom'),
+  msg('This courtroom'),
   msg('the court'),
   msg('video'),
   msg('audio'),

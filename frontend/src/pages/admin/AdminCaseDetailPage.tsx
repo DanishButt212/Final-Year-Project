@@ -1,3 +1,5 @@
+import { CopyButton } from '@/components/ui/copy-button';
+import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
 import { translateText } from '@/lib/server-messages';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileText, ScrollText, Shuffle } from 'lucide-react';
@@ -47,7 +49,9 @@ function Parties({ title, parties }: { title: string; parties: CaseDetail['parti
       <ul className="space-y-2">
         {parties.map((p) => (
           <li key={p.id} className="rounded-md border border-border bg-surface p-3">
-            <p className="font-semibold">{p.name}</p>
+            <p className="font-semibold">
+              <bdi>{p.name}</bdi>
+            </p>
             <p className="text-sm text-text-muted">
               {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
                 t('No further details given')}
@@ -139,10 +143,12 @@ export default function AdminCaseDetailPage() {
         <span className="case-number rounded-md border border-primary bg-primary-soft px-3 py-1 text-lg font-medium text-primary">
           {data.ucn}
         </span>
+        <CopyButton value={data.ucn} label={t('Copy UCN')} />
         <StatusBadge status={data.status} />
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
       </div>
 
+      <CaseProgressPanel progress={data.progress} />
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue="overview">
@@ -174,7 +180,9 @@ export default function AdminCaseDetailPage() {
                 </Detail>
                 <div className="sm:col-span-2">
                   <Detail label={t('Relief sought')}>
-                    <span className="whitespace-pre-wrap font-normal">{data.reliefSought}</span>
+                    <span className="whitespace-pre-wrap font-normal">
+                      <bdi>{data.reliefSought}</bdi>
+                    </span>
                   </Detail>
                 </div>
               </dl>

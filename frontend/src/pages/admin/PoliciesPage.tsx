@@ -1,6 +1,8 @@
+import { isoToDdMmYyyy } from '@/lib/scheduling-api';
+import { remindersApi } from '@/lib/admin-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Save } from 'lucide-react';
+import { BellRing, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
@@ -548,6 +550,41 @@ export default function PoliciesPage() {
           </Button>
         </form>
       )}
+      <ReminderRunCard />
     </>
+  );
+}
+
+/** Runs the daily hearing reminder job on demand (it also runs every day at 08:00 Pakistan time). */
+function ReminderRunCard() {
+  const { t } = useTranslation();
+  const run = useMutation({
+    mutationFn: remindersApi.run,
+    onSuccess: (r) =>
+      toast.success(
+        t('Hearing reminders for {{date}}: {{sent}} sent, {{alreadySent}} already sent earlier.', {
+          date: isoToDdMmYyyy(r.date),
+          sent: r.sent,
+          alreadySent: r.alreadySent,
+        }),
+      ),
+    onError: (e) => toast.error(parseApiError(e).message),
+  });
+  return (
+    <Card className="mt-6" aria-labelledby="reminders-heading">
+      <CardHeader>
+        <CardTitle id="reminders-heading">{t('Hearing reminders')}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-text-muted">
+          {t(
+            'Every day at 08:00 (Pakistan time) everyone on a hearing scheduled for the next day gets one reminder: the parties, their lawyers and the judge. Running it again never sends a reminder twice.',
+          )}
+        </p>
+        <Button variant="secondary" onClick={() => run.mutate()} loading={run.isPending}>
+          <BellRing aria-hidden="true" /> {t("Send tomorrow's reminders now")}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

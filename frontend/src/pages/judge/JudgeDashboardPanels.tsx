@@ -62,7 +62,9 @@ export function TodayHearingsPanel() {
                     {h.ucn}
                   </Link>
                 </p>
-                <p className="font-semibold">{h.title}</p>
+                <p className="font-semibold">
+                  <bdi>{h.title}</bdi>
+                </p>
                 <p className="text-sm text-text-muted">{h.courtroom?.name ?? '—'}</p>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -124,7 +126,9 @@ export function RecentOrdersPanel() {
                 <Link to={`/judge/cases/${o.caseId}`} className="case-number text-sm font-medium">
                   {o.ucn}
                 </Link>
-                <p className="font-semibold">{o.title}</p>
+                <p className="font-semibold">
+                  <bdi>{o.title}</bdi>
+                </p>
                 <p className="text-sm text-text-muted">
                   {t('Recorded {{dateTime}}', { dateTime: formatDateTime(o.recordedAt) })}
                 </p>

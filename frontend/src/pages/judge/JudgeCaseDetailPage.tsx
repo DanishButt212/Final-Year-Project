@@ -1,3 +1,6 @@
+import { AddToCalendar } from '@/components/hearing/AddToCalendar';
+import { CopyButton } from '@/components/ui/copy-button';
+import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
 import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Gavel } from 'lucide-react';
@@ -112,6 +115,7 @@ export default function JudgeCaseDetailPage() {
         <span className="case-number rounded-md border border-primary bg-primary-soft px-3 py-1 text-lg font-medium text-primary">
           {data.ucn}
         </span>
+        <CopyButton value={data.ucn} label={t('Copy UCN')} />
         <StatusBadge status={data.status} />
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
         {!isDecided && (
@@ -130,6 +134,7 @@ export default function JudgeCaseDetailPage() {
           {t('A case can be decided only after at least one hearing has taken place.')}
         </p>
       )}
+      <CaseProgressPanel progress={data.progress} />
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue="overview">
@@ -158,7 +163,9 @@ export default function JudgeCaseDetailPage() {
                 </Detail>
                 <div className="sm:col-span-2">
                   <Detail label={t('Relief sought')}>
-                    <span className="whitespace-pre-wrap font-normal">{data.reliefSought}</span>
+                    <span className="whitespace-pre-wrap font-normal">
+                      <bdi>{data.reliefSought}</bdi>
+                    </span>
                   </Detail>
                 </div>
               </dl>
@@ -172,7 +179,9 @@ export default function JudgeCaseDetailPage() {
               <Card key={p.id}>
                 <CardContent>
                   <Badge variant="neutral">{p.role}</Badge>
-                  <p className="mt-1 font-semibold">{p.name}</p>
+                  <p className="mt-1 font-semibold">
+                    <bdi>{p.name}</bdi>
+                  </p>
                   <p className="text-sm text-text-muted">
                     {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
                       t('No further details')}
@@ -223,6 +232,19 @@ export default function JudgeCaseDetailPage() {
                                   ? t('Cancelled')
                                   : t('Scheduled')}
                           </Badge>
+                          {h.status === 'SCHEDULED' && h.date >= todayIso && (
+                            <AddToCalendar
+                              hearing={{
+                                id: h.id,
+                                ucn: data.ucn,
+                                date: h.date,
+                                startTime: h.startTime,
+                                courtroom: h.courtroom,
+                                court: data.court?.name,
+                              }}
+                              casePath={`/judge/cases/${data.id}`}
+                            />
+                          )}
                           {!isDecided && h.status === 'SCHEDULED' && h.date <= todayIso && (
                             <Button
                               size="sm"

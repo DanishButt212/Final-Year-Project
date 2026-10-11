@@ -1,9 +1,12 @@
+import type { CaseProgressData } from './progress';
 import { api } from './api';
 import type { CaseStatus, CaseType } from './case-status';
 import type { Paginated } from './types';
 import { msg } from '@/i18n';
 
 export interface CaseListItem {
+  /** Derived on the server (cases/case-progress.ts). */
+  progress?: CaseProgressData;
   id: string;
   ucn: string;
   title: string;
@@ -96,6 +99,7 @@ export interface CaseDecision {
 }
 
 export interface CaseDetail {
+  progress?: CaseProgressData;
   id: string;
   ucn: string;
   title: string;

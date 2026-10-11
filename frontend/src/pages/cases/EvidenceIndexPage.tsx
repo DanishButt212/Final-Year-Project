@@ -80,7 +80,9 @@ export default function EvidenceIndexPage() {
                     <TableCell className="case-number whitespace-nowrap font-medium">
                       {c.ucn}
                     </TableCell>
-                    <TableCell className="min-w-48 font-medium">{c.title}</TableCell>
+                    <TableCell className="min-w-48 font-medium">
+                      <bdi>{c.title}</bdi>
+                    </TableCell>
                     <TableCell>
                       <StatusBadge status={c.status} />
                     </TableCell>

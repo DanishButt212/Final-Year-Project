@@ -1,3 +1,4 @@
+import type { CaseProgressData } from './progress';
 import { api } from './api';
 import type { CaseDetail } from './cases-api';
 import type { CaseStatus, CaseType } from './case-status';
@@ -80,6 +81,19 @@ export interface AppNotification {
   readAt: string | null;
   createdAt: string;
 }
+
+export interface ReminderRun {
+  message: string;
+  date: string;
+  hearings: number;
+  sent: number;
+  alreadySent: number;
+}
+
+export const remindersApi = {
+  /** Sends tomorrow's hearing reminders now (idempotent; ADMIN). */
+  run: async () => (await api.post<ReminderRun>('/admin/reminders/run')).data,
+};
 
 export const notificationsApi = {
   async list(params: { page?: number; limit?: number } = {}) {
@@ -217,6 +231,7 @@ export interface CourtRow {
 }
 
 export interface AdminCaseItem {
+  progress?: CaseProgressData;
   id: string;
   ucn: string;
   title: string;
@@ -260,6 +275,7 @@ export interface AllocateResult {
 }
 
 export interface JudgeCaseItem {
+  progress?: CaseProgressData;
   id: string;
   ucn: string;
   title: string;

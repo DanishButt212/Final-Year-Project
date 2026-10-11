@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useQuery } from '@tanstack/react-query';
 import { Lock, Video } from 'lucide-react';
 import { Link } from 'react-router';
@@ -35,7 +36,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
     );
   }
   if (data.state === 'CLOSED') {
-    return <p className="text-sm text-text-muted">{data.message}</p>;
+    return <p className="text-sm text-text-muted">{translateText(data.message)}</p>;
   }
   if (data.state !== 'OPEN') {
     const id = `room-msg-${hearingId}`;
@@ -45,7 +46,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
           <Lock aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
         </Button>
         <p id={id} className="whitespace-normal text-xs text-text-muted">
-          {data.message}
+          {translateText(data.message)}
         </p>
       </div>
     );

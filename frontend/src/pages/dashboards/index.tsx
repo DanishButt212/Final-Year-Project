@@ -4,7 +4,7 @@ import { Alert } from '@/components/ui/alert';
 import { LAWYER_PENDING_MESSAGE } from '@/hooks/use-filing-gate';
 import { DashboardFrame, EmptyPanel, PanelGrid } from './parts';
 import AnalyticsBoard from '../admin/AnalyticsBoard';
-import { NextHearingCard } from '../scheduling/UserSchedulePages';
+import { NextHearingCard } from '@/components/hearing/NextHearingCard';
 import { MyAllocatedCases } from '../judge/JudgeCasesPage';
 import { RecentOrdersPanel, TodayHearingsPanel } from '../judge/JudgeDashboardPanels';
 import CaseOverview from './CaseOverview';
@@ -100,7 +100,10 @@ export function JudgeDashboard() {
   return (
     <DashboardFrame description={t("Today's cause list and your caseload.")}>
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <NextHearingCard />
         <TodayHearingsPanel />
+      </div>
+      <div className="mb-6">
         <RecentOrdersPanel />
       </div>
       <MyAllocatedCases />

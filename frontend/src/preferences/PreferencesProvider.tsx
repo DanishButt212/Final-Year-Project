@@ -1,3 +1,4 @@
+import { DirectionProvider } from '@radix-ui/react-direction';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage, readStoredLanguage, storeLanguage, type Language } from '@/i18n';
@@ -43,5 +44,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     () => ({ language, fontScale, setLanguage, setFontScale }),
     [language, fontScale, setLanguage, setFontScale],
   );
-  return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
+  // Radix menus, selects, tabs and dialogs follow the reading direction (keyboard arrows, alignment).
+  return (
+    <PreferencesContext.Provider value={value}>
+      <DirectionProvider dir={language === 'ur' ? 'rtl' : 'ltr'}>{children}</DirectionProvider>
+    </PreferencesContext.Provider>
+  );
 }

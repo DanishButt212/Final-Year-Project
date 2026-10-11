@@ -1,3 +1,4 @@
+import { CaseStatusCell } from '@/components/case/CaseStatusCell';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Briefcase, Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -10,7 +11,6 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
-import { StatusBadge } from '@/components/ui/status-badge';
 import {
   Table,
   TableBody,
@@ -112,10 +112,12 @@ export function MyAllocatedCases() {
                           {c.ucn}
                         </Link>
                       </TableCell>
-                      <TableCell className="min-w-48 font-medium">{c.title}</TableCell>
+                      <TableCell className="min-w-48 font-medium">
+                        <bdi>{c.title}</bdi>
+                      </TableCell>
                       <TableCell>{caseTypeLabel(c.caseType)}</TableCell>
                       <TableCell>
-                        <StatusBadge status={c.status} />
+                        <CaseStatusCell status={c.status} progress={c.progress} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatDate(c.filingDate)}

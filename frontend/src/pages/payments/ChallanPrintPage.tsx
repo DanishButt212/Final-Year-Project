@@ -95,7 +95,9 @@ export default function ChallanPrintPage() {
           </div>
           <div className="sm:col-span-2">
             <dt className="text-sm text-text-muted">{t('Case title')}</dt>
-            <dd className="font-semibold">{data.title}</dd>
+            <dd className="font-semibold">
+              <bdi>{data.title}</bdi>
+            </dd>
           </div>
           <div>
             <dt className="text-sm text-text-muted">{t('Issued on')}</dt>
