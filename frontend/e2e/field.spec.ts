@@ -41,7 +41,8 @@ test('verified lawyer: chamber dashboard, clients, billable, retainer, expenses,
 test('lawyer approves a research log and issues the certificate', async ({ page }) => {
   await login(page, 'LAWYER');
   await page.goto('/lawyer/chamber/interns');
-  await page.getByRole('link').filter({ hasText: /intern|tester|ahmad|ali|khan/i }).first().click().catch(async () => {
+  // Inside the page (the sidebar also has an "Interns" link).
+  await page.getByRole('main').getByRole('link').filter({ hasText: /intern|tester|ahmad|ali|khan/i }).first().click().catch(async () => {
     await page.locator('table a').first().click();
   });
   await heading(page);

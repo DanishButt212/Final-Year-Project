@@ -32,6 +32,14 @@ export const password = () => {
 };
 
 export async function login(page: Page, who: keyof typeof ACCOUNTS) {
+  // The guided tour starts by itself for accounts that have not seen it; journeys run without it.
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('da_tour_skip', '1');
+    } catch {
+      // storage unavailable
+    }
+  });
   await page.goto('/login');
   await page.getByLabel('Email or username').fill(ACCOUNTS[who]);
   await page.getByLabel(/^Password/).first().fill(password());

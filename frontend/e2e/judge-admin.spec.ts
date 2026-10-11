@@ -8,7 +8,7 @@ test.describe('judge', () => {
   test('dashboard panels, schedule, cause lists and allocated cases', async ({ page }) => {
     const errors = watchConsole(page);
     await login(page, 'JUDGE');
-    await expect(page.getByText("Today's cause list")).toBeVisible();
+    await expect(page.getByRole('heading', { name: "Today's cause list" })).toBeVisible();
     await expect(page.getByText('Recent orders')).toBeVisible();
     await page.goto('/judge/schedule');
     expect(await heading(page)).toBe('My Schedule');
@@ -25,18 +25,28 @@ test.describe('judge', () => {
     await login(page, 'JUDGE');
     await page.goto('/judge/cases');
     await page.getByRole('searchbox').fill('Muhammad Ali');
-    await page.getByRole('button', { name: 'Search' }).click();
-    await page.locator('a.case-number').first().click();
-    await heading(page);
-    const record = page.getByRole('button', { name: /record outcome/i }).first();
-    if (await record.isVisible().catch(() => false)) {
-      await record.click();
-      await page.getByLabel('Outcome').selectOption({ index: 1 });
-      await page.getByLabel('Order notes').fill('Arguments heard; matter proceeds to final order.');
-      await page.getByRole('button', { name: 'Save outcome' }).click();
-      await expect(page.getByRole('dialog')).toBeHidden();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page.locator('a.case-number').first()).toBeVisible();
+    // The demo hearings are relative to today, so pick the first match that has a hearing to record or can be
+    // decided already (one whose only hearing is tomorrow can do neither).
+    const hrefs = await page
+      .locator('a.case-number')
+      .evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
+    const decide = page.getByRole('button', { name: /decide case/i });
+    for (const href of hrefs) {
+      await page.goto(href);
+      await heading(page);
+      const record = page.getByRole('button', { name: /record outcome/i }).first();
+      if (await record.isVisible().catch(() => false)) {
+        await record.click();
+        await page.getByLabel('Outcome').selectOption({ index: 1 });
+        await page.getByLabel('Order notes').fill('Arguments heard; matter proceeds to final order.');
+        await page.getByRole('button', { name: 'Save outcome' }).click();
+        await expect(page.getByRole('dialog')).toBeHidden();
+      }
+      if (await decide.isEnabled().catch(() => false)) break;
     }
-    await page.getByRole('button', { name: /decide case/i }).click();
+    await decide.click();
     await page.getByLabel('Decision type').selectOption({ index: 1 });
     await page.getByLabel('Order', { exact: true }).fill('Bail granted subject to surety bonds of PKR 100,000.');
     await page.getByRole('button', { name: 'Review decision' }).click();
@@ -56,7 +66,7 @@ test.describe('judge', () => {
     expect(await badges.count()).toBe(0);
     await page.getByLabel('Outcome').selectOption('');
     await page.getByRole('searchbox').fill('zzzz-no-such-case');
-    await page.getByRole('button', { name: 'Search' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page.getByText('No orders match your filters')).toBeVisible();
   });
 });

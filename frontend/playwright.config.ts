@@ -4,7 +4,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Browser end-to-end tests. They start their own API (port 4100) against the *_test database and their own Vite
- * server (port 5174), so a running development stack is never touched. global-setup.ts empties the test database
+ * preview server (port 5174), so a running development stack is never touched. global-setup.ts empties the test database
  * and loads the demo data with a random one-run password (never written to disk or printed).
  */
 const API_PORT = 4100;
@@ -49,9 +49,11 @@ export default defineConfig({
       },
     },
     {
-      command: `npx vite --port ${WEB_PORT} --strictPort`,
+      // A production build behind `vite preview` (same /api proxy): closer to the deployed app, and it avoids the
+      // dev server stalling on on-demand module requests during long runs.
+      command: `npm run build && npx vite preview --port ${WEB_PORT} --strictPort`,
       url: `http://localhost:${WEB_PORT}`,
-      timeout: 120_000,
+      timeout: 240_000,
       reuseExistingServer: false,
       env: { VITE_PROXY_TARGET: `http://localhost:${API_PORT}` },
     },

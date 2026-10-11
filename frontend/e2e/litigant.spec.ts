@@ -46,7 +46,7 @@ test('files a case with a PDF, pays the fee and downloads the receipt', async ({
   await expect(ucn).toHaveText(/^DA-\d{4}-CIV-\d{6}$/, { timeout: 20_000 });
   await expect(ucn).toHaveCSS('font-family', /mono/i);
 
-  await page.getByRole('link', { name: 'Open case' }).click();
+  await page.getByRole('link', { name: 'View case' }).click();
   await heading(page);
   await page.getByRole('tab', { name: 'Fees & Payment' }).click();
   await page.getByRole('button', { name: /calculate costs and fees/i }).click();
@@ -67,7 +67,7 @@ test('files a case with a PDF, pays the fee and downloads the receipt', async ({
   await pay('4242 4242 4242 4242');
   await expect(page.getByRole('heading', { name: 'Payment successful' })).toBeVisible();
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: /download receipt proof/i }).click();
+  await page.getByRole('button', { name: /download receipt/i }).click();
   expect((await download).suggestedFilename()).toMatch(/RCPT-\d{4}-\d{6}/);
   expect(errors).toEqual([]);
 });

@@ -7,6 +7,11 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   // Same-origin /api in development, like the Vercel rewrite in production.
+  // Pre-bundle dependencies that are only reached through lazy chunks, so the dev server does not discover them
+  // mid-session and reload the page (which breaks in-flight lazy imports, for example during the browser tests).
+  optimizeDeps: {
+    include: ['driver.js', 'react-pdf', 'recharts', 'cmdk', '@radix-ui/react-popover'],
+  },
   server: {
     proxy: {
       '/api': { target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:4000', changeOrigin: false },
