@@ -1,0 +1,19 @@
+{
+  "(completed)": "(مکمل)",
+  "(current stage)": "(موجودہ مرحلہ)",
+  "(upcoming)": "(آئندہ)",
+  "Allocated to Judge": "جج کو تفویض شدہ",
+  "Bail Application": "درخواستِ ضمانت",
+  "Case progress": "مقدمے کی پیش رفت",
+  "Case progress: stage {{n}} of {{total}}, {{label}}": "مقدمے کی پیش رفت: {{total}} میں سے مرحلہ {{n}}، {{label}}",
+  "Civil Suit": "دیوانی دعویٰ",
+  "Criminal Appeal": "فوجداری اپیل",
+  "Draft": "مسودہ",
+  "Hearing Fixed": "سماعت مقرر",
+  "Pending": "زیرِ التوا",
+  "Pending Assignment": "تفویض کا منتظر",
+  "Rejected": "مسترد",
+  "The case was closed without a decision.": "مقدمہ فیصلے کے بغیر بند کر دیا گیا۔",
+  "Under Scrutiny": "زیرِ جانچ",
+  "Writ Petition": "رٹ پٹیشن"
+}

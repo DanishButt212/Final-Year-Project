@@ -1,39 +1,56 @@
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { ArchScalesIcon } from '@/components/brand/ArchScalesIcon';
+import { SealLogo } from '@/components/brand/SealLogo';
+import { Wordmark } from '@/components/brand/Wordmark';
 import { cn } from '@/lib/utils';
 
-/** Simple scales-of-justice mark. Original artwork: not the State Emblem or any court's logo. */
+/** The arch-and-scales glyph in the current text colour (small inline uses, e.g. the courtroom bar). */
 export function ScalesIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={cn('size-6', className)}
-    >
-      <path d="M12 3v18" />
-      <path d="M7 21h10" />
-      <path d="M5 7h14" />
-      <path d="M5 7l-3 7a3 3 0 0 0 6 0L5 7z" />
-      <path d="M19 7l-3 7a3 3 0 0 0 6 0l-3-7z" />
-    </svg>
-  );
+  return <ArchScalesIcon size="1em" stroke="currentColor" className={cn('size-6', className)} />;
 }
 
-export function Logo({ to = '/', className }: { to?: string; className?: string }) {
+/**
+ * Seal plus wordmark, linking home. "inverse" sits on the green app header, "default" on white.
+ * `sealRef` and `sealHidden` let the intro fly its seal onto this exact spot.
+ */
+export function Logo({
+  to = '/',
+  className,
+  tone = 'inverse',
+  sealSize = 36,
+  urdu = false,
+  sealRef,
+  sealHidden = false,
+}: {
+  to?: string;
+  className?: string;
+  tone?: 'default' | 'inverse';
+  sealSize?: number;
+  urdu?: boolean;
+  sealRef?: Ref<HTMLSpanElement>;
+  sealHidden?: boolean;
+}) {
+  const { t } = useTranslation();
   return (
     <Link
       to={to}
+      aria-label={t('DigitalAdaalat home')}
       className={cn(
-        'inline-flex items-center gap-2 rounded-md text-on-primary no-underline focus-visible:outline-white',
+        'inline-flex min-h-11 items-center gap-2 rounded-md no-underline',
+        tone === 'inverse' ? 'focus-visible:outline-white' : '',
         className,
       )}
     >
-      <ScalesIcon />
-      <span className="font-heading text-lg font-bold tracking-tight">DigitalAdaalat</span>
+      <span
+        ref={sealRef}
+        className="inline-flex shrink-0"
+        style={{ visibility: sealHidden ? 'hidden' : undefined }}
+      >
+        <SealLogo size={sealSize} title="" />
+      </span>
+      <Wordmark tone={tone} urdu={urdu} />
     </Link>
   );
 }

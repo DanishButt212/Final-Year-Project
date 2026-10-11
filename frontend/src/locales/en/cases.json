@@ -1,0 +1,19 @@
+{
+  "(completed)": "(completed)",
+  "(current stage)": "(current stage)",
+  "(upcoming)": "(upcoming)",
+  "Allocated to Judge": "Allocated to Judge",
+  "Bail Application": "Bail Application",
+  "Case progress": "Case progress",
+  "Case progress: stage {{n}} of {{total}}, {{label}}": "Case progress: stage {{n}} of {{total}}, {{label}}",
+  "Civil Suit": "Civil Suit",
+  "Criminal Appeal": "Criminal Appeal",
+  "Draft": "Draft",
+  "Hearing Fixed": "Hearing Fixed",
+  "Pending": "Pending",
+  "Pending Assignment": "Pending Assignment",
+  "Rejected": "Rejected",
+  "The case was closed without a decision.": "The case was closed without a decision.",
+  "Under Scrutiny": "Under Scrutiny",
+  "Writ Petition": "Writ Petition"
+}

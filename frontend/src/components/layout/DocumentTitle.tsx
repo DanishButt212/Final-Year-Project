@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 
 const APP = 'DigitalAdaalat';
@@ -9,10 +10,11 @@ const APP = 'DigitalAdaalat';
  */
 export function DocumentTitle() {
   const { pathname } = useLocation();
+  const { t, i18n } = useTranslation();
   useEffect(() => {
     const update = () => {
       const heading = document.querySelector('main h1, h1')?.textContent?.trim();
-      const name = pathname === '/' ? 'Home' : heading;
+      const name = pathname === '/' ? t('Home') : heading;
       const next = name ? `${name} | ${APP}` : APP;
       if (document.title !== next) document.title = next;
     };
@@ -21,6 +23,6 @@ export function DocumentTitle() {
     const observer = new MutationObserver(update);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => observer.disconnect();
-  }, [pathname]);
+  }, [pathname, t, i18n.language]);
   return null;
 }

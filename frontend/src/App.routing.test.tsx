@@ -120,12 +120,12 @@ describe('role-based routing', () => {
     expect(await screen.findByText(/404: page not found/i)).toBeInTheDocument();
   });
 
-  it('keeps guests on the landing page, with Login and Register actions', () => {
+  it('keeps guests on the landing page, with Sign in and Register actions', () => {
     renderApp('/');
     expect(
-      screen.getByRole('heading', { level: 1, name: /welcome to digitaladaalat/i }),
+      screen.getByRole('heading', { level: 1, name: /pakistan's courts, now digital/i }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /log in/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: /sign in/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: /register/i }).length).toBeGreaterThan(0);
   });
 });

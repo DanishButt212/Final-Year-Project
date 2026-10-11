@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router';
+import { Navigate, Route, Routes } from 'react-router';
 import { GuestOnly, RequireAuth, RequireRole } from '@/auth/guards';
 import { useAuth } from '@/auth/useAuth';
 import { AppShell } from '@/components/layout/AppShell';
@@ -15,6 +15,7 @@ import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 
+const PublicStatusPage = lazy(() => import('@/pages/PublicStatusPage'));
 /** Route pages are loaded on demand (one chunk per page); layouts, guards and the public auth pages load eagerly. */
 const CaseRoute = lazy(() => import('@/pages/PortalPages').then((m) => ({ default: m.CaseRoute })));
 const ComingSoonPage = lazy(() =>
@@ -127,6 +128,8 @@ export default function App() {
         <Routes>
           <Route element={<PublicLayout />}>
             <Route index element={<LandingPage />} />
+            <Route path="status" element={<Navigate to="/#case-status" replace />} />
+            <Route path="status/:ucn" element={<PublicStatusPage />} />
             <Route element={<GuestOnly />}>
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />

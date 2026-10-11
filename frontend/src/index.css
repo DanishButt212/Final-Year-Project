@@ -2,9 +2,12 @@
 @import '@fontsource-variable/inter';
 @import '@fontsource/merriweather/400.css';
 @import '@fontsource/merriweather/700.css';
+@import '@fontsource/merriweather/900.css';
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
+/* Nastaliq files are only downloaded by the browser when Urdu text is on screen. */
 @import '@fontsource/noto-nastaliq-urdu/400.css';
+@import '@fontsource/noto-nastaliq-urdu/700.css';
 
 /*
  * Design tokens. Source of truth: design-system/digitaladaalat/MASTER.md.
@@ -51,8 +54,10 @@
   --color-chart-5: #bfd9c8;
 
   /* Typography */
-  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-heading: 'Merriweather', Georgia, serif;
+  /* Inter and Merriweather cover Latin only, so Urdu characters fall through to Nastaliq per glyph. */
+  --font-sans:
+    'Inter Variable', 'Inter', 'Noto Nastaliq Urdu', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-heading: 'Merriweather', 'Noto Nastaliq Urdu', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --font-urdu: 'Noto Nastaliq Urdu', serif;
 
@@ -62,8 +67,14 @@
 }
 
 @layer base {
+  /* Root size = text-size control (--da-font-scale: 1, 1.125 or 1.25) x language factor; every rem follows. */
   html {
     background: var(--color-background);
+    font-size: calc(100% * var(--da-font-scale, 1));
+  }
+  html[lang='ur'] {
+    /* Nastaliq reads small: Urdu runs about 10 % larger than the English equivalent. */
+    font-size: calc(110% * var(--da-font-scale, 1));
   }
 
   /* Grid and flex-column items default to min-width: auto, so a wide table inside one widened the whole page
@@ -90,7 +101,7 @@
     background: var(--color-background);
     color: var(--color-text);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
@@ -131,6 +142,41 @@
     font-family: var(--font-urdu);
     line-height: 1.9;
   }
+
+  /* Urdu interface: room for Nastaliq's tall ascenders and deep descenders (the font stacks above already
+     render Urdu glyphs in Nastaliq and Latin, codes and numbers in Inter or JetBrains Mono). */
+  html[lang='ur'] body {
+    line-height: 2;
+  }
+  html[lang='ur'] h1,
+  html[lang='ur'] h2,
+  html[lang='ur'] h3,
+  html[lang='ur'] h4 {
+    line-height: 1.9;
+  }
+
+}
+
+/* Unlayered on purpose: it must beat the line-heights of Tailwind's utility layer. */
+/* Tailwind's text-* utilities carry tight line-heights meant for Latin text; Nastaliq needs about 2. */
+html[lang='ur'] :is(.text-xs, .text-sm, .text-base, .text-lg) {
+  line-height: 2;
+}
+html[lang='ur'] :is(.text-xl, .text-2xl, .text-3xl) {
+  line-height: 1.9;
+}
+html[lang='ur'] :is(.text-4xl, .text-5xl, .text-6xl) {
+  line-height: 1.8;
+}
+html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
+  line-height: 1.8;
+}
+
+/* The Urdu line of the wordmark and the language toggle option. */
+.urdu-wordmark,
+.urdu-control {
+  font-family: var(--font-urdu);
+  line-height: 1.9;
 }
 
 /* Case numbers, challan and receipt ids. */
@@ -212,6 +258,237 @@
 @media (prefers-reduced-motion: reduce) {
   .da-toast,
   .da-toast-bar {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------- UX upgrade motion */
+
+/* On-scroll reveal (landing page): once, opacity and a small rise. */
+.da-reveal {
+  opacity: 0;
+  translate: 0 0.75rem;
+  transition:
+    opacity 600ms ease-out,
+    translate 600ms ease-out;
+}
+.da-reveal.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* Case progress: completed connectors fill once, on first render. */
+.da-progress-fill {
+  transform-origin: top;
+  animation: da-fill-y 500ms ease-out both;
+  animation-delay: calc(var(--i, 0) * 120ms);
+}
+@media (min-width: 48rem) {
+  .da-progress-fill {
+    transform-origin: left;
+    animation-name: da-fill-x;
+  }
+  [dir='rtl'] .da-progress-fill {
+    transform-origin: right;
+  }
+}
+@keyframes da-fill-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes da-fill-y {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+/* Seal intro. Times are absolute from the moment the intro mounts (about 4.5 s in total). */
+.da-intro-stamp {
+  animation: da-stamp 620ms cubic-bezier(0.55, 0, 1, 0.45) 350ms both;
+}
+.da-intro-stage {
+  animation: da-shake 320ms linear 950ms both;
+}
+.da-intro-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 3px solid var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+}
+.da-intro-ripple-1 {
+  animation: da-ripple 1000ms ease-out 950ms both;
+}
+.da-intro-ripple-2 {
+  border-color: var(--color-accent);
+  animation: da-ripple 1200ms ease-out 1100ms both;
+}
+.da-intro .da-seal-ring {
+  animation: da-ring 1500ms cubic-bezier(0.16, 1, 0.3, 1) 900ms both;
+}
+.da-intro .da-beam {
+  animation: da-sway 1800ms ease-in-out 1050ms both;
+}
+.da-intro .da-pan {
+  animation: da-counter-sway 1800ms ease-in-out 1050ms both;
+}
+.da-intro .da-seal-diamond {
+  animation: da-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(1350ms + var(--i, 0) * 100ms);
+}
+.da-intro-wordmark {
+  animation: da-rise 600ms ease-out 1900ms both;
+}
+.da-intro-urdu {
+  animation: da-fade 600ms ease-out 2400ms both;
+}
+.da-intro-tagline {
+  animation: da-fade 600ms ease-out 2600ms both;
+}
+.da-intro-fly .da-intro-words {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+.da-intro-fly .da-intro-backdrop {
+  opacity: 0;
+  transition: opacity 900ms ease-in-out;
+}
+.da-intro-fly button {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+@keyframes da-stamp {
+  from {
+    opacity: 0;
+    transform: scale(2.6) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+@keyframes da-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-4px, 2px);
+  }
+  40% {
+    transform: translate(4px, -2px);
+  }
+  60% {
+    transform: translate(-3px, 1px);
+  }
+  80% {
+    transform: translate(2px, -1px);
+  }
+}
+@keyframes da-ripple {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+@keyframes da-ring {
+  from {
+    transform: rotate(-140deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+@keyframes da-sway {
+  0% {
+    transform: rotate(-12deg);
+  }
+  20% {
+    transform: rotate(8deg);
+  }
+  40% {
+    transform: rotate(-4deg);
+  }
+  60% {
+    transform: rotate(2deg);
+  }
+  80% {
+    transform: rotate(-0.8deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+/* The pans turn the opposite way by the same angle, so they always hang straight down. */
+@keyframes da-counter-sway {
+  0% {
+    transform: rotate(12deg);
+  }
+  20% {
+    transform: rotate(-8deg);
+  }
+  40% {
+    transform: rotate(4deg);
+  }
+  60% {
+    transform: rotate(-2deg);
+  }
+  80% {
+    transform: rotate(0.8deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+@keyframes da-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes da-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes da-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Route change: a short fade (150 ms). */
+.da-page-enter {
+  animation: da-fade 150ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .da-reveal {
+    opacity: 1;
+    translate: 0 0;
+    transition: none;
+  }
+  .da-progress-fill,
+  .da-page-enter {
     animation: none;
   }
 }

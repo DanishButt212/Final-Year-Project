@@ -20,7 +20,10 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
-  { files: ['vite.config.ts', 'eslint.config.mjs'], languageOptions: { globals: globals.node } },
+  {
+    files: ['vite.config.ts', 'eslint.config.mjs', 'scripts/**'],
+    languageOptions: { globals: globals.node },
+  },
   // Test helpers export render utilities next to small probe components; fast refresh does not apply.
   { files: ['src/test/**', '**/*.test.tsx'], rules: { 'react-refresh/only-export-components': 'off' } },
 );
