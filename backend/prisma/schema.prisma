@@ -322,6 +322,7 @@ model User {
   caseEvents             CaseEvent[]
   blockedHosts           BlockedHost[]
   generatedReports       GeneratedReport[]
+  hearingReminders       HearingReminder[]
 
   @@index([role, status])
   @@index([courtId])
@@ -598,6 +599,7 @@ model Hearing {
   judge          User            @relation("HearingJudge", fields: [judgeId], references: [id])
   causeListEntry CauseListEntry?
   session        CourtSession?
+  reminders      HearingReminder[]
 
   // One judge / one courtroom per date and slot is enforced by PARTIAL unique indexes that ignore
   // CANCELLED hearings (hand-written SQL in migration hearing_scheduling; Prisma cannot express them).
@@ -1020,6 +1022,21 @@ model Notification {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId, readAt])
+}
+
+/// UX upgrade: one row per hearing reminder sent (hearing, person, hearing date), so the daily job never repeats.
+model HearingReminder {
+  id          String   @id @default(uuid())
+  hearingId   String
+  userId      String
+  hearingDate DateTime @db.Date
+  createdAt   DateTime @default(now())
+
+  hearing Hearing @relation(fields: [hearingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([hearingId, userId, hearingDate])
+  @@index([hearingDate])
 }
 
 /// FR: notification settings (UC: Manage Notification Settings)

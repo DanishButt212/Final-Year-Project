@@ -13,11 +13,14 @@ import { CaseEventType, Prisma } from '../generated/prisma/client';
 import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { caseDetailInclude, toCaseDetail } from '../cases/cases.service';
+import { computeProgress, progressSelect } from '../cases/case-progress';
+import { SettingsService } from '../settings/settings.service';
 import { AdminCourtsService } from './admin-courts.service';
 import { fullName, personName, RequestMeta } from './constants';
 import { AdminListCasesQueryDto, AllocateCaseDto } from './dto/admin.dto';
 
 const listSelect = {
+  ...progressSelect,
   id: true,
   ucn: true,
   title: true,
@@ -28,7 +31,11 @@ const listSelect = {
   courtroom: { select: { name: true } },
   judge: personName,
   filedBy: personName,
-  challans: { select: { status: true }, orderBy: { issuedAt: 'desc' }, take: 1 },
+  // Newest first: [0] is the fee badge, all of them feed the progress stepper.
+  challans: {
+    orderBy: { issuedAt: 'desc' },
+    select: { ...progressSelect.challans.select, issuedAt: true },
+  },
 } satisfies Prisma.CaseSelect;
 
 const bad = (field: string, text: string) =>
@@ -46,7 +53,12 @@ export class AdminCasesService {
     private readonly audit: AuditService,
     private readonly courts: AdminCourtsService,
     private readonly notifications: NotificationsService,
+    private readonly settings: SettingsService,
   ) {}
+
+  private async slotMinutes() {
+    return (await this.settings.schedulePolicy()).hearingSlotMinutes;
+  }
 
   async list(q: AdminListCasesQueryDto) {
     const where: Prisma.CaseWhereInput = {
@@ -70,6 +82,7 @@ export class AdminCasesService {
           }
         : {}),
     };
+    const slotMinutes = await this.slotMinutes();
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.case.count({ where }),
       this.prisma.case.findMany({
@@ -98,6 +111,7 @@ export class AdminCasesService {
             ? 'PAID'
             : 'UNPAID'
           : 'NOT_GENERATED',
+        progress: computeProgress(c, slotMinutes),
       })),
       meta: pageMeta(q.page, q.limit, total),
     };
@@ -106,7 +120,7 @@ export class AdminCasesService {
   async detail(id: string) {
     const c = await this.prisma.case.findUnique({ where: { id }, include: caseDetailInclude });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
-    return toCaseDetail(c);
+    return toCaseDetail(c, await this.slotMinutes());
   }
 
   async allocate(actor: AuthUser, caseId: string, dto: AllocateCaseDto, meta: RequestMeta) {

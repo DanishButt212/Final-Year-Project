@@ -1,3 +1,5 @@
+import { SettingsService } from '../settings/settings.service';
+import { computeProgress, progressSelect } from '../cases/case-progress';
 import { Body, Controller, Get, Injectable, Module, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { ApiBearerAuth, ApiCookieAuth, ApiTags } from '@nestjs/swagger';
@@ -25,9 +27,13 @@ export class JudgeCasesQueryDto extends PageQueryDto {
 
 @Injectable()
 export class JudgeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+  ) {}
 
   async myCases(judge: AuthUser, q: JudgeCasesQueryDto) {
+    const slotMinutes = (await this.settings.schedulePolicy()).hearingSlotMinutes;
     const where: Prisma.CaseWhereInput = {
       judgeId: judge.id,
       ...(q.search
@@ -44,6 +50,7 @@ export class JudgeService {
       this.prisma.case.findMany({
         where,
         select: {
+          ...progressSelect,
           id: true,
           ucn: true,
           title: true,
@@ -68,6 +75,7 @@ export class JudgeService {
         filingDate: c.filingDate,
         courtroom: c.courtroom?.name ?? null,
         filedBy: fullName(c.filedBy),
+        progress: computeProgress(c, slotMinutes),
       })),
       meta: pageMeta(q.page, q.limit, total),
     };

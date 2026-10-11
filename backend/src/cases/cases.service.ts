@@ -21,6 +21,7 @@ import { pkToday } from '../common/pk-time';
 import { CreateCaseDto, ListCasesQueryDto, PartyDto } from './dto/create-case.dto';
 import { removeFiles, sanitizeFileName, sha256OfFile, startsWithPdfMagic } from './pdf-files';
 import { generateUcn } from './ucn';
+import { computeProgress, progressSelect } from './case-progress';
 
 export interface RequestMeta {
   ip?: string;
@@ -32,6 +33,7 @@ const CLOSED_STATUSES: CaseStatus[] = ['DECIDED', 'REJECTED', 'DISMISSED'];
 const personName = { select: { firstName: true, lastName: true } } as const;
 
 const listSelect = {
+  ...progressSelect,
   id: true,
   ucn: true,
   title: true,
@@ -46,8 +48,10 @@ const listSelect = {
 
 type ListRow = Prisma.CaseGetPayload<{ select: typeof listSelect }>;
 
-function toListItem(c: ListRow) {
+/** List row with its progress (one-line stepper in lists and dashboard cards). */
+export function toListItem(c: ListRow, slotMinutes: number) {
   return {
+    progress: computeProgress(c, slotMinutes),
     id: c.id,
     ucn: c.ucn,
     title: c.title,
@@ -74,9 +78,14 @@ export const caseDetailInclude = {
     orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
     include: { courtroom: { select: { id: true, name: true } }, judge: personName },
   },
+  // Only used to derive the progress stepper; challan details are not part of the response.
+  challans: progressSelect.challans,
 } satisfies Prisma.CaseInclude;
 
-export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDetailInclude }>) {
+export function toCaseDetail(
+  c: Prisma.CaseGetPayload<{ include: typeof caseDetailInclude }>,
+  slotMinutes: number,
+) {
   const hearings = c.hearings.map((h) => ({
     id: h.id,
     date: h.date.toISOString().slice(0, 10),
@@ -91,6 +100,7 @@ export function toCaseDetail(c: Prisma.CaseGetPayload<{ include: typeof caseDeta
   const today = new Date().toISOString().slice(0, 10);
   const nextHearing = hearings.find((h) => h.status === 'SCHEDULED' && h.date >= today) ?? null;
   return {
+    progress: computeProgress(c, slotMinutes),
     hearings,
     nextHearing,
     id: c.id,
@@ -301,6 +311,7 @@ export class CasesService {
           : []),
       ],
     };
+    const slotMinutes = await this.slotMinutes();
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.case.count({ where }),
       this.prisma.case.findMany({
@@ -312,7 +323,7 @@ export class CasesService {
       }),
     ]);
     return {
-      data: rows.map(toListItem),
+      data: rows.map((r) => toListItem(r, slotMinutes)),
       meta: {
         page: query.page,
         limit: query.limit,
@@ -325,6 +336,7 @@ export class CasesService {
   /** Numbers for the dashboard: total, pending assignment and the five newest cases. */
   async summary(user: AuthUser) {
     const scope = await this.scopeFor(user);
+    const slotMinutes = await this.slotMinutes();
     const [total, pendingAssignment, unpaidFees, recent] = await this.prisma.$transaction([
       this.prisma.case.count({ where: scope }),
       this.prisma.case.count({ where: { AND: [scope, { status: 'PENDING_ASSIGNMENT' }] } }),
@@ -336,7 +348,12 @@ export class CasesService {
         take: 5,
       }),
     ]);
-    return { total, pendingAssignment, unpaidFees, recent: recent.map(toListItem) };
+    return {
+      total,
+      pendingAssignment,
+      unpaidFees,
+      recent: recent.map((r) => toListItem(r, slotMinutes)),
+    };
   }
 
   async detail(user: AuthUser, id: string) {
@@ -345,7 +362,12 @@ export class CasesService {
       include: caseDetailInclude,
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
-    return toCaseDetail(c);
+    return toCaseDetail(c, await this.slotMinutes());
+  }
+
+  /** Length of a hearing slot (court policy): the end time of a hearing in the progress data. */
+  private async slotMinutes() {
+    return (await this.settings.schedulePolicy()).hearingSlotMinutes;
   }
 
   // ------------------------------------------------------------------ documents

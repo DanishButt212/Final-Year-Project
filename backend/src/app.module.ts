@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminModule } from './admin/admin.module';
 import { AuditModule } from './audit/audit.module';
@@ -23,6 +24,7 @@ import { JudgeModule } from './judge/judge.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PublicModule } from './public/public.module';
+import { RemindersModule } from './reminders/reminders.module';
 import { SettingsModule } from './settings/settings.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
@@ -41,6 +43,7 @@ import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.mo
       skipIf: () =>
         process.env.NODE_ENV === 'test' && process.env.ENABLE_THROTTLE_IN_TEST !== 'true',
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuditModule,
     IntegrationsModule,
@@ -62,6 +65,7 @@ import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.mo
     ReportsModule,
     VirtualCourtroomModule,
     PublicModule,
+    RemindersModule,
     HealthModule,
   ],
   providers: [
