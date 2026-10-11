@@ -22,6 +22,7 @@ import { IntegrationsModule } from './integrations/integrations.module';
 import { JudgeModule } from './judge/judge.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PublicModule } from './public/public.module';
 import { SettingsModule } from './settings/settings.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
@@ -60,6 +61,7 @@ import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.mo
     SummonsModule,
     ReportsModule,
     VirtualCourtroomModule,
+    PublicModule,
     HealthModule,
   ],
   providers: [

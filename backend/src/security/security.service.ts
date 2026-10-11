@@ -13,6 +13,8 @@ export const HOST_BLOCKED_MESSAGE = 'Privilege escalation neutralized. Host bloc
 export const OWN_HOST_MESSAGE = 'You cannot block your own host.';
 export const NOT_ENFORCED_NOTE = 'Recorded, not enforced on local development hosts.';
 export const WINDOW_MS = 10 * 60 * 1000;
+/** Failed public case-status lookups from one host within WINDOW_MS that count as probing. */
+export const STATUS_PROBE_THRESHOLD = 5;
 const CACHE_MS = 15_000;
 
 export interface EscalationInput {
@@ -57,6 +59,48 @@ export class SecurityService {
 
   private invalidate() {
     this.loadedAt = 0;
+  }
+
+  // ------------------------------------------------------------------ public case-status probing
+
+  private probes = new Map<string, number[]>();
+
+  /**
+   * Called for every failed public case-status lookup. Each time one host reaches STATUS_PROBE_THRESHOLD
+   * failures inside WINDOW_MS, one CASE_STATUS_PROBE security event (and an audit entry) is written and the
+   * count starts again. Kept in memory per API instance; never throws.
+   */
+  async recordStatusProbe(rawIp: string | null | undefined): Promise<void> {
+    try {
+      const ip = normalizeIp(rawIp) ?? 'unknown';
+      const now = Date.now();
+      const recent = (this.probes.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+      recent.push(now);
+      if (recent.length < STATUS_PROBE_THRESHOLD) {
+        this.probes.set(ip, recent);
+        return;
+      }
+      this.probes.delete(ip);
+      if (this.probes.size > 10_000) this.probes.clear(); // bound memory under a distributed scan
+      await this.prisma.securityEvent.create({
+        data: {
+          type: 'CASE_STATUS_PROBE',
+          ip: ip === 'unknown' ? null : ip,
+          method: 'GET',
+          route: '/api/public/cases/status',
+          code: 'UCN_LOOKUP_REPEATED_FAILURES',
+        },
+      });
+      await this.audit.log({
+        action: AuditAction.PUBLIC_STATUS_PROBE,
+        entity: 'SecurityEvent',
+        success: false,
+        metadata: { failedLookups: recent.length, windowMinutes: WINDOW_MS / 60_000 },
+        ipAddress: ip === 'unknown' ? undefined : ip,
+      });
+    } catch (error) {
+      this.logger.error('Failed to record a case-status probe', error as Error);
+    }
   }
 
   // ------------------------------------------------------------------ detection
@@ -104,10 +148,14 @@ export class SecurityService {
       const from = new Date(Math.max(now.getTime() - WINDOW_MS, last?.createdAt.getTime() ?? 0));
       const [byActor, byIp] = await Promise.all([
         actorId
-          ? tx.securityEvent.count({ where: { actorId, createdAt: { gt: from } } })
+          ? tx.securityEvent.count({
+              where: { type: 'PRIVILEGE_ESCALATION', actorId, createdAt: { gt: from } },
+            })
           : Promise.resolve(0),
         ip
-          ? tx.securityEvent.count({ where: { ip, createdAt: { gt: from } } })
+          ? tx.securityEvent.count({
+              where: { type: 'PRIVILEGE_ESCALATION', ip, createdAt: { gt: from } },
+            })
           : Promise.resolve(0),
       ]);
       const count = Math.max(byActor, byIp);
