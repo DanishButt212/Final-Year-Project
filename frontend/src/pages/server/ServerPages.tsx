@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
@@ -383,9 +383,7 @@ export function ServerProfilePage() {
                   error={errors.phone?.message}
                   hint="+92 3XX XXXXXXX"
                 >
-                  {(p) => (
-                    <Input inputMode="tel" className="min-h-12" {...p} {...register('phone')} />
-                  )}
+                  {(p) => <PhoneInput className="min-h-12" {...p} {...register('phone')} />}
                 </Field>
                 <Field label="Profile verification photo" hint="JPEG or PNG, up to 5 MB.">
                   {(p) => (

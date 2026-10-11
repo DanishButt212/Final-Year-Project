@@ -20,7 +20,7 @@ describe('format rules', () => {
   it('formats dates as DD-MM-YYYY and money as PKR', () => {
     expect(formatDate(new Date(2026, 9, 3))).toBe('03-10-2026');
     expect(formatDate(null)).toBe('—');
-    expect(formatPkr(12500)).toBe('PKR 12,500');
+    expect(formatPkr(12500)).toBe('PKR 12,500.00');
   });
 });
 

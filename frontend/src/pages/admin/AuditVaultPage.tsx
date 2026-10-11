@@ -10,6 +10,7 @@ import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -24,10 +25,10 @@ import {
 import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
+import { codeLabel, roleLabel } from '@/lib/labels';
 import { auditApi, type AuditFilters, type AuditVerification } from '@/lib/phase4e-api';
 import { ExportMenu } from './ExportMenu';
 
-const readable = (code: string) => code.replace(/_/g, ' ').toLowerCase();
 
 function IntegrityBadge({ state }: { state: 'valid' | 'mismatch' | 'legacy' }) {
   if (state === 'valid') return <Badge variant="decided">Hash matches</Badge>;
@@ -66,13 +67,16 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               </div>
               <div>
                 <dt className="text-text-muted">Event type</dt>
-                <dd className="font-mono">{data.action}</dd>
+                <dd>
+                  {codeLabel(data.action)}
+                  <span className="block font-mono text-xs text-text-muted">{data.action}</span>
+                </dd>
               </div>
               <div>
                 <dt className="text-text-muted">Account</dt>
                 <dd className="font-medium">
                   {data.actor ? `${data.actor.name} (${data.actor.email})` : 'System'}
-                  {data.actorRole ? ` · ${data.actorRole}` : ''}
+                  {data.actorRole ? ` · ${roleLabel(data.actorRole)}` : ''}
                 </dd>
               </div>
               <div>
@@ -137,9 +141,8 @@ export default function AuditVaultPage() {
     onError: (e) => toast.error(parseApiError(e).message),
   });
 
-  const set =
-    (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((f) => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
 
   function apply(e: React.FormEvent) {
     e.preventDefault();
@@ -191,7 +194,7 @@ export default function AuditVaultPage() {
                   <option value="">All event types</option>
                   {facets.data?.actions.map((a) => (
                     <option key={a} value={a}>
-                      {readable(a)}
+                      {codeLabel(a)}
                     </option>
                   ))}
                 </NativeSelect>
@@ -213,10 +216,10 @@ export default function AuditVaultPage() {
               {(p) => <Input {...p} value={form.actor} onChange={set('actor')} maxLength={120} />}
             </Field>
             <Field label="From date">
-              {(p) => <Input type="date" {...p} value={form.from} onChange={set('from')} />}
+              {(p) => <DatePicker {...p} value={form.from} onChange={set('from')} />}
             </Field>
             <Field label="To date">
-              {(p) => <Input type="date" {...p} value={form.to} onChange={set('to')} />}
+              {(p) => <DatePicker {...p} value={form.to} onChange={set('to')} />}
             </Field>
             <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
               <Button type="submit">
@@ -297,7 +300,7 @@ export default function AuditVaultPage() {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{r.userHash}</TableCell>
                     <TableCell>
-                      <span className="font-mono text-xs">{r.action}</span>
+                      <span title={r.action}>{codeLabel(r.action)}</span>
                       {r.actor && <p className="text-xs text-text-muted">{r.actor.email}</p>}
                     </TableCell>
                     <TableCell>{r.entity ?? '—'}</TableCell>

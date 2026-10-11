@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { AuthContext } from '@/auth/context';
 import type { Role } from '@/lib/types';
@@ -42,6 +42,17 @@ function renderApp(route: string, role: Role) {
     </QueryClientProvider>,
   );
 }
+
+// Route pages are lazy-loaded: import the heavy ones once up front so the first test does not race the import.
+beforeAll(async () => {
+  await Promise.all([
+    import('@/pages/PortalPages'),
+    import('@/pages/cases/NewCasePage'),
+    import('@/pages/cases/PortfolioPage'),
+    import('@/pages/judge/JudgeCasesPage'),
+    import('@/pages/scheduling/ScheduleRoutes'),
+  ]);
+}, 120_000);
 
 describe('case filing routes and sidebar', () => {
   it.each([

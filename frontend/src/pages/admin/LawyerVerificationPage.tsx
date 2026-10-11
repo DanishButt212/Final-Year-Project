@@ -286,7 +286,7 @@ export default function LawyerVerificationPage() {
                   </Alert>
                 )}
 
-                <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+                <div className="mt-5 grid gap-6 2xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                   <div>
                     {isPending ? (
                       <TableSkeleton rows={5} cols={4} />

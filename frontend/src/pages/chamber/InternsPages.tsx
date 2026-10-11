@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Copy, GraduationCap, NotebookPen, Search, UserPlus } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { z } from 'zod';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -22,6 +22,8 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton';
@@ -82,6 +84,7 @@ function AddInternDialog({
   const [copied, setCopied] = useState(false);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -140,8 +143,8 @@ function AddInternDialog({
               </DialogDescription>
             </DialogHeader>
             <Alert variant="error" title="Shown only once">
-              The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it now and give it to the
-              intern. It is valid for 72 hours.
+              The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it
+              now and give it to the intern. It is valid for 72 hours.
             </Alert>
             <div className="mt-4 space-y-2">
               <label htmlFor="intern-link" className="block text-sm font-medium">
@@ -206,13 +209,21 @@ function AddInternDialog({
                 {(p) => <Input inputMode="numeric" {...p} {...register('cnic')} />}
               </Field>
               <Field label="Phone" required error={errors.phone?.message} hint="+92 3XX XXXXXXX">
-                {(p) => <Input inputMode="tel" {...p} {...register('phone')} />}
+                {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
               <Field label="Email" required error={errors.email?.message}>
                 {(p) => <Input type="email" {...p} {...register('email')} />}
               </Field>
               <Field label="Start date" required error={errors.startDate?.message}>
-                {(p) => <Input type="date" {...p} {...register('startDate')} />}
+                {(p) => (
+                  <Controller
+                    control={control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <DatePicker {...p} {...field} value={field.value ?? ''} />
+                    )}
+                  />
+                )}
               </Field>
             </div>
             <DialogFooter>

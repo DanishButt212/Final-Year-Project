@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { toast } from '@/components/ui/toaster';
 import { usersApi } from '@/lib/auth-api';
 import { applyServerError } from '@/lib/form-errors';
@@ -144,7 +145,7 @@ export default function ProfilePage() {
                 error={errors.phone?.message}
                 required
               >
-                {(p) => <Input type="tel" autoComplete="tel" {...p} {...register('phone')} />}
+                {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
               <Field
                 label="Profile picture link"

@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { TableSkeleton } from '@/components/ui/skeleton';
 import { ClipboardList, LogOut, UserCircle } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
@@ -51,7 +53,9 @@ export function ServerShell() {
         </div>
       </header>
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-5">
-        <Outlet />
+        <Suspense fallback={<TableSkeleton rows={4} cols={2} />}>
+          <Outlet />
+        </Suspense>
       </main>
       <nav
         aria-label="Console navigation"

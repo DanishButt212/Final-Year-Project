@@ -39,6 +39,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -306,8 +307,8 @@ function AddStaffDialog({
               </DialogDescription>
             </DialogHeader>
             <Alert variant="error" title="Shown only once">
-              The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it now and give it to the
-              staff member. It is valid for 72 hours.
+              The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it
+              now and give it to the staff member. It is valid for 72 hours.
             </Alert>
             <div className="mt-4 space-y-2">
               <label htmlFor="reset-link" className="block text-sm font-medium">
@@ -384,14 +385,7 @@ function AddStaffDialog({
                 )}
               </Field>
               <Field label="Phone" required hint="+92 3XX XXXXXXX" error={errors.phone?.message}>
-                {(p) => (
-                  <Input
-                    inputMode="tel"
-                    placeholder="+92 300 1234567"
-                    {...register('phone')}
-                    {...p}
-                  />
-                )}
+                {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Email" required error={errors.email?.message}>

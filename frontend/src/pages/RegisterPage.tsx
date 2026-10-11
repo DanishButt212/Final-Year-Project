@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input, PasswordInput } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { toast } from '@/components/ui/toaster';
 import { authApi } from '@/lib/auth-api';
 import { applyServerError } from '@/lib/form-errors';
@@ -133,15 +134,7 @@ export default function RegisterPage() {
             error={errors.phone?.message}
             required
           >
-            {(p) => (
-              <Input
-                type="tel"
-                autoComplete="tel"
-                placeholder="+92 300 1234567"
-                {...p}
-                {...register('phone')}
-              />
-            )}
+            {(p) => <PhoneInput {...p} {...register('phone')} />}
           </Field>
         </div>
 
@@ -152,7 +145,8 @@ export default function RegisterPage() {
         {role === 'LAWYER' && (
           <Field
             label="Bar Council number"
-            hint="Optional now. An administrator verifies your registration before you can act as a verified lawyer."
+            required
+            hint="An administrator checks it with the Bar Council before you can file cases."
             error={errors.barNumber?.message}
           >
             {(p) => <Input {...p} {...register('barNumber')} />}

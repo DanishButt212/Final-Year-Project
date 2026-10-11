@@ -7,31 +7,54 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
-/** Modal with a solid overlay (no blur) and focus trapping provided by Radix. */
+/** The element to focus when a dialog closes: its opener, or the menu button when it was opened from a menu. */
+function findOpener(): HTMLElement | null {
+  const active = document.activeElement as HTMLElement | null;
+  if (!active || active === document.body) return null;
+  const menu = active.closest<HTMLElement>('[role="menu"]');
+  if (menu?.id)
+    return document.querySelector<HTMLElement>(`[aria-controls="${CSS.escape(menu.id)}"]`) ?? null;
+  return active;
+}
+
+/**
+ * Modal with a solid overlay (no blur) and focus trapping provided by Radix. On close, focus returns to the
+ * element that opened it (also for dialogs opened from a dropdown menu, whose item no longer exists).
+ */
 export const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[rgba(26,26,26,0.5)]" />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-surface p-6 shadow-[0_8px_24px_rgba(0,0,0,0.12)]',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close
-        className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-md text-text-muted hover:bg-primary-soft hover:text-primary"
-        aria-label="Close dialog"
+>(({ className, children, onCloseAutoFocus, ...props }, ref) => {
+  // Captured on the first render, before Radix moves focus into the dialog.
+  const [opener] = React.useState(findOpener);
+  return (
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[rgba(26,26,26,0.5)]" />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-surface p-6 shadow-[0_8px_24px_rgba(0,0,0,0.12)]',
+          className,
+        )}
+        onCloseAutoFocus={(e) => {
+          onCloseAutoFocus?.(e);
+          if (e.defaultPrevented || !opener?.isConnected) return;
+          e.preventDefault();
+          opener.focus();
+        }}
+        {...props}
       >
-        <X className="size-4" aria-hidden="true" />
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPrimitive.Portal>
-));
+        {children}
+        <DialogPrimitive.Close
+          className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-md text-text-muted hover:bg-primary-soft hover:text-primary"
+          aria-label="Close dialog"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  );
+});
 DialogContent.displayName = 'DialogContent';
 
 export const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

@@ -11,7 +11,7 @@ export const RETAINER_LABEL: Record<RetainerStatus, string> = {
 export const balanceText = (balance: string) => {
   const n = Number(balance);
   const abs = Math.abs(n).toLocaleString('en-PK', {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
   return n < 0 ? `-PKR ${abs}` : `PKR ${abs}`;

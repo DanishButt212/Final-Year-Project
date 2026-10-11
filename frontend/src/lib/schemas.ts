@@ -73,7 +73,13 @@ export const registerSchema = z
       .regex(/^[A-Za-z0-9/-]*$/, 'Bar number may contain letters, digits, - and /.')
       .optional(),
   })
-  .superRefine(passwordsMatch);
+  .superRefine(passwordsMatch)
+  .superRefine((v, ctx) => {
+    // Lawyers must give their Bar Council number; the registry checks it before approving the account.
+    if (v.role === 'LAWYER' && !v.barNumber) {
+      ctx.addIssue({ code: 'custom', path: ['barNumber'], message: 'Enter your Bar Council number.' });
+    }
+  });
 export type RegisterValues = z.infer<typeof registerSchema>;
 
 export const forgotPasswordSchema = z.object({ email });

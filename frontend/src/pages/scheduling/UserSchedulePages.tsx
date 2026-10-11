@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton';
@@ -204,8 +204,7 @@ export function CauseListsPage() {
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
         <Field label="Date">
           {(p) => (
-            <Input
-              type="date"
+            <DatePicker
               value={date}
               onChange={(e) => {
                 if (e.target.value) {

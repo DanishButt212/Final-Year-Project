@@ -11,7 +11,8 @@ export function formatDate(value: string | Date | null | undefined): string {
 
 export function formatPkr(amount: number | string): string {
   const n = typeof amount === 'string' ? Number(amount) : amount;
-  return `PKR ${n.toLocaleString('en-PK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  // Always two decimals ("PKR 19,650.50"), as on challans and receipts.
+  return `PKR ${n.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function initials(firstName: string, lastName: string): string {

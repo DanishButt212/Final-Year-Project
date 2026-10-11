@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { toast } from '@/components/ui/toaster';
 import { adminApi } from '@/lib/admin-api';
@@ -199,8 +200,7 @@ export function ScheduleHearingDialog({
             </Field>
             <Field label="Date" required>
               {(p) => (
-                <Input
-                  type="date"
+                <DatePicker
                   min={todayIso()}
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
@@ -425,8 +425,7 @@ export function RescheduleDialog({
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Date">
               {(p) => (
-                <Input
-                  type="date"
+                <DatePicker
                   min={todayIso()}
                   value={date}
                   onChange={(e) => setDate(e.target.value)}

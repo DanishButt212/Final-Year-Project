@@ -18,6 +18,7 @@ import {
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -325,8 +326,7 @@ function IssueDialog({
               hint="Empty uses the default period from System Policies."
             >
               {(p) => (
-                <Input
-                  type="date"
+                <DatePicker
                   min={today()}
                   {...p}
                   value={due}
@@ -414,9 +414,11 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const [verdict, setVerdict] = useState<{ result: 'valid' | 'tampered'; message: string; sealVersion: number } | null>(
-    null,
-  );
+  const [verdict, setVerdict] = useState<{
+    result: 'valid' | 'tampered';
+    message: string;
+    sealVersion: number;
+  } | null>(null);
 
   const { data, isPending, error } = useQuery({
     queryKey: ['admin', 'summons', 'detail', id],

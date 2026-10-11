@@ -17,6 +17,7 @@ import { roleHome } from '@/lib/navigation';
 import { notificationLink } from '@/lib/scheduling-api';
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
+import { humanizeCodes } from '@/lib/labels';
 
 const PAGE_SIZE = 15;
 
@@ -93,9 +94,9 @@ export default function NotificationsPage() {
                             <span className="sr-only">Unread: </span>
                           </>
                         )}
-                        {n.title}
+                        {humanizeCodes(n.title)}
                       </p>
-                      <p className="break-words text-text-muted">{n.body}</p>
+                      <p className="break-words text-text-muted">{humanizeCodes(n.body)}</p>
                       <p className="mt-1 text-sm text-text-muted">{formatDateTime(n.createdAt)}</p>
                       {notificationLink(n.type, user.role) && (
                         <Link

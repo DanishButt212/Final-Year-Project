@@ -29,8 +29,9 @@ export const authApi = {
   async logout() {
     await api.post('/auth/logout');
   },
+  /** Who is signed in: GET /auth/session answers 200 with { user: null } for guests (no 401 in the console). */
   async me() {
-    return (await api.get<{ user: User }>('/auth/me')).data.user;
+    return (await api.get<{ user: User | null }>('/auth/session')).data.user;
   },
   async forgotPassword(email: string) {
     return (await api.post<{ message: string }>('/auth/forgot-password', { email })).data;

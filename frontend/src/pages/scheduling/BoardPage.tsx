@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
@@ -319,8 +319,7 @@ export default function BoardPage() {
               <div className="flex-1">
                 <Field label="Date">
                   {(p) => (
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={date}
                       onChange={(e) => e.target.value && setDate(e.target.value)}
                       {...p}

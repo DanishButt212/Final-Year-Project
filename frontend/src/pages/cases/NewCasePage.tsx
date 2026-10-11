@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { NativeSelect } from '@/components/ui/native-select';
 import { PdfDropZone } from '@/components/ui/pdf-drop-zone';
 import { ProgressBar } from '@/components/ui/progress';
@@ -131,14 +132,7 @@ function PartyRows({
                 hint="Format: +92 3XX XXXXXXX"
                 error={e?.phone?.message}
               >
-                {(p) => (
-                  <Input
-                    type="tel"
-                    placeholder="+92 300 1234567"
-                    {...p}
-                    {...register(field('phone'))}
-                  />
-                )}
+                {(p) => <PhoneInput {...p} {...register(field('phone'))} />}
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Address (optional)" error={e?.address?.message}>

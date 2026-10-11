@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { AuthCard } from '@/components/layout/AuthCard';
+import { requestHeadingFocus } from '@/lib/heading-focus';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
@@ -38,6 +39,7 @@ function ChamberLoginForm() {
     try {
       const { message } = await login(v.identifier, v.password, v.chamberCode.trim());
       toast.success(message);
+      requestHeadingFocus();
       navigate('/lawyer/chamber', { replace: true });
     } catch (error) {
       const body = parseApiError(error);
@@ -105,6 +107,7 @@ export default function LoginPage() {
       const { message, user } = await login(values.identifier, values.password);
       toast.success(loginToast(user.role, message));
       const home = roleHome(user.role);
+      requestHeadingFocus();
       navigate(state?.from?.startsWith(home) ? state.from : home, { replace: true });
     } catch (error) {
       const body = parseApiError(error);

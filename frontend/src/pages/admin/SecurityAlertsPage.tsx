@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
+import { codeLabel, roleLabel } from '@/lib/labels';
 import { securityApi, type SecurityAlert } from '@/lib/phase4e-api';
 
 export const NOT_ENFORCED = 'Recorded, not enforced on local development hosts.';
@@ -97,12 +98,12 @@ function AlertDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   {data.account
                     ? `${data.account.name ? `${data.account.name} · ` : ''}${data.account.email}`
                     : 'Not identified (forged or invalid token)'}
-                  {data.role ? ` · ${data.role}` : ''}
+                  {data.role ? ` · ${roleLabel(data.role)}` : ''}
                 </dd>
               </div>
               <div>
                 <dt className="text-text-muted">Action code</dt>
-                <dd className="font-mono">{data.lastActionCode}</dd>
+                <dd title={data.lastActionCode}>{codeLabel(data.lastActionCode)}</dd>
               </div>
               <div>
                 <dt className="text-text-muted">Last route</dt>
@@ -249,9 +250,9 @@ function AlertsTab() {
                   <TableCell className="font-mono text-xs">{a.ip ?? 'unknown'}</TableCell>
                   <TableCell>
                     {a.account ? a.account.email : 'Not identified'}
-                    {a.role && <p className="text-xs text-text-muted">{a.role}</p>}
+                    {a.role && <p className="text-xs text-text-muted">{roleLabel(a.role)}</p>}
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{a.lastActionCode}</TableCell>
+                  <TableCell title={a.lastActionCode}>{codeLabel(a.lastActionCode)}</TableCell>
                   <TableCell className="text-right">{a.attemptCount}</TableCell>
                   <TableCell className="whitespace-nowrap">{formatDateTime(a.createdAt)}</TableCell>
                   <TableCell>

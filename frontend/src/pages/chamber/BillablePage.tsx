@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Clock, Save } from 'lucide-react';
 import { useState } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -190,7 +191,15 @@ export default function BillablePage() {
                 )}
               </Field>
               <Field label="Date worked" required error={errors.workedOn?.message}>
-                {(p) => <Input type="date" {...p} {...register('workedOn')} />}
+                {(p) => (
+                  <Controller
+                    control={control}
+                    name="workedOn"
+                    render={({ field }) => (
+                      <DatePicker {...p} {...field} value={field.value ?? ''} />
+                    )}
+                  />
+                )}
               </Field>
               <Field
                 label="Time (hours)"
@@ -305,8 +314,7 @@ export default function BillablePage() {
         </Field>
         <Field label="From">
           {(p) => (
-            <Input
-              type="date"
+            <DatePicker
               {...p}
               value={from}
               onChange={(e) => {
@@ -318,8 +326,7 @@ export default function BillablePage() {
         </Field>
         <Field label="To">
           {(p) => (
-            <Input
-              type="date"
+            <DatePicker
               {...p}
               value={to}
               onChange={(e) => {

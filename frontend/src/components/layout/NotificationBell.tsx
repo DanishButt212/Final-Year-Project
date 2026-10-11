@@ -8,6 +8,7 @@ import { notificationsApi } from '@/lib/admin-api';
 import { notificationLink } from '@/lib/scheduling-api';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { humanizeCodes } from '@/lib/labels';
 
 /** A notification row: a link when the notice leads somewhere (hearing schedule, cause lists), else a button. */
 function NotificationRow({
@@ -124,8 +125,10 @@ export function NotificationBell() {
                         />
                       )}
                       <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{n.title}</span>
-                        <span className="block break-words text-sm text-text-muted">{n.body}</span>
+                        <span className="block text-sm font-semibold">{humanizeCodes(n.title)}</span>
+                        <span className="block break-words text-sm text-text-muted">
+                          {humanizeCodes(n.body)}
+                        </span>
                         <span className="mt-0.5 block text-xs text-text-muted">
                           {formatDateTime(n.createdAt)}
                         </span>

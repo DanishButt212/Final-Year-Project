@@ -89,13 +89,14 @@ export function ChipInput({
   placeholder?: string;
 }) {
   const [text, setText] = useState('');
-  const add = () => {
-    const v = text.trim();
-    if (!v || values.some((x) => x.toLowerCase() === v.toLowerCase()) || values.length >= max) {
-      setText('');
-      return;
+  // "bail, section 497" becomes two chips: entries are split on commas, trimmed and de-duplicated.
+  const add = (raw = text) => {
+    const next = [...values];
+    for (const part of raw.split(',')) {
+      const v = part.trim();
+      if (v && next.length < max && !next.some((x) => x.toLowerCase() === v.toLowerCase())) next.push(v);
     }
-    onChange([...values, v]);
+    if (next.length !== values.length) onChange(next);
     setText('');
   };
   return (
@@ -107,7 +108,15 @@ export function ChipInput({
           placeholder={placeholder}
           aria-invalid={invalid}
           aria-describedby={describedBy}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            // Typing or pasting a comma commits what is before it as chips.
+            const v = e.target.value;
+            if (v.includes(',')) {
+              const cut = v.lastIndexOf(',');
+              add(v.slice(0, cut));
+              setText(v.slice(cut + 1).trimStart());
+            } else setText(v);
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
@@ -118,7 +127,7 @@ export function ChipInput({
         <Button
           type="button"
           variant="secondary"
-          onClick={add}
+          onClick={() => add()}
           disabled={values.length >= max}
           aria-label={`Add to ${label}`}
         >

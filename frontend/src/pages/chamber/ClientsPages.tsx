@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Search, UserPlus, Users } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router';
 import { z } from 'zod';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -13,6 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton, TableSkeleton } from '@/components/ui/skeleton';
@@ -61,6 +63,7 @@ export function NewClientPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -134,14 +137,7 @@ export function NewClientPage() {
                 error={errors.phone?.message}
                 hint="+92 3XX XXXXXXX"
               >
-                {(p) => (
-                  <Input
-                    inputMode="tel"
-                    placeholder="+92 300 1234567"
-                    {...p}
-                    {...register('phone')}
-                  />
-                )}
+                {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
               <Field label="Case Type" required error={errors.caseType?.message}>
                 {(p) => (
@@ -156,7 +152,15 @@ export function NewClientPage() {
                 )}
               </Field>
               <Field label="Initial Onboarding Date" required error={errors.onboardedOn?.message}>
-                {(p) => <Input type="date" {...p} {...register('onboardedOn')} />}
+                {(p) => (
+                  <Controller
+                    control={control}
+                    name="onboardedOn"
+                    render={({ field }) => (
+                      <DatePicker {...p} {...field} value={field.value ?? ''} />
+                    )}
+                  />
+                )}
               </Field>
             </div>
             <Button type="submit" loading={create.isPending}>

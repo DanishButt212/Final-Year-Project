@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Receipt, Save } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import {
@@ -48,6 +49,7 @@ export default function ExpensesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -120,7 +122,15 @@ export default function ExpensesPage() {
             {formError && <Alert variant="error">{formError}</Alert>}
             <div className="grid gap-4 md:grid-cols-3">
               <Field label="Date" required error={errors.spentOn?.message}>
-                {(p) => <Input type="date" {...p} {...register('spentOn')} />}
+                {(p) => (
+                  <Controller
+                    control={control}
+                    name="spentOn"
+                    render={({ field }) => (
+                      <DatePicker {...p} {...field} value={field.value ?? ''} />
+                    )}
+                  />
+                )}
               </Field>
               <Field label="Category" required error={errors.category?.message}>
                 {(p) => (

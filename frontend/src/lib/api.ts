@@ -18,7 +18,7 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
 }
 
 // Credential endpoints legitimately answer 401 ("Invalid username or password."), so they are not "session expired".
-const SILENT_401 = ['/auth/login', '/auth/me', '/auth/logout', '/auth/register'];
+const SILENT_401 = ['/auth/login', '/auth/me', '/auth/session', '/auth/logout', '/auth/register'];
 
 export const SESSION_NOTICE_KEY = 'da_session_notice';
 export const SESSION_TERMINATED_TEXT =

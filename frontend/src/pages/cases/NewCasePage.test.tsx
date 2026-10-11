@@ -117,7 +117,7 @@ describe('NewCasePage wizard', () => {
 
     await fillRespondent(user);
     await user.type(screen.getAllByLabelText(/cnic/i)[1], '3630211111111');
-    await user.type(screen.getAllByLabelText(/mobile number/i)[1], '03001111111');
+    await user.type(screen.getAllByLabelText(/mobile number/i)[1], '30011');
     await user.click(screen.getByRole('button', { name: /next/i }));
     expect(await screen.findByText('Please correct the highlighted fields.')).toBeInTheDocument();
     expect(screen.getByText('CNIC must be in the format 12345-1234567-1.')).toBeInTheDocument();

@@ -147,7 +147,7 @@ export default function RetainerPage() {
         title="Retainer Accounts & Trust Ledgers Summary"
         description={
           data
-            ? `Balances are derived from the transactions. A client is flagged below PKR ${Number(data.thresholdPkr).toLocaleString('en-PK')}.`
+            ? `Balances are derived from the transactions. A client is flagged below ${formatPkr(data.thresholdPkr)}.`
             : undefined
         }
         crumbs={[{ label: 'Dashboard', to: '/lawyer' }, { label: 'Retainer Accounts' }]}

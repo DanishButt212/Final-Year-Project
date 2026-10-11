@@ -121,9 +121,7 @@ export const adminSummonsApi = {
         message: string;
         sealedAt: string;
         sealVersion: number;
-      }>(
-        `/admin/summons/${id}/verify-seal`,
-      )
+      }>(`/admin/summons/${id}/verify-seal`)
     ).data,
   servers: async (params?: { courtId?: string; sector?: string }) =>
     (await api.get<ProcessServerOption[]>('/admin/process-servers', { params })).data,

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input, Textarea } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
@@ -138,7 +139,7 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
             {(p) => <Input maxLength={120} {...p} {...register('name')} />}
           </Field>
           <Field label="Chamber phone" error={errors.phone?.message} hint="+92 3XX XXXXXXX">
-            {(p) => <Input inputMode="tel" {...p} {...register('phone')} />}
+            {(p) => <PhoneInput {...p} {...register('phone')} />}
           </Field>
           <div className="md:col-span-2">
             <Field label="Office Physical Address" required error={errors.officeAddress?.message}>

@@ -56,7 +56,7 @@ describe('RegisterPage', () => {
     await user.clear(screen.getByLabelText(/^cnic/i));
     await user.type(screen.getByLabelText(/^cnic/i), '3630211111111');
     await user.clear(screen.getByLabelText(/mobile number/i));
-    await user.type(screen.getByLabelText(/mobile number/i), '03001111111');
+    await user.type(screen.getByLabelText(/mobile number/i), '30011');
     await user.clear(screen.getByLabelText(/confirm password/i));
     await user.type(screen.getByLabelText(/confirm password/i), 'Different1Pass');
     await user.click(screen.getByRole('button', { name: /create account/i }));

@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -159,8 +160,7 @@ export default function AdminCasesPage() {
         </Field>
         <Field label="Filed from">
           {(p) => (
-            <Input
-              type="date"
+            <DatePicker
               value={from}
               max={to || undefined}
               onChange={(e) => reset(setFrom)(e.target.value)}
@@ -170,8 +170,7 @@ export default function AdminCasesPage() {
         </Field>
         <Field label="Filed to">
           {(p) => (
-            <Input
-              type="date"
+            <DatePicker
               value={to}
               min={from || undefined}
               onChange={(e) => reset(setTo)(e.target.value)}

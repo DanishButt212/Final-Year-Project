@@ -72,6 +72,18 @@
     min-width: 0;
   }
 
+  /* react-day-picker uses the theme: deep green selection, no blue. */
+  .da-calendar {
+    --rdp-accent-color: var(--color-primary);
+    --rdp-accent-background-color: var(--color-primary-soft);
+    --rdp-today-color: var(--color-primary);
+    --rdp-day-height: 40px;
+    --rdp-day-width: 40px;
+    --rdp-day_button-height: 38px;
+    --rdp-day_button-width: 38px;
+    font-family: inherit;
+  }
+
   body {
     margin: 0;
     min-height: 100vh;

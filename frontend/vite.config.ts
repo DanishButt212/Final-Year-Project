@@ -17,6 +17,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,
+    // The first test of a file pays for importing lazy route modules under jsdom.
+    testTimeout: 30_000,
     exclude: ['e2e/**', 'node_modules/**'],
   },
 });
