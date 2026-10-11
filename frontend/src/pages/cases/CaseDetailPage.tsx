@@ -1,3 +1,4 @@
+import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { AddToCalendar } from '@/components/hearing/AddToCalendar';
 import { CopyButton } from '@/components/ui/copy-button';
 import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
@@ -72,6 +73,7 @@ export default function CaseDetailPage() {
     enabled: Boolean(caseId && user),
     retry: false,
   });
+  useRecordRecentCase(data);
 
   if (!user) return null;
   const portal = PORTALS[user.role];

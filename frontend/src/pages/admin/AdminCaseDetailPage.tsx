@@ -1,3 +1,4 @@
+import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { CopyButton } from '@/components/ui/copy-button';
 import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
 import { translateText } from '@/lib/server-messages';
@@ -78,6 +79,7 @@ export default function AdminCaseDetailPage() {
     enabled: Boolean(caseId),
     retry: false,
   });
+  useRecordRecentCase(data);
 
   async function download(doc: CaseDocument) {
     setDownloading(doc.id);

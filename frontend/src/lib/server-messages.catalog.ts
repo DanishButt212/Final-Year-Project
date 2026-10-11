@@ -418,5 +418,7 @@ export const SERVER_MESSAGES = [
   msg('Reminder: your hearing for {{ucn}} is tomorrow at {{time}} in {{courtroom}}.'),
   msg('Reminder: your hearing for {{ucn}} is tomorrow at {{time}}.'),
   msg('Hearing reminders sent.'),
+  msg('Enter at least 2 characters to search.'),
+  msg('Use 64 characters or fewer.'),
   // GENERATED-STATIC-END
 ];

@@ -1,3 +1,4 @@
+import { SearchTrigger } from '@/components/search/SearchTrigger';
 import { FontSizeControl, LanguageToggle } from '@/components/preferences/PreferenceControls';
 import { ChevronDown, LogOut, Menu, UserCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
@@ -45,6 +46,7 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
         </div>
         {user && (
           <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+            <SearchTrigger />
             <div className="hidden items-center gap-2 md:flex">
               <LanguageToggle tone="inverse" />
               <FontSizeControl tone="inverse" />

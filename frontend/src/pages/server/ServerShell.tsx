@@ -1,3 +1,4 @@
+import { SearchTrigger } from '@/components/search/SearchTrigger';
 import { LanguageToggle } from '@/components/preferences/PreferenceControls';
 import { Suspense } from 'react';
 import { TableSkeleton } from '@/components/ui/skeleton';
@@ -43,6 +44,7 @@ export function ServerShell() {
         <div className="mx-auto flex min-h-14 max-w-3xl items-center justify-between gap-2 px-4">
           <Logo to="/process-server" />
           <div className="flex items-center gap-1">
+            <SearchTrigger />
             <LanguageToggle tone="inverse" className="me-1 hidden sm:inline-flex" />
             <NotificationBell />
             <button

@@ -101,6 +101,14 @@ if (opt.frames) {
     await page.locator(opt.click).first().click();
     await page.waitForLoadState('networkidle').catch(() => {});
   }
+  if (opt.press) {
+    await page.keyboard.press(opt.press);
+    await page.waitForTimeout(800);
+  }
+  if (opt.type) {
+    await page.keyboard.type(opt.type, { delay: 40 });
+    await page.waitForTimeout(1200);
+  }
   if (opt.full) {
     // Scroll through once so on-scroll reveals have run, then back to the top.
     await page.evaluate(async () => {

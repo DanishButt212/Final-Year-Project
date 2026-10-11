@@ -1,3 +1,4 @@
+import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { AddToCalendar } from '@/components/hearing/AddToCalendar';
 import { CopyButton } from '@/components/ui/copy-button';
 import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
@@ -58,6 +59,7 @@ export default function JudgeCaseDetailPage() {
     enabled: Boolean(caseId),
     retry: false,
   });
+  useRecordRecentCase(data);
 
   const lock = useMutation({
     mutationFn: () =>
