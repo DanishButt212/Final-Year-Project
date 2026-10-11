@@ -24,9 +24,10 @@ function findOpener(): HTMLElement | null {
 export const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, onCloseAutoFocus, ...props }, ref) => {
-  // Captured on the first render, before Radix moves focus into the dialog.
-  const [opener] = React.useState(findOpener);
+>(({ className, children, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  // Captured each time the dialog opens, just before Radix moves focus inside (this wrapper itself may stay
+  // mounted while the dialog is closed, so a value from its first render could be stale).
+  const opener = React.useRef<HTMLElement | null>(null);
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[rgba(26,26,26,0.5)]" />
@@ -36,11 +37,16 @@ export const DialogContent = React.forwardRef<
           'fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg border border-border bg-surface p-6 shadow-[0_8px_24px_rgba(0,0,0,0.12)]',
           className,
         )}
+        onOpenAutoFocus={(e) => {
+          opener.current = findOpener();
+          onOpenAutoFocus?.(e);
+        }}
         onCloseAutoFocus={(e) => {
           onCloseAutoFocus?.(e);
-          if (e.defaultPrevented || !opener?.isConnected) return;
+          const el = opener.current;
+          if (e.defaultPrevented || !el?.isConnected) return;
           e.preventDefault();
-          opener.focus();
+          el.focus();
         }}
         {...props}
       >

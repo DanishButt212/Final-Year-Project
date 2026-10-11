@@ -6,26 +6,43 @@ import { useAuth } from '@/auth/useAuth';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 
-/** Waits (up to 3 s) for the page heading to render, then focuses it once. */
+/**
+ * After login, waits (up to 5 s) for the page heading to render and focuses it. The request flag is cleared only
+ * once the heading has focus (or on timeout), because the shell can remount while the first page loads.
+ */
 function useHeadingFocus() {
   const { pathname } = useLocation();
   useEffect(() => {
-    let flagged: boolean;
-    try {
-      flagged = sessionStorage.getItem(FOCUS_KEY) === '1';
-      sessionStorage.removeItem(FOCUS_KEY);
-    } catch {
-      return;
-    }
-    if (!flagged) return;
-    const started = Date.now();
+    const read = () => {
+      try {
+        return sessionStorage.getItem(FOCUS_KEY);
+      } catch {
+        return null;
+      }
+    };
+    const clear = () => {
+      try {
+        sessionStorage.removeItem(FOCUS_KEY);
+      } catch {
+        // storage unavailable
+      }
+    };
+    const requested = read();
+    if (!requested) return;
+    // The flag holds the request time; an old one (from an interrupted login) is ignored.
+    const deadline = Number(requested) + 5000;
     let frame = 0;
     const tryFocus = () => {
+      if (Date.now() > deadline) return clear();
+      const active = document.activeElement;
+      if (active && active !== document.body && active.tagName !== 'H1') return clear(); // user moved on
       const h1 = document.querySelector<HTMLElement>('main h1');
-      if (h1) {
+      if (h1 && active !== h1) {
         h1.tabIndex = -1;
         h1.focus({ preventScroll: true });
-      } else if (Date.now() - started < 3000) frame = requestAnimationFrame(tryFocus);
+      }
+      // Keep watching briefly: a data load can replace the heading element and drop focus to <body>.
+      frame = requestAnimationFrame(tryFocus);
     };
     tryFocus();
     return () => cancelAnimationFrame(frame);

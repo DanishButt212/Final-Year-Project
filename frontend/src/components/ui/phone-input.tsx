@@ -62,7 +62,6 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, Props>(
           inputMode="numeric"
           autoComplete="tel-national"
           placeholder="3XX XXXXXXX"
-          maxLength={11}
           disabled={disabled}
           value={local}
           className={cn(inputClasses, 'rounded-l-none font-mono')}
