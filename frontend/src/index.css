@@ -476,6 +476,31 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
   }
 }
 
+/* Success check: the circle draws, then the tick (about 600 ms in all). */
+.da-check-circle,
+.da-check-tick {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+.da-check-circle {
+  animation: da-draw 380ms ease-out forwards;
+}
+.da-check-tick {
+  animation: da-draw 260ms ease-out 320ms forwards;
+}
+@keyframes da-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .da-check-circle,
+  .da-check-tick {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
 /* Route change: a short fade (150 ms). */
 .da-page-enter {
   animation: da-fade 150ms ease-out both;

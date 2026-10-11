@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Bell, MessageSquareText, Save, Send } from 'lucide-react';
@@ -114,7 +115,7 @@ export function NotificationPreferencesPage() {
           { label: t('Notification Options') },
         ]}
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending || !current ? (
         <Skeleton className="h-64 max-w-2xl" />
       ) : (

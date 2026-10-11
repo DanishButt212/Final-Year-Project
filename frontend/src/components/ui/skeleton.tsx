@@ -32,3 +32,16 @@ export function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: nu
     </div>
   );
 }
+
+/** Stacked lines for a detail view or dialog body while it loads. */
+export function DetailSkeleton({ lines = 6, className }: { lines?: number; className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <div role="status" aria-label={t('Loading')} className={cn('space-y-3', className)}>
+      {Array.from({ length: lines }, (_, i) => (
+        <Skeleton key={i} className={cn('h-5', i % 3 === 2 ? 'w-2/3' : 'w-full')} />
+      ))}
+      <span className="sr-only">{t('Loading…')}</span>
+    </div>
+  );
+}

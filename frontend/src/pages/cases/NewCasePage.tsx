@@ -1,7 +1,7 @@
 import { translateText } from '@/lib/server-messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, CheckCircle2, Plus, Send, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Banknote, Plus, Send, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import {
   useFieldArray,
@@ -27,6 +27,7 @@ import { ProgressBar } from '@/components/ui/progress';
 import { Stepper } from '@/components/ui/stepper';
 import { useFilingGate } from '@/hooks/use-filing-gate';
 import { toast } from '@/components/ui/toaster';
+import { SuccessPanel } from '@/components/feedback/SuccessPanel';
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes';
 import { parseApiError } from '@/lib/api';
 import { casesApi, type CreateCasePayload, type PartyPayload } from '@/lib/cases-api';
@@ -337,38 +338,30 @@ function NewCaseWizard() {
             { label: t('New Case Submission') },
           ]}
         />
-        <Card className="max-w-2xl">
-          <CardContent className="space-y-5 text-center">
-            <CheckCircle2 className="mx-auto size-12 text-primary" aria-hidden="true" />
-            <div role="status">
-              <h2 className="text-xl font-bold">{translateText(result.message)}</h2>
-              <p className="mt-1 text-text-muted">
-                {t(
-                  'Your case is registered and is pending assignment to a judge. Keep this number for all future reference.',
-                )}
-              </p>
-            </div>
-            <div className="rounded-lg border-2 border-primary bg-primary-soft px-4 py-5">
-              <p className="text-sm font-semibold uppercase tracking-wide text-text-muted">
-                {t('Unique Case Number')}
-              </p>
-              <p
-                className="case-number mt-1 break-all text-2xl font-medium text-primary sm:text-3xl"
-                data-testid="ucn"
-              >
-                {result.ucn}
-              </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-3">
+        <SuccessPanel
+          title={translateText(result.message)}
+          description={t(
+            'Your case is registered and is pending assignment to a judge. Keep this number for all future reference.',
+          )}
+          reference={{
+            label: t('Unique Case Number'),
+            value: result.ucn,
+            copyLabel: t('Copy UCN'),
+            testId: 'ucn',
+          }}
+          actions={
+            <>
               <Button asChild>
-                <Link to={`${portfolioPath}/${result.id}`}>{t('Open case')}</Link>
+                <Link to={`${portfolioPath}/${result.id}?tab=fees`}>
+                  <Banknote aria-hidden="true" /> {t('Pay court fee')}
+                </Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link to={portfolioPath}>{t('Go to My Case Portfolio')}</Link>
+                <Link to={`${portfolioPath}/${result.id}`}>{t('View case')}</Link>
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </>
+          }
+        />
       </>
     );
   }

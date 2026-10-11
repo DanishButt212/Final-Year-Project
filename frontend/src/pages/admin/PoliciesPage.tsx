@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { isoToDdMmYyyy } from '@/lib/scheduling-api';
 import { remindersApi } from '@/lib/admin-api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -231,7 +232,7 @@ export default function PoliciesPage() {
         description={t('System-wide policies. Changes apply immediately to everyone.')}
         crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('System Policies') }]}
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <div role="status" aria-label={t('Loading policies')} className="space-y-4">
           <Skeleton className="h-48" />

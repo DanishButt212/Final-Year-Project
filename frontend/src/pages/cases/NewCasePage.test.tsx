@@ -236,7 +236,7 @@ describe('NewCasePage wizard', () => {
       const ucn = screen.getByTestId('ucn');
       expect(ucn).toHaveTextContent('DA-2026-CIV-000045');
       expect(ucn).toHaveClass('case-number');
-      expect(screen.getByRole('link', { name: /open case/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /view case/i })).toHaveAttribute(
         'href',
         '/litigant/cases/c1',
       );

@@ -60,7 +60,6 @@
   "Files are encrypted and sealed with a SHA-256 hash. Video: mp4, webm. Audio: mp3, wav, m4a. Scanned records: pdf, jpg, png. Up to 5 files at a time.": "فائلیں خفیہ کر کے SHA-256 ہیش سے مہر بند کی جاتی ہیں۔ ویڈیو: mp4، webm۔ آڈیو: mp3، wav، m4a۔ اسکین شدہ ریکارڈ: pdf، jpg، png۔ ایک وقت میں زیادہ سے زیادہ 5 فائلیں۔",
   "Fill in the four steps below. Nothing is saved until you submit on the last step.": "نیچے دیے گئے چار مراحل مکمل کریں۔ آخری مرحلے پر جمع کرانے تک کچھ محفوظ نہیں ہوگا۔",
   "Full name": "پورا نام",
-  "Go to My Case Portfolio": "میرے مقدمات پر جائیں",
   "Hearing Fixed": "سماعت مقرر",
   "Issued {{issued}} · Due {{due}}": "اجراء {{issued}} · ادائیگی کی آخری تاریخ {{due}}",
   "Issued {{issued}} · Due {{due}} (overdue)": "اجراء {{issued}} · ادائیگی کی آخری تاریخ {{due}} (تاریخ گزر چکی)",
@@ -77,7 +76,6 @@
   "No pleadings attached yet": "ابھی کوئی درخواست منسلک نہیں",
   "No summons or notices": "کوئی سمن یا نوٹس نہیں",
   "Open a case to manage its pleadings and submit digital exhibits.": "درخواستوں کے انتظام اور ڈیجیٹل شہادت جمع کرانے کے لیے مقدمہ کھولیں۔",
-  "Open case": "مقدمہ کھولیں",
   "Opposing party {{number}}": "مخالف فریق {{number}}",
   "Order: {{lockReason}}": "حکم: {{lockReason}}",
   "Pay Fee Online": "فیس آن لائن ادا کریں",
@@ -86,6 +84,7 @@
   "Photo": "تصویر",
   "Pleadings": "درخواستیں",
   "Pleadings are locked to the case number and cannot be changed or deleted.": "درخواستیں مقدمہ نمبر کے ساتھ مقفل ہیں اور ان میں تبدیلی یا حذف ممکن نہیں۔",
+  "Preview challan": "چالان کا پیش منظر",
   "Proof": "ثبوت",
   "Recalculate": "دوبارہ شمار کریں",
   "Receipt {{receiptNo}}. See all payments under <link>Payments & Receipts</link>.": "رسید {{receiptNo}}۔ تمام ادائیگیاں <link>ادائیگیاں اور رسیدیں</link> میں دیکھیں۔",
@@ -117,5 +116,6 @@
   "Uploading exhibits": "شہادت اپ لوڈ ہو رہی ہے",
   "Uploading pleadings": "درخواستیں اپ لوڈ ہو رہی ہیں",
   "Uploading your case": "آپ کا مقدمہ اپ لوڈ ہو رہا ہے",
+  "View case": "مقدمہ دیکھیں",
   "Your case is registered and is pending assignment to a judge. Keep this number for all future reference.": "آپ کا مقدمہ درج ہو گیا ہے اور جج کو تفویض کا منتظر ہے۔ آئندہ ہر حوالے کے لیے یہ نمبر محفوظ رکھیں۔"
 }

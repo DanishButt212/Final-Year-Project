@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Search, UserPlus, Users } from 'lucide-react';
@@ -226,7 +227,7 @@ export function ClientsPage() {
           <Search aria-hidden="true" /> {t('Search')}
         </Button>
       </form>
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={5} cols={6} />
       ) : data && data.data.length === 0 ? (
@@ -298,7 +299,7 @@ export function ClientDetailPage() {
   if (isPending) return <Skeleton className="h-96" />;
   if (error || !data) {
     return !data && parseApiError(error).statusCode !== 404 ? (
-      <Alert variant="error">{parseApiError(error).message}</Alert>
+      <QueryError error={error} />
     ) : (
       <NotFoundPage />
     );

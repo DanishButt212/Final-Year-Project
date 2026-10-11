@@ -1,9 +1,9 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Gavel, Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { parseApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import {
   judgeOrdersApi,
@@ -125,7 +124,7 @@ export default function JudgeOrdersPage() {
         </Button>
       </form>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={6} cols={6} />
       ) : data && data.data.length === 0 ? (

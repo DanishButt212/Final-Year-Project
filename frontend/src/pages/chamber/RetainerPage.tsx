@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BellRing, PiggyBank, Wallet } from 'lucide-react';
 import { useState } from 'react';
@@ -166,7 +167,7 @@ export default function RetainerPage() {
           </Button>
         }
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={5} cols={6} />
       ) : data && data.data.length === 0 ? (

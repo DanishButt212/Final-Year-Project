@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -134,7 +135,7 @@ export function VirtualCourtroomListPage() {
         ]}
       />
       {data && !data.moderationEnabled && <FallbackBanner />}
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={4} cols={5} />
       ) : (
@@ -429,7 +430,7 @@ export function VirtualCourtroomControlPage() {
 
   if (isPending) return <Skeleton className="h-96" />;
   if (isError || !data) {
-    return <Alert variant="error">{parseApiError(error).message}</Alert>;
+    return <QueryError error={error} />;
   }
   const h = data.hearing;
   const active = data.status === 'ACTIVE';

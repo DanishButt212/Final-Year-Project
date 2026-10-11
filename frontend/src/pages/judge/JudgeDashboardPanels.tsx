@@ -1,12 +1,11 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useQuery } from '@tanstack/react-query';
 import { ClipboardList, Gavel } from 'lucide-react';
 import { Link } from 'react-router';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { parseApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
 import { judgeOrdersApi } from '@/lib/phase5-api';
 import { isoToDdMmYyyy, schedulingApi, todayIso, weekdayName } from '@/lib/scheduling-api';
@@ -35,7 +34,7 @@ export function TodayHearingsPanel() {
       </CardHeader>
       {isError && (
         <div className="px-5 pb-5">
-          <Alert variant="error">{parseApiError(error).message}</Alert>
+          <QueryError error={error} />
         </div>
       )}
       {isPending ? (
@@ -105,7 +104,7 @@ export function RecentOrdersPanel() {
       </CardHeader>
       {isError && (
         <div className="px-5 pb-5">
-          <Alert variant="error">{parseApiError(error).message}</Alert>
+          <QueryError error={error} />
         </div>
       )}
       {isPending ? (

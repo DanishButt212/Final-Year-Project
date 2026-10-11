@@ -44,9 +44,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, i)}
-      <mark className="rounded-sm bg-accent-soft text-text">
-        {text.slice(i, i + q.length)}
-      </mark>
+      <mark className="rounded-sm bg-accent-soft text-text">{text.slice(i, i + q.length)}</mark>
       {text.slice(i + q.length)}
     </>
   );
@@ -239,7 +237,10 @@ export default function CommandPalette({
                       >
                         <Briefcase aria-hidden="true" />
                         <span className="min-w-0 flex-1">
-                          <span className="case-number block whitespace-nowrap text-sm font-medium" dir="ltr">
+                          <span
+                            className="case-number block whitespace-nowrap text-sm font-medium"
+                            dir="ltr"
+                          >
                             <Highlight text={c.ucn} query={query} />
                           </span>
                           <bdi className="block truncate text-sm">
@@ -272,7 +273,9 @@ export default function CommandPalette({
                       <Highlight text={t(a.label)} query={query} />
                     </CommandItem>
                   ))}
-                  {matches(otherLanguage === 'ur' ? msg('Switch to Urdu') : msg('Switch to English')) && (
+                  {matches(
+                    otherLanguage === 'ur' ? msg('Switch to Urdu') : msg('Switch to English'),
+                  ) && (
                     <CommandItem
                       value="action-language"
                       onSelect={() => {
@@ -282,8 +285,10 @@ export default function CommandPalette({
                     >
                       <Languages aria-hidden="true" />
                       <span>
-                        {t(otherLanguage === 'ur' ? msg('Switch to Urdu') : msg('Switch to English'))} (
-                        <span lang={otherLanguage}>{switchLabel}</span>)
+                        {t(
+                          otherLanguage === 'ur' ? msg('Switch to Urdu') : msg('Switch to English'),
+                        )}{' '}
+                        (<span lang={otherLanguage}>{switchLabel}</span>)
                       </span>
                     </CommandItem>
                   )}

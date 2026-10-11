@@ -1,10 +1,10 @@
+import { QueryError } from '@/components/ui/query-error';
 import { CaseStatusCell } from '@/components/case/CaseStatusCell';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Briefcase, Search, Shuffle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -23,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { parseApiError } from '@/lib/api';
 import { adminApi, type AdminCaseItem } from '@/lib/admin-api';
 import {
   CASE_TYPES,
@@ -192,7 +191,7 @@ export default function AdminCasesPage() {
         </div>
       </form>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
 
       {isPending ? (
         <TableSkeleton rows={8} cols={6} />

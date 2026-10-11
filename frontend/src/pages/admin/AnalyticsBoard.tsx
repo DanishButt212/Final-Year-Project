@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   Activity,
@@ -21,13 +22,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Alert } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { parseApiError } from '@/lib/api';
 import { adminApi, type DashboardStats, type DayCount } from '@/lib/admin-api';
 import { caseTypeLabel, STATUS_BADGES, type CaseStatus } from '@/lib/case-status';
 import { formatDate } from '@/lib/format';
@@ -211,7 +210,7 @@ export default function AnalyticsBoard() {
         </div>
       </div>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
 
       {isPending ? (
         <div role="status" aria-label={t('Loading analytics')} className="space-y-6">

@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { History, Lock, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
-import { TableSkeleton } from '@/components/ui/skeleton';
+import { DetailSkeleton, TableSkeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -50,9 +51,9 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
       title={data ? data.eventId : t('Audit event')}
       description={t('Read-only. This entry can never be edited or deleted.')}
     >
-      {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {error && <QueryError error={error} />}
       {isPending ? (
-        <p>{t('Loading...')}</p>
+        <DetailSkeleton />
       ) : (
         data && (
           <div className="space-y-4 text-sm">
@@ -274,7 +275,7 @@ export default function AuditVaultPage() {
         </Alert>
       )}
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={8} cols={6} />
       ) : data && data.data.length === 0 ? (

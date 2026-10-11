@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { NotebookPen, Pencil, Save } from 'lucide-react';
@@ -15,7 +16,6 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
-import { parseApiError } from '@/lib/api';
 import { internApi, MSG, type ResearchLog } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { formatDate } from '@/lib/format';
@@ -231,7 +231,7 @@ export default function ResearchLogsPage() {
       </div>
 
       <h2 className="mb-3 text-xl font-bold">{t('My research logs')}</h2>
-      {list.isError && <Alert variant="error">{parseApiError(list.error).message}</Alert>}
+      {list.isError && <QueryError error={list.error} />}
       {list.isPending ? (
         <TableSkeleton rows={3} cols={4} />
       ) : list.data && list.data.data.length === 0 ? (

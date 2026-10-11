@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Clock, Save } from 'lucide-react';
@@ -25,7 +26,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from '@/components/ui/toaster';
-import { parseApiError } from '@/lib/api';
 import { chamberApi } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatPkr } from '@/lib/format';
@@ -345,7 +345,7 @@ export default function BillablePage() {
           )}
         </Field>
       </div>
-      {list.isError && <Alert variant="error">{parseApiError(list.error).message}</Alert>}
+      {list.isError && <QueryError error={list.error} />}
       {list.isPending ? (
         <TableSkeleton rows={5} cols={6} />
       ) : list.data && list.data.data.length === 0 ? (

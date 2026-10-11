@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Receipt, Save } from 'lucide-react';
@@ -23,7 +24,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from '@/components/ui/toaster';
-import { parseApiError } from '@/lib/api';
 import { chamberApi } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatPkr } from '@/lib/format';
@@ -169,7 +169,7 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={4} cols={4} />
       ) : data && data.data.length === 0 ? (

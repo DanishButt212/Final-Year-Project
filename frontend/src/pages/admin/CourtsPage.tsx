@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Gavel, LocateFixed, MapPin, Pencil, Plus } from 'lucide-react';
@@ -291,7 +292,7 @@ export default function CourtsPage() {
         )}
         crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Courts & Benches') }]}
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <div role="status" aria-label={t('Loading courts')} className="space-y-4">
           <Skeleton className="h-56" />

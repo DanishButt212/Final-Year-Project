@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { CaseStatusCell } from '@/components/case/CaseStatusCell';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Briefcase, FilePlus2, Search } from 'lucide-react';
@@ -5,7 +6,6 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -23,7 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { parseApiError } from '@/lib/api';
 import { casesApi } from '@/lib/cases-api';
 import { caseTypeLabel, judgeBench, STATUS_BADGES, type CaseStatus } from '@/lib/case-status';
 import { formatDate } from '@/lib/format';
@@ -139,7 +138,7 @@ export default function PortfolioPage() {
         </Button>
       </form>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
 
       {isPending ? (
         <TableSkeleton rows={6} cols={5} />

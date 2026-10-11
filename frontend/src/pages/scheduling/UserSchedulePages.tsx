@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { AddToCalendar } from '@/components/hearing/AddToCalendar';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { CalendarX2, ClipboardList } from 'lucide-react';
@@ -5,7 +6,6 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -23,7 +23,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { parseApiError } from '@/lib/api';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import {
   addDaysIso,
@@ -99,7 +98,7 @@ export function HearingSchedulePage() {
           <TabsContent key={tab} value={tab} forceMount className="pt-0">
             {when === tab && (
               <div className="mt-5">
-                {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+                {isError && <QueryError error={error} />}
                 {isPending ? (
                   <TableSkeleton rows={5} cols={6} />
                 ) : data && data.data.length === 0 ? (
@@ -261,7 +260,7 @@ export function CauseListsPage() {
           )}
         </Field>
       </div>
-      {all.isError && <Alert variant="error">{parseApiError(all.error).message}</Alert>}
+      {all.isError && <QueryError error={all.error} />}
       {all.isPending ? (
         <TableSkeleton rows={5} cols={6} />
       ) : data && !data.published ? (
@@ -391,7 +390,7 @@ export function JudgeSchedulePage() {
           {t('This week')}
         </button>
       </div>
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-64" />
       ) : (

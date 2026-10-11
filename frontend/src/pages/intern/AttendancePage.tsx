@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { msg } from '@/i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, LogOut, MapPin } from 'lucide-react';
@@ -171,7 +172,7 @@ export default function AttendancePage() {
                 )}
               </Field>
             </div>
-            {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+            {isError && <QueryError error={error} />}
             {isPending ? (
               <TableSkeleton rows={4} cols={5} />
             ) : data && data.data.length === 0 ? (

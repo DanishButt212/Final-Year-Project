@@ -1,9 +1,9 @@
+import { QueryError } from '@/components/ui/query-error';
 import { CaseStatusCell } from '@/components/case/CaseStatusCell';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Briefcase, Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -20,7 +20,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Link } from 'react-router';
-import { parseApiError } from '@/lib/api';
 import { adminApi } from '@/lib/admin-api';
 import { caseTypeLabel } from '@/lib/case-status';
 import { formatDate } from '@/lib/format';
@@ -76,7 +75,7 @@ export function MyAllocatedCases() {
           </Button>
         </form>
 
-        {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+        {isError && <QueryError error={error} />}
 
         {isPending ? (
           <TableSkeleton rows={5} cols={6} />

@@ -1,10 +1,10 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Archive } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -19,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { parseApiError } from '@/lib/api';
 import { casesApi } from '@/lib/cases-api';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +48,7 @@ export default function EvidenceIndexPage() {
           { label: t('Evidence Vault') },
         ]}
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={5} cols={4} />
       ) : data && data.data.length === 0 ? (

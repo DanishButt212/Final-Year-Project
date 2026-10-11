@@ -1,18 +1,18 @@
+import { QueryError } from '@/components/ui/query-error';
 import { translateNotice } from '@/lib/server-messages';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { NOTIFICATIONS_KEY } from '@/lib/query-keys';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/auth/useAuth';
-import { NOTIFICATIONS_KEY } from '@/lib/query-keys';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
-import { parseApiError } from '@/lib/api';
 import { notificationsApi } from '@/lib/admin-api';
+import { useNotificationActions } from '@/hooks/use-notification-actions';
 import { formatDateTime } from '@/lib/format';
 import { roleHome } from '@/lib/navigation';
 import { notificationLink } from '@/lib/scheduling-api';
@@ -27,7 +27,6 @@ const PAGE_SIZE = 15;
 export default function NotificationsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
 
   const { data, isPending, isError, error } = useQuery({
@@ -35,9 +34,7 @@ export default function NotificationsPage() {
     queryFn: () => notificationsApi.list({ page, limit: PAGE_SIZE }),
     placeholderData: keepPreviousData,
   });
-  const refresh = () => queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
-  const markRead = useMutation({ mutationFn: notificationsApi.markRead, onSuccess: refresh });
-  const markAll = useMutation({ mutationFn: notificationsApi.readAll, onSuccess: refresh });
+  const { markRead, markAll } = useNotificationActions();
 
   if (!user) return null;
 
@@ -58,7 +55,7 @@ export default function NotificationsPage() {
           </Button>
         }
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <div role="status" aria-label={t('Loading notifications')} className="space-y-3">
           <Skeleton className="h-16" />

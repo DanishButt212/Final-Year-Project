@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -11,7 +12,7 @@ import { Drawer } from '@/components/ui/drawer';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Field } from '@/components/ui/field';
 import { NativeSelect } from '@/components/ui/native-select';
-import { Skeleton } from '@/components/ui/skeleton';
+import { DetailSkeleton, Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -82,9 +83,9 @@ function AlertDrawer({ id, onClose }: { id: string; onClose: () => void }) {
       title={t('Security alert')}
       description={t('Privilege escalation threat')}
     >
-      {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {error && <QueryError error={error} />}
       {isPending ? (
-        <p>{t('Loading...')}</p>
+        <DetailSkeleton />
       ) : (
         data && (
           <div className="space-y-4 text-sm">
@@ -230,7 +231,7 @@ function AlertsTab() {
           )}
         </Field>
       </div>
-      {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {error && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-40" />
       ) : data && data.data.length === 0 ? (
@@ -307,7 +308,7 @@ function BlockedTab() {
   });
   return (
     <div className="space-y-4">
-      {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {error && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-32" />
       ) : data && data.length === 0 ? (

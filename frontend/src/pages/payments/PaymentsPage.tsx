@@ -1,10 +1,12 @@
+import { QueryError } from '@/components/ui/query-error';
+import { CopyButton } from '@/components/ui/copy-button';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Download, ReceiptText } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -65,7 +67,7 @@ export default function PaymentsPage() {
         />
         {t('Show failed attempts')}
       </label>
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={5} cols={6} />
       ) : data && data.data.length === 0 ? (
@@ -109,7 +111,10 @@ export default function PaymentsPage() {
                         {p.ucn}
                       </Link>
                     </TableCell>
-                    <TableCell className="case-number whitespace-nowrap">{p.challanNo}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      <span className="case-number">{p.challanNo}</span>{' '}
+                      <CopyButton value={p.challanNo} label={t('Copy challan number')} />
+                    </TableCell>
                     <TableCell className="whitespace-nowrap text-end">
                       {formatPkr(p.amount)}
                     </TableCell>
@@ -122,20 +127,30 @@ export default function PaymentsPage() {
                     </TableCell>
                     <TableCell>
                       {p.status === 'SUCCESS' && p.receiptNo ? (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() =>
-                            feesApi
-                              .downloadReceipt(p.id, p.receiptNo!)
-                              .catch((e) => toast.error(parseApiError(e).message))
-                          }
-                          aria-label={t('Download Receipt Proof {{receiptNo}}', {
-                            receiptNo: p.receiptNo,
-                          })}
-                        >
-                          <Download aria-hidden="true" /> {t('Download Receipt Proof')}
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <PreviewButton
+                            iconOnly
+                            file={{
+                              path: `/payments/${p.id}/receipt`,
+                              name: `${p.receiptNo}.pdf`,
+                              kind: 'pdf',
+                            }}
+                          />
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              feesApi
+                                .downloadReceipt(p.id, p.receiptNo!)
+                                .catch((e) => toast.error(parseApiError(e).message))
+                            }
+                            aria-label={t('Download Receipt Proof {{receiptNo}}', {
+                              receiptNo: p.receiptNo,
+                            })}
+                          >
+                            <Download aria-hidden="true" /> {t('Download Receipt Proof')}
+                          </Button>
+                        </div>
                       ) : (
                         <span className="text-text-muted">—</span>
                       )}

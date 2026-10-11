@@ -1,3 +1,5 @@
+import { QueryError } from '@/components/ui/query-error';
+import { CopyButton } from '@/components/ui/copy-button';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Building2, Save } from 'lucide-react';
@@ -14,7 +16,6 @@ import { Input, Textarea } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
-import { parseApiError } from '@/lib/api';
 import { chamberApi, type ChamberProfile } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
@@ -296,7 +297,7 @@ export default function ChamberSettingsPage() {
         description={t('Update the identity and billing defaults of your chamber.')}
         crumbs={[{ label: t('Dashboard'), to: '/lawyer' }, { label: t('Chamber Settings') }]}
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-96 max-w-3xl" />
       ) : (
@@ -307,7 +308,8 @@ export default function ChamberSettingsPage() {
                 <p>
                   <span className="text-sm text-text-muted">{t('Chamber ID')}</span>
                   <br />
-                  <span className="case-number text-lg font-semibold">{data.chamberCode}</span>
+                  <span className="case-number text-lg font-semibold">{data.chamberCode}</span>{' '}
+                  <CopyButton value={data.chamberCode} label={t('Copy chamber ID')} />
                 </p>
                 <p>
                   <span className="text-sm text-text-muted">{t('Licence status')}</span>

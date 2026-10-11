@@ -50,7 +50,11 @@ export const CommandEmpty = React.forwardRef<
   React.ComponentRef<typeof CommandPrimitive.Empty>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-  <CommandPrimitive.Empty ref={ref} className="px-3 py-8 text-center text-sm text-text-muted" {...props} />
+  <CommandPrimitive.Empty
+    ref={ref}
+    className="px-3 py-8 text-center text-sm text-text-muted"
+    {...props}
+  />
 ));
 CommandEmpty.displayName = 'CommandEmpty';
 

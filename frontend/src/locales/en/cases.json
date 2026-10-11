@@ -60,7 +60,6 @@
   "Files are encrypted and sealed with a SHA-256 hash. Video: mp4, webm. Audio: mp3, wav, m4a. Scanned records: pdf, jpg, png. Up to 5 files at a time.": "Files are encrypted and sealed with a SHA-256 hash. Video: mp4, webm. Audio: mp3, wav, m4a. Scanned records: pdf, jpg, png. Up to 5 files at a time.",
   "Fill in the four steps below. Nothing is saved until you submit on the last step.": "Fill in the four steps below. Nothing is saved until you submit on the last step.",
   "Full name": "Full name",
-  "Go to My Case Portfolio": "Go to My Case Portfolio",
   "Hearing Fixed": "Hearing Fixed",
   "Issued {{issued}} · Due {{due}}": "Issued {{issued}} · Due {{due}}",
   "Issued {{issued}} · Due {{due}} (overdue)": "Issued {{issued}} · Due {{due}} (overdue)",
@@ -77,7 +76,6 @@
   "No pleadings attached yet": "No pleadings attached yet",
   "No summons or notices": "No summons or notices",
   "Open a case to manage its pleadings and submit digital exhibits.": "Open a case to manage its pleadings and submit digital exhibits.",
-  "Open case": "Open case",
   "Opposing party {{number}}": "Opposing party {{number}}",
   "Order: {{lockReason}}": "Order: {{lockReason}}",
   "Pay Fee Online": "Pay Fee Online",
@@ -86,6 +84,7 @@
   "Photo": "Photo",
   "Pleadings": "Pleadings",
   "Pleadings are locked to the case number and cannot be changed or deleted.": "Pleadings are locked to the case number and cannot be changed or deleted.",
+  "Preview challan": "Preview challan",
   "Proof": "Proof",
   "Recalculate": "Recalculate",
   "Receipt {{receiptNo}}. See all payments under <link>Payments & Receipts</link>.": "Receipt {{receiptNo}}. See all payments under <link>Payments & Receipts</link>.",
@@ -117,5 +116,6 @@
   "Uploading exhibits": "Uploading exhibits",
   "Uploading pleadings": "Uploading pleadings",
   "Uploading your case": "Uploading your case",
+  "View case": "View case",
   "Your case is registered and is pending assignment to a judge. Keep this number for all future reference.": "Your case is registered and is pending assignment to a judge. Keep this number for all future reference."
 }

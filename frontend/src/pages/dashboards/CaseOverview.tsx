@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { CaseStatusCell } from '@/components/case/CaseStatusCell';
 import { useQuery } from '@tanstack/react-query';
 import { Briefcase, FilePlus2, Hourglass, Receipt, Scale } from 'lucide-react';
@@ -9,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useFilingGate } from '@/hooks/use-filing-gate';
-import { parseApiError } from '@/lib/api';
 import { casesApi } from '@/lib/cases-api';
 import { caseTypeLabel, judgeBench } from '@/lib/case-status';
 import { formatDate } from '@/lib/format';
@@ -78,7 +78,7 @@ export default function CaseOverview() {
         </Alert>
       )}
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
 
       {isPending ? (
         <div role="status" aria-label={t('Loading cases')} className="grid gap-4 sm:grid-cols-2">

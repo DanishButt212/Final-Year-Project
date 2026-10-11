@@ -1,3 +1,5 @@
+import { QueryError } from '@/components/ui/query-error';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { CopyButton } from '@/components/ui/copy-button';
 import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
@@ -7,7 +9,6 @@ import { Download, FileText, ScrollText, Shuffle } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -106,7 +107,7 @@ export default function AdminCaseDetailPage() {
     return parseApiError(error).statusCode === 404 || !data ? (
       <NotFoundPage />
     ) : (
-      <Alert variant="error">{parseApiError(error).message}</Alert>
+      <QueryError error={error} />
     );
   }
 
@@ -227,7 +228,15 @@ export default function AdminCaseDetailPage() {
                           {formatDate(d.uploadedAt)}
                           <span className="block text-sm text-text-muted">{d.uploadedBy}</span>
                         </TableCell>
-                        <TableCell className="text-end">
+                        <TableCell className="space-x-2 whitespace-nowrap text-end">
+                          <PreviewButton
+                            iconOnly
+                            file={{
+                              path: `/admin/cases/${caseId}/documents/${d.id}/download`,
+                              name: d.name,
+                              kind: 'pdf',
+                            }}
+                          />
                           <Button
                             variant="secondary"
                             size="sm"

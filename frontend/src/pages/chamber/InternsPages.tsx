@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Copy, GraduationCap, NotebookPen, Search, UserPlus } from 'lucide-react';
@@ -302,7 +303,7 @@ export function InternsPage() {
           </Button>
         }
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={3} cols={6} />
       ) : data && data.length === 0 ? (
@@ -408,7 +409,7 @@ export function InternDetailPage() {
   if (isPending) return <Skeleton className="h-96" />;
   if (error || !data) {
     return !data && parseApiError(error).statusCode !== 404 ? (
-      <Alert variant="error">{parseApiError(error).message}</Alert>
+      <QueryError error={error} />
     ) : (
       <NotFoundPage />
     );
@@ -675,7 +676,7 @@ export function ResearchReviewPage() {
           </Button>
         </div>
       </form>
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={4} cols={6} />
       ) : data && data.data.length === 0 ? (

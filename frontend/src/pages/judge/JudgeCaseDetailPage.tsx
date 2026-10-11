@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { AddToCalendar } from '@/components/hearing/AddToCalendar';
 import { CopyButton } from '@/components/ui/copy-button';
@@ -8,7 +9,6 @@ import { Gavel } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,7 +86,7 @@ export default function JudgeCaseDetailPage() {
     return parseApiError(error).statusCode === 404 || !data ? (
       <NotFoundPage />
     ) : (
-      <Alert variant="error">{parseApiError(error).message}</Alert>
+      <QueryError error={error} />
     );
   }
 

@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { translateText } from '@/lib/server-messages';
 import i18n from '@/i18n';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
@@ -467,7 +468,7 @@ export default function BoardPage() {
           {dropError}
         </Alert>
       )}
-      {board.isError && <Alert variant="error">{parseApiError(board.error).message}</Alert>}
+      {board.isError && <QueryError error={board.error} />}
 
       {!b ? (
         <div role="status" aria-label={t('Loading board')} className="space-y-3">

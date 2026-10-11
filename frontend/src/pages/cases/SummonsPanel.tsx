@@ -1,7 +1,9 @@
+import { QueryError } from '@/components/ui/query-error';
+import { useViewer } from '@/components/viewer/viewer-context';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { useQuery } from '@tanstack/react-query';
 import { Download, ScrollText } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -30,6 +32,8 @@ function JudgeImage({
   kind: 'photo' | 'signature';
   label: string;
 }) {
+  const { t } = useTranslation();
+  const { open } = useViewer();
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
@@ -49,11 +53,18 @@ function JudgeImage({
   }, [id, kind]);
   return url ? (
     <figure>
-      <img
-        src={url}
-        alt={label}
-        className="max-h-40 rounded-md border border-border bg-white object-contain"
-      />
+      <button
+        type="button"
+        onClick={() => open({ path: `/summons/${id}/proof/${kind}`, name: label, kind: 'image' })}
+        className="block rounded-md"
+        aria-label={t('Preview {{name}}', { name: label })}
+      >
+        <img
+          src={url}
+          alt={label}
+          className="max-h-40 rounded-md border border-border bg-white object-contain"
+        />
+      </button>
       <figcaption className="text-xs text-text-muted">{label}</figcaption>
     </figure>
   ) : null;
@@ -76,7 +87,7 @@ export default function SummonsPanel({
   });
 
   if (isPending) return <Skeleton className="h-40" />;
-  if (isError) return <Alert variant="error">{parseApiError(error).message}</Alert>;
+  if (isError) return <QueryError error={error} />;
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -135,6 +146,13 @@ export default function SummonsPanel({
               <TableCell>
                 {s.hasProof ? (
                   <div className="space-y-2">
+                    <PreviewButton
+                      file={{
+                        path: `/summons/${s.id}/proof.pdf`,
+                        name: `proof-of-service-${ucn}.pdf`, // i18n-ignore
+                        kind: 'pdf',
+                      }}
+                    />{' '}
                     <Button
                       size="sm"
                       variant="secondary"

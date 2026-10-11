@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import i18n from '@/i18n';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageSquareText, Search, Star } from 'lucide-react';
@@ -289,7 +290,7 @@ export default function FeedbackAnalysisPage() {
         </Button>
       </form>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={6} cols={6} />
       ) : data && data.data.length === 0 ? (

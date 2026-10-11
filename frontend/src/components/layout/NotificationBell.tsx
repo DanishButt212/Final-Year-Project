@@ -1,11 +1,12 @@
 import { translateNotice } from '@/lib/server-messages';
 import { NOTIFICATIONS_KEY } from '@/lib/query-keys';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { notificationsApi } from '@/lib/admin-api';
+import { useNotificationActions } from '@/hooks/use-notification-actions';
 import { notificationLink } from '@/lib/scheduling-api';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -40,7 +41,6 @@ const POLL_MS = 60_000;
 /** Header bell: unread badge, latest notifications, mark as read. Polls every 60 seconds. */
 export function NotificationBell() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -52,9 +52,7 @@ export function NotificationBell() {
   });
   const unread = data?.unreadCount ?? 0;
 
-  const refresh = () => queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_KEY });
-  const markRead = useMutation({ mutationFn: notificationsApi.markRead, onSuccess: refresh });
-  const markAll = useMutation({ mutationFn: notificationsApi.readAll, onSuccess: refresh });
+  const { markRead, markAll } = useNotificationActions();
 
   useEffect(() => {
     if (!open) return;

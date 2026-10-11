@@ -1,3 +1,5 @@
+import { QueryError } from '@/components/ui/query-error';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, ShieldCheck, ShieldAlert, Download, History } from 'lucide-react';
@@ -248,7 +250,7 @@ function HistorySection() {
       <h2 id="history-title" className="flex items-center gap-2 font-heading text-xl font-bold">
         <History className="size-5 text-primary" aria-hidden="true" /> {t('Report history')}
       </h2>
-      {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {error && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-32" />
       ) : data && data.data.length === 0 ? (
@@ -291,6 +293,16 @@ function HistorySection() {
                       <TableCell>{r.generatedBy}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
+                          {r.format === 'PDF' && (
+                            <PreviewButton
+                              iconOnly
+                              file={{
+                                path: `/admin/reports/${r.id}/download`,
+                                name: `${r.code}.pdf`,
+                                kind: 'pdf',
+                              }}
+                            />
+                          )}
                           <Button size="sm" variant="secondary" onClick={() => download.mutate(r)}>
                             <Download aria-hidden="true" /> {t('Download')}
                           </Button>
@@ -489,7 +501,7 @@ export default function PerformancePage() {
         </CardContent>
       </Card>
 
-      {report.isError && <Alert variant="error">{parseApiError(report.error).message}</Alert>}
+      {report.isError && <QueryError error={report.error} />}
       {compiled && report.isPending && <Skeleton className="h-64" />}
       {report.data && (
         <div className="mb-8 space-y-6">

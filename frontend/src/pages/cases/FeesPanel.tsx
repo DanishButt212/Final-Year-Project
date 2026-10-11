@@ -1,3 +1,6 @@
+import { QueryError } from '@/components/ui/query-error';
+import { CopyButton } from '@/components/ui/copy-button';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calculator, CreditCard, Download, FileText, Printer, Receipt } from 'lucide-react';
@@ -104,7 +107,7 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
 
   return (
     <div className="space-y-6">
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {message && <Alert variant="success">{message}</Alert>}
 
       {isPending ? (
@@ -131,7 +134,8 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>
-                {t('Challan')} <span className="case-number">{challan.challanNo}</span>
+                {t('Challan')} <span className="case-number">{challan.challanNo}</span>{' '}
+                <CopyButton value={challan.challanNo} label={t('Copy challan number')} />
               </CardTitle>
               <p className="text-sm text-text-muted">
                 {challan.overdue
@@ -169,9 +173,29 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
                   <Printer aria-hidden="true" /> {t('Print Challan')}
                 </Link>
               </Button>
+              <PreviewButton
+                label={t('Preview challan')}
+                size="default"
+                file={{
+                  path: `/challans/${challan.id}/pdf`,
+                  name: `${challan.challanNo}.pdf`,
+                  kind: 'pdf',
+                }}
+              />
               <Button variant="secondary" onClick={pdf} loading={downloading}>
                 <Download aria-hidden="true" /> {t('Download Challan PDF')}
               </Button>
+              {challan.status === 'PAID' && challan.payment?.receiptNo && (
+                <PreviewButton
+                  label={t('Preview receipt')}
+                  size="default"
+                  file={{
+                    path: `/payments/${challan.payment.id}/receipt`,
+                    name: `${challan.payment.receiptNo}.pdf`,
+                    kind: 'pdf',
+                  }}
+                />
+              )}
               {challan.status === 'PAID' && challan.payment?.receiptNo && (
                 <Button
                   variant="secondary"

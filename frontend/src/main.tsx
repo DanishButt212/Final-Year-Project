@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router';
 import App from './App';
 import { AuthProvider } from './auth/AuthProvider';
 import { Toaster } from './components/ui/toaster';
+import { ViewerProvider } from './components/viewer/ViewerProvider';
 import { changeLanguage, readStoredLanguage } from './i18n';
 import { applyFontScale, readStoredFontScale } from './preferences/preferences';
 import { PreferencesProvider } from './preferences/PreferencesProvider';
@@ -21,7 +22,9 @@ function render() {
         <BrowserRouter>
           <PreferencesProvider>
             <AuthProvider>
-              <App />
+              <ViewerProvider>
+                <App />
+              </ViewerProvider>
               <Toaster />
             </AuthProvider>
           </PreferencesProvider>

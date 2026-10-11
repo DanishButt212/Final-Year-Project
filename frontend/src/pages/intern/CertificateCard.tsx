@@ -1,3 +1,6 @@
+import { QueryError } from '@/components/ui/query-error';
+import { CopyButton } from '@/components/ui/copy-button';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Award, Download, ShieldCheck } from 'lucide-react';
@@ -17,10 +20,12 @@ import { useTranslation } from 'react-i18next';
 /** The issued certificate's facts with Download PDF and Verify seal. */
 export function CertificateDetails({
   cert,
+  previewPath,
   onDownload,
   onVerify,
 }: {
   cert: Certificate;
+  previewPath: string;
   onDownload: () => Promise<void>;
   onVerify: () => Promise<SealCheck>;
 }) {
@@ -40,7 +45,10 @@ export function CertificateDetails({
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-text-muted">{t('Certificate number')}</dt>
-          <dd className="case-number font-semibold">{cert.certificateNo}</dd>
+          <dd className="flex items-center gap-2">
+            <span className="case-number font-semibold">{cert.certificateNo}</span>
+            <CopyButton value={cert.certificateNo} label={t('Copy certificate number')} />
+          </dd>
         </div>
         <div>
           <dt className="text-text-muted">{t('Issued')}</dt>
@@ -77,6 +85,10 @@ export function CertificateDetails({
         </div>
       </dl>
       <div className="flex flex-wrap gap-2">
+        <PreviewButton
+          size="default"
+          file={{ path: previewPath, name: `${cert.certificateNo}.pdf`, kind: 'pdf' }}
+        />
         <Button loading={download.isPending} onClick={() => download.mutate()}>
           <Download aria-hidden="true" /> {t('Download PDF certificate')}
         </Button>
@@ -125,12 +137,13 @@ export function LawyerCertificateCard({ internId }: { internId: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+        {isError && <QueryError error={error} />}
         {isPending ? (
           <Skeleton className="h-20" />
         ) : data?.certificate ? (
           <CertificateDetails
             cert={data.certificate}
+            previewPath={`/chamber/interns/${internId}/certificate/pdf`}
             onDownload={() =>
               certificateApi.lawyerDownload(internId, data.certificate!.certificateNo)
             }

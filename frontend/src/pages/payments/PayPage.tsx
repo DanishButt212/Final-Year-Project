@@ -1,9 +1,12 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, CreditCard, Download, ShieldAlert } from 'lucide-react';
+import { CreditCard, Download, ShieldAlert } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
+import { SuccessPanel } from '@/components/feedback/SuccessPanel';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -147,22 +150,27 @@ export default function PayPage() {
         </div>
 
         {done ? (
-          <Card>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="size-8 text-primary" aria-hidden="true" />
-                <div>
-                  <h2 className="text-xl font-bold">{t('Payment successful')}</h2>
-                  <p className="text-text-muted">
-                    {t('{{pkr}} received.', { pkr: formatPkr(done.amount) })}
-                  </p>
-                </div>
-              </div>
-              <p>
-                {t('Receipt number:')}{' '}
-                <span className="case-number font-semibold">{done.receiptNo}</span>
-              </p>
-              <div className="flex flex-wrap gap-3">
+          <SuccessPanel
+            className="max-w-none"
+            title={t('Payment successful')}
+            description={t('{{pkr}} received.', { pkr: formatPkr(done.amount) })}
+            reference={{
+              label: t('Receipt number'),
+              value: done.receiptNo,
+              copyLabel: t('Copy receipt number'),
+            }}
+            actions={
+              <>
+                <PreviewButton
+                  size="default"
+                  variant="secondary"
+                  label={t('Preview receipt')}
+                  file={{
+                    path: `/payments/${done.paymentId}/receipt`,
+                    name: `${done.receiptNo}.pdf`,
+                    kind: 'pdf',
+                  }}
+                />
                 <Button
                   onClick={() =>
                     feesApi
@@ -170,18 +178,18 @@ export default function PayPage() {
                       .catch((e) => toast.error(parseApiError(e).message))
                   }
                 >
-                  <Download aria-hidden="true" /> {t('Download Receipt Proof')}
+                  <Download aria-hidden="true" /> {t('Download receipt')}
                 </Button>
                 <Button variant="secondary" asChild>
                   <Link to={portalPath(portal, 'payments')}>{t('Payments & Receipts')}</Link>
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </>
+            }
+          />
         ) : session.isPending ? (
           <Skeleton className="h-72" />
         ) : session.isError ? (
-          <Alert variant="error">{parseApiError(session.error).message}</Alert>
+          <QueryError error={session.error} />
         ) : (
           <Card>
             <CardHeader>

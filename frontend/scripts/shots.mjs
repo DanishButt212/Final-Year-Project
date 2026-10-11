@@ -32,6 +32,7 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 page.on('pageerror', (e) => console.log('pageerror:', e.message));
+page.on('console', (m) => m.type() === 'error' && console.log('console:', m.text().slice(0, 300)));
 
 await page.addInitScript(
   ({ lang, scale, intro }) => {
@@ -97,9 +98,12 @@ if (opt.frames) {
 } else {
   await page.waitForLoadState('networkidle').catch(() => {});
   if (opt.click) {
-    // e.g. --click=a[href*="/cases/"] opens the first case of a list
-    await page.locator(opt.click).first().click();
-    await page.waitForLoadState('networkidle').catch(() => {});
+    // e.g. --click=a[href*="/cases/"] opens the first case of a list; several clicks are separated by ' >> next '
+    for (const sel of opt.click.split(' >> next ')) {
+      await page.locator(sel).first().click();
+      await page.waitForLoadState('networkidle').catch(() => {});
+      await page.waitForTimeout(400);
+    }
   }
   if (opt.press) {
     await page.keyboard.press(opt.press);

@@ -1,3 +1,6 @@
+import { QueryError } from '@/components/ui/query-error';
+import { CopyButton } from '@/components/ui/copy-button';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { useQuery } from '@tanstack/react-query';
 import { Download, Printer } from 'lucide-react';
 import { useParams } from 'react-router';
@@ -35,7 +38,7 @@ export default function ChallanPrintPage() {
     return parseApiError(error).statusCode === 404 ? (
       <NotFoundPage />
     ) : (
-      <Alert variant="error">{parseApiError(error).message}</Alert>
+      <QueryError error={error} />
     );
   }
   if (!data) {
@@ -57,6 +60,14 @@ export default function ChallanPrintPage() {
             <Button onClick={() => window.print()}>
               <Printer aria-hidden="true" /> {t('Print')}
             </Button>
+            <PreviewButton
+              size="default"
+              file={{
+                path: `/challans/${data.id}/pdf`,
+                name: `${data.challanNo}.pdf`,
+                kind: 'pdf',
+              }}
+            />
             <Button
               variant="secondary"
               onClick={() =>
@@ -77,7 +88,14 @@ export default function ChallanPrintPage() {
         <dl className="mb-6 grid gap-3 sm:grid-cols-2">
           <div>
             <dt className="text-sm text-text-muted">{t('Challan number')}</dt>
-            <dd className="case-number font-semibold">{data.challanNo}</dd>
+            <dd className="flex items-center gap-2">
+              <span className="case-number font-semibold">{data.challanNo}</span>
+              <CopyButton
+                value={data.challanNo}
+                label={t('Copy challan number')}
+                className="print:hidden"
+              />
+            </dd>
           </div>
           <div>
             <dt className="text-sm text-text-muted">{t('Status')}</dt>

@@ -1,3 +1,6 @@
+import { QueryError } from '@/components/ui/query-error';
+import { previewKind } from '@/components/viewer/viewer-context';
+import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { vaultKey } from '@/lib/query-keys';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -393,6 +396,16 @@ function ExhibitRow({
       <TableCell>{item.locked && <LockedBadge />}</TableCell>
       <TableCell>
         <div className="flex flex-wrap justify-end gap-1">
+          {previewKind(item.name) && (
+            <PreviewButton
+              iconOnly
+              file={{
+                path: `/cases/${caseId}/evidence/${item.id}/download`,
+                name: item.name,
+                kind: previewKind(item.name)!,
+              }}
+            />
+          )}
           <Button
             size="sm"
             variant="secondary"
@@ -496,7 +509,7 @@ export default function VaultPanel({
   });
 
   if (isPending) return <Skeleton className="h-64" />;
-  if (isError || !data) return <Alert variant="error">{parseApiError(error).message}</Alert>;
+  if (isError || !data) return <QueryError error={error} />;
 
   async function download(item: VaultItem) {
     setDownloading(item.id);
@@ -551,7 +564,15 @@ export default function VaultPanel({
                       {formatDate(d.uploadedAt)}
                       <span className="block text-sm text-text-muted">{d.uploadedBy}</span>
                     </TableCell>
-                    <TableCell className="text-end">
+                    <TableCell className="space-x-2 whitespace-nowrap text-end">
+                      <PreviewButton
+                        iconOnly
+                        file={{
+                          path: `/cases/${caseId}/pleadings/${d.id}/download`,
+                          name: d.name,
+                          kind: 'pdf',
+                        }}
+                      />
                       <Button
                         size="sm"
                         variant="secondary"

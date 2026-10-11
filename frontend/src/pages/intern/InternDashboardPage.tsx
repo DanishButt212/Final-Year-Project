@@ -1,12 +1,11 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarCheck, MapPin, NotebookPen, Hourglass } from 'lucide-react';
 import { Link } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { parseApiError } from '@/lib/api';
 import { internApi } from '@/lib/chamber-api';
 import { formatDate } from '@/lib/format';
 import { LogStatusBadge } from '@/pages/chamber/InternsPages';
@@ -38,7 +37,7 @@ export default function InternDashboardPage() {
           </Button>
         }
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-64" />
       ) : (

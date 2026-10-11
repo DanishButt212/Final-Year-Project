@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -11,11 +12,9 @@ import {
 import { Link } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { parseApiError } from '@/lib/api';
 import { chamberApi } from '@/lib/chamber-api';
 import { formatDate, formatPkr } from '@/lib/format';
 import { RetainerBadge, StatCard } from './shared';
@@ -58,7 +57,7 @@ export default function ChamberDashboardPage() {
           </Button>
         }
       />
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <Skeleton className="h-64" />
       ) : (

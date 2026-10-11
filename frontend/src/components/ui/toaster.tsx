@@ -4,6 +4,7 @@ import { Toaster as Sonner, toast as sonnerToast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 import { msg } from '@/i18n';
+import { SuccessCheck } from '@/components/feedback/SuccessCheck';
 
 type Kind = 'success' | 'error' | 'info';
 
@@ -52,7 +53,11 @@ function ToastCard({ id, kind, message }: { id: string | number; kind: Kind; mes
       <span
         className={`grid size-10 shrink-0 place-items-center rounded-full text-on-primary ${badge}`}
       >
-        <Icon className="size-5" aria-hidden="true" />
+        {kind === 'success' ? (
+          <SuccessCheck tone="inverse" className="size-6" />
+        ) : (
+          <Icon className="size-5" aria-hidden="true" />
+        )}
       </span>
       <div className="min-w-0 flex-1">
         <p className={`text-xs font-semibold tracking-wide uppercase ${text}`}>{t(label)}</p>

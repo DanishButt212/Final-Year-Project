@@ -1,3 +1,5 @@
+import { QueryError } from '@/components/ui/query-error';
+import { useViewer } from '@/components/viewer/viewer-context';
 import { translateText } from '@/lib/server-messages';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollText, Search, ShieldCheck, ShieldAlert, Plus } from 'lucide-react';
@@ -22,7 +24,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { DatePicker } from '@/components/ui/date-picker';
 import { NativeSelect } from '@/components/ui/native-select';
 import { Pagination } from '@/components/ui/pagination';
-import { TableSkeleton } from '@/components/ui/skeleton';
+import { DetailSkeleton, Skeleton, TableSkeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -391,6 +393,7 @@ function ProofImage({
   label: string;
 }) {
   const { t } = useTranslation();
+  const { open } = useViewer();
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -412,15 +415,24 @@ function ProofImage({
   return (
     <figure>
       {url ? (
-        <img
-          src={url}
-          alt={label}
-          className="max-h-56 rounded-md border border-border bg-white object-contain"
-        />
+        <button
+          type="button"
+          onClick={() =>
+            open({ path: `/admin/summons/${id}/proof/${kind}`, name: label, kind: 'image' })
+          }
+          className="block rounded-md"
+          aria-label={t('Preview {{name}}', { name: label })}
+        >
+          <img
+            src={url}
+            alt={label}
+            className="max-h-56 rounded-md border border-border bg-white object-contain"
+          />
+        </button>
+      ) : failed ? (
+        <p className="text-sm text-text-muted">{t('{{label}} could not be loaded.', { label })}</p>
       ) : (
-        <p className="text-sm text-text-muted">
-          {failed ? t('{{label}} could not be loaded.', { label }) : 'Loading...'}
-        </p>
+        <Skeleton className="h-56 w-48" />
       )}
       <figcaption className="text-sm text-text-muted">{label}</figcaption>
     </figure>
@@ -487,9 +499,9 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
           </DialogTitle>
           <DialogDescription>{data ? `${data.ucn} · ${data.caseTitle}` : ''}</DialogDescription>
         </DialogHeader>
-        {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
+        {error && <QueryError error={error} />}
         {isPending ? (
-          <p>{t('Loading...')}</p>
+          <DetailSkeleton />
         ) : (
           data && (
             <div className="space-y-5">
@@ -817,7 +829,7 @@ export default function SummonsRegistryPage() {
           </Button>
         </div>
       </form>
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
       {isPending ? (
         <TableSkeleton rows={5} cols={7} />
       ) : data && data.data.length === 0 ? (

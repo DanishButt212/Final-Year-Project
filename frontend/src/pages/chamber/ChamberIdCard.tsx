@@ -1,3 +1,4 @@
+import { CopyButton } from '@/components/ui/copy-button';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, Check, Copy } from 'lucide-react';
 import { useState } from 'react';
@@ -28,7 +29,10 @@ export function ChamberIdCard() {
             <p className="text-sm text-text-muted">
               {t('{{name}} · Chamber ID', { name: data.name })}
             </p>
-            <p className="case-number text-lg font-semibold">{data.chamberCode}</p>
+            <p className="flex items-center gap-2">
+              <span className="case-number text-lg font-semibold">{data.chamberCode}</span>
+              <CopyButton value={data.chamberCode} label={t('Copy chamber ID')} />
+            </p>
           </div>
         </div>
         <Button

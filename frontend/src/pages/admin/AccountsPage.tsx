@@ -1,3 +1,4 @@
+import { QueryError } from '@/components/ui/query-error';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   Ban,
@@ -676,7 +677,7 @@ export default function AccountsPage() {
         </Button>
       </form>
 
-      {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
+      {isError && <QueryError error={error} />}
 
       {isPending ? (
         <TableSkeleton rows={8} cols={6} />
