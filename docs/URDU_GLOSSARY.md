@@ -94,3 +94,31 @@ Rules
 | search | تلاش | |
 | download / preview | ڈاؤن لوڈ / پیش نظارہ | |
 | save / cancel / submit | محفوظ کریں / منسوخ کریں / جمع کرائیں | |
+
+## Added for the legal glossary and guided tour (UX Phase G)
+The in-app glossary (`/glossary`, `frontend/src/lib/glossary.ts`) explains 49 terms; its Urdu is in
+`frontend/src/locales/ur/glossary.json`. Terms chosen there:
+
+| English | Urdu | Note |
+|---|---|---|
+| ad valorem fee | قدر کے تناسب سے فیس | |
+| adjournment | التوائے سماعت | |
+| advocate | وکیل | |
+| affidavit | بیانِ حلفی | |
+| bail / bail application | ضمانت / درخواستِ ضمانت | |
+| decree | ڈگری | |
+| dismissal | اخراجِ مقدمہ | |
+| disposal | نمٹارا | |
+| ex parte | یک طرفہ | |
+| filing | دائرگی | |
+| interim order | عبوری حکم | |
+| jurisdiction | دائرۂ اختیار | |
+| plaint | عرضی دعویٰ | |
+| proof of service | ثبوتِ تعمیل | |
+| scrutiny | جانچ پڑتال | |
+| digital seal | ڈیجیٹل مہر | |
+| vakalatnama | وکالت نامہ | |
+| writ petition | رٹ پٹیشن | |
+| glossary | فرہنگ | |
+| guided tour | تعارفی دورہ | |
+

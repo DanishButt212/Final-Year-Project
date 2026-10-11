@@ -13,7 +13,7 @@ frontend tests 115/115; backend e2e 207/207.
 - [x] D. Global search (command palette)
 - [x] E. PDF preview, skeleton loading, feedback and micro-interactions
 - [x] F. Dashboard charts
-- [ ] G. Guided tour and legal glossary
+- [x] G. Guided tour and legal glossary
 - [ ] H. Final verification and docs
 
 ## Notes and open items
@@ -36,3 +36,7 @@ frontend tests 115/115; backend e2e 207/207.
 - Phase F (11-10-2026): done. New endpoint `GET /api/insights` (role-scoped, cached 60 s per user); no database
   changes. Checked the litigant, judge and admin dashboards at 1280 px and the litigant dashboard in Urdu at 375 px;
   interns get 403. Frontend 115/115, backend unit 34/34. Main chunk 560.5 kB (172.6 kB gzip).
+- Phase G (11-10-2026): done. New field `User.tourCompletedVersion` (migration `ux_tour_version`), accepted by
+  `PATCH /users/me` (checked: -1 and 1.5 rejected with field messages). Tour checked for litigant and judge at 1280 px
+  and in Urdu at 375 px; glossary page in English (1280 px) and Urdu (375 px); term popover on the case stepper.
+  Frontend 115/115, backend unit 34/34. Main chunk 571.0 kB (175.2 kB gzip).
