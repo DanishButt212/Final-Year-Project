@@ -180,6 +180,12 @@ The app calls `/api` on its own origin: Vite proxies it to `http://localhost:400
 
 **Storage driver.** `STORAGE_DRIVER=local` (default) keeps files under `backend/uploads`; `STORAGE_DRIVER=s3` with `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` uses an S3-compatible bucket (Cloudflare R2, Supabase Storage). Evidence and summons proofs are encrypted before they reach either driver. The API refuses to start, naming the variables (never their values), when `DATABASE_URL`, `JWT_SECRET`, `EVIDENCE_ENCRYPTION_KEY`, `SUMMONS_SEAL_SECRET` or `REPORT_SEAL_SECRET` is missing, or, in production, `FRONTEND_URL` (the old name `FRONTEND_ORIGIN` still works).
 
+**Languages and UI tools.** The interface is in English and Urdu (`npm run i18n:check` fails on a missing Urdu
+translation, `npm run i18n:lint` reports untranslated text, `npm run i18n:extract` regenerates the English catalogue).
+`node scripts/shots.mjs <name> <path> [--w=375] [--lang=ur] [--role=JUDGE] [--axe]` takes a screenshot of the running
+dev stack into the git-ignored `e2e/artifacts/shots/` (and, with `--axe`, prints serious or critical accessibility
+issues); it reads the dev accounts itself and never prints them.
+
 ### 4. Tests and checks
 ```powershell
 cd backend

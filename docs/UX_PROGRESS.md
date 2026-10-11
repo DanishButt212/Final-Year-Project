@@ -14,7 +14,7 @@ frontend tests 115/115; backend e2e 207/207.
 - [x] E. PDF preview, skeleton loading, feedback and micro-interactions
 - [x] F. Dashboard charts
 - [x] G. Guided tour and legal glossary
-- [ ] H. Final verification and docs
+- [x] H. Final verification and docs
 
 ## Notes and open items
 - Phase A (11-10-2026): done. New endpoint `GET /api/public/cases/status`; 8 new e2e tests. Main chunk 533.11 kB
@@ -40,3 +40,12 @@ frontend tests 115/115; backend e2e 207/207.
   `PATCH /users/me` (checked: -1 and 1.5 rejected with field messages). Tour checked for litigant and judge at 1280 px
   and in Urdu at 375 px; glossary page in English (1280 px) and Urdu (375 px); term popover on the case stepper.
   Frontend 115/115, backend unit 34/34. Main chunk 571.0 kB (175.2 kB gzip).
+- Phase H (12-10-2026): done. Frontend unit 115/115, backend unit 34/34, backend e2e 223/223, Playwright 21 passed,
+  1 failed, 3 not run. Screenshot and axe matrix: zero serious or critical issues, no horizontal scroll (after fixes,
+  see CHANGES). Main chunk 521.29 kB (160.61 kB gzip) before, 571.04 kB (175.21 kB gzip) after.
+- Open (2 attempts made): `judge-admin.spec.ts` "records an outcome and decides a case" fails on 12-10-2026 because
+  the date-relative demo data has no "Muhammad Ali" case for the judge with a past hearing; it needs a seeded case
+  with a hearing in the past. Not caused by the upgrade.
+- Note: during Phase B a command printed the dev-account passwords from docs/DEV_ACCOUNTS.md to the session output
+  (nothing was committed); the screenshot helper now reads that file internally and never prints it. Consider
+  rotating those development passwords.

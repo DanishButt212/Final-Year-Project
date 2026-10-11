@@ -1,4 +1,4 @@
-# DigitalAdaalat: Project Status (audit of main, 07-10-2026, updated after Phase 5C on 11-10-2026)
+# DigitalAdaalat: Project Status (audit of main, 07-10-2026, updated after Phase 5C and the UX upgrade on 11-10-2026)
 
 Read-only audit of the code on `main`, updated after the Phase 5C QA fixes (full QA run with API scripts, Playwright journeys and axe; every QA issue is listed in `docs/CHANGES.md`, section Phase 5C). The full project report is not in the repo, so section 5 checks the rules in `docs/PROJECT_BRIEF.md`, `docs/CHANGES.md` and the exact strings in the code.
 
@@ -6,11 +6,19 @@ Read-only audit of the code on `main`, updated after the Phase 5C QA fixes (full
 | Item | Value |
 |---|---|
 | Stack | NestJS 12 + Prisma 7 + PostgreSQL; React 19 + Vite 8 + TS, Tailwind 4, shadcn/ui, TanStack Query, RHF + Zod |
-| Prisma | 42 models, 35 enums, 15 migrations (3 hand-written: audit trigger, partial unique indexes, 4F) |
-| Backend | 22 Nest modules (17 feature + app, prisma, health, settings, integrations), 16 controller files, 161 route handlers |
+| Prisma | 43 models, 36 enums, 18 migrations (3 hand-written: audit trigger, partial unique indexes, 4F) |
+| Backend | 26 Nest modules (21 feature + app, prisma, health, settings, integrations), 20 controller files, 165 route handlers |
 | Frontend | 72 page/component files under `pages/`, 61 routes, 6 role portals |
 | Roles | LITIGANT, LAWYER, INTERN, PROCESS_SERVER, JUDGE, ADMIN |
-| Tests | 2 backend unit specs, 12 backend e2e suites (auth, users, cases, RBAC matrix, filing/fees/allocation, scheduling, judge/evidence, summons, chamber, virtual, platform), 11 frontend test files, Playwright browser specs in `frontend/e2e` |
+| Tests | 2 backend unit specs, 14 backend e2e suites (auth, users, cases, RBAC matrix, filing/fees/allocation, scheduling, judge/evidence, summons, chamber, virtual, platform, public case status, global search), 11 frontend test files, Playwright browser specs in `frontend/e2e` |
+
+### UX upgrade (11-10-2026)
+Eight phases on top of Phase 5C, details in `docs/CHANGES.md` (section "UX Upgrade") and `docs/UX_PROGRESS.md`:
+brand and seal intro, public landing page and case status; English and Urdu (RTL, Nastaliq) with a text size control;
+case progress stepper, next-hearing card, add to calendar and 08:00 reminders; Ctrl+K command palette; PDF viewer and
+image lightbox, skeletons, success panels, copy buttons and retry states; dashboard charts per role; guided tour per
+role and a 49-term legal glossary. New fields: `User.preferredLanguage`, `User.fontScale`, `User.tourCompletedVersion`,
+`Notification.titleKey/bodyKey/params`; new table `HearingReminder`.
 
 ## 2. Features per role (C = Complete, P = Partial, S = Stub)
 **LITIGANT**
@@ -81,6 +89,10 @@ Read-only audit of the code on `main`, updated after the Phase 5C QA fixes (full
 | feedback | Submit and review feedback | `/feedback, /admin/feedback` |
 | settings | Policies (fees, slots, sizes, geo-fence, thresholds) | `/settings/public, /admin/settings` |
 | virtual-courtroom | Jitsi sessions (JaaS or public), join window, events, moderation | `/admin/virtual-sessions/*, /hearings/:id/virtual-session/*, /sessions/:id/*` |
+| public | Public case status by UCN (no login, 10/min, probe detection) | `/public/cases/status` |
+| search | Command palette search inside the caller's case scope | `/search` |
+| insights | Role-scoped dashboard chart data, cached 60 s per user | `/insights` |
+| reminders | 08:00 PKT hearing reminders (cron, idempotent) and manual run | `/admin/reminders/run` |
 | storage | Local disk or S3-compatible driver | (internal) |
 | integrations | Mock NADRA, Bar Council, mailer | (internal) |
 | health | Liveness + DB ping | `/health` |
