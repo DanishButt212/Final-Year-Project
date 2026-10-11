@@ -1,3 +1,4 @@
+import { FontSizeControl, LanguageToggle } from '@/components/preferences/PreferenceControls';
 import { ChevronDown, LogOut, Menu, UserCircle } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import {
@@ -11,15 +12,17 @@ import { useAuth } from '@/auth/useAuth';
 import { ROLE_LABEL, roleHome } from '@/lib/navigation';
 import { Logo } from './Logo';
 import { NotificationBell } from './NotificationBell';
+import { useTranslation } from 'react-i18next';
 
 /** Thin green top bar shared by every signed-in page. */
 export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; menuOpen: boolean }) {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   async function handleLogout() {
     await logout();
-    toast.success('Logged out successfully.');
+    toast.success(t('Logged out successfully.'));
     navigate('/login', { replace: true });
   }
 
@@ -30,30 +33,35 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
           <button
             type="button"
             onClick={onMenuClick}
-            aria-label="Open navigation menu"
+            aria-label={t('Open navigation menu')}
             aria-expanded={menuOpen}
             aria-controls="portal-sidebar"
             className="flex size-10 items-center justify-center rounded-md hover:bg-primary-hover focus-visible:outline-white lg:hidden"
           >
             <Menu className="size-5" aria-hidden="true" />
           </button>
-          <Logo to={user ? roleHome(user.role) : '/'} />
+          {/* Phones show the seal alone: the header also holds the menu, bell, account and log out. */}
+          <Logo to={user ? roleHome(user.role) : '/'} wordmarkClassName="hidden sm:inline-flex" />
         </div>
         {user && (
           <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+            <div className="hidden items-center gap-2 md:flex">
+              <LanguageToggle tone="inverse" />
+              <FontSizeControl tone="inverse" />
+            </div>
             <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Account menu"
+                  aria-label={t('Account menu')}
                   className="flex min-h-10 items-center gap-2 rounded-md px-2 hover:bg-primary-hover focus-visible:outline-white"
                 >
-                  <span className="hidden text-right leading-tight sm:block">
+                  <span className="hidden text-end leading-tight sm:block">
                     <span className="block text-sm font-semibold">
                       {user.firstName} {user.lastName}
                     </span>
-                    <span className="block text-xs text-white/85">{ROLE_LABEL[user.role]}</span>
+                    <span className="block text-xs text-white/85">{t(ROLE_LABEL[user.role])}</span>
                   </span>
                   <UserCircle className="size-6" aria-hidden="true" />
                   <ChevronDown className="size-4" aria-hidden="true" />
@@ -61,17 +69,17 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem asChild>
-                  <Link to="/profile">My Profile</Link>
+                  <Link to="/profile">{t('My Profile')}</Link>
                 </DropdownMenuItem>
                 {(user.role === 'LITIGANT' || user.role === 'LAWYER') && (
                   <>
                     <DropdownMenuItem asChild>
                       <Link to="/profile/notification-preferences">
-                        Notification Options Preferences
+                        {t('Notification Options Preferences')}
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/profile/feedback">System Feedback</Link>
+                      <Link to="/profile/feedback">{t('System Feedback')}</Link>
                     </DropdownMenuItem>
                   </>
                 )}
@@ -82,8 +90,8 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
               onClick={handleLogout}
               className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-md border border-white/60 px-2 text-sm font-semibold hover:bg-primary-hover focus-visible:outline-white sm:px-3"
             >
-              <LogOut className="size-4" aria-hidden="true" />
-              <span className="sr-only sm:not-sr-only">Log out</span>
+              <LogOut className="size-4 rtl:-scale-x-100" aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">{t('Log out')}</span>
             </button>
           </div>
         )}

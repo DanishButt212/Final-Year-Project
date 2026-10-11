@@ -5,6 +5,7 @@ import { usePublicSettings } from '@/hooks/use-public-settings';
 import { checkPdfFiles } from '@/lib/pdf-files';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Drag-and-drop or click-to-choose PDF picker with a per-file list (name, size, remove).
@@ -22,6 +23,7 @@ export function PdfDropZone({
   /** An error returned by the server for the files (for example a fake PDF). */
   serverError?: string | null;
 }) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const { maxAttachmentMb } = usePublicSettings();
   const [dragging, setDragging] = useState(false);
@@ -57,10 +59,12 @@ export function PdfDropZone({
         )}
       >
         <UploadCloud className="size-8 text-primary" aria-hidden="true" />
-        <p className="font-semibold">Drag PDF files here</p>
+        <p className="font-semibold">{t('Drag PDF files here')}</p>
         <p className="text-sm text-text-muted">
-          or choose them from your device. PDF only, up to {maxAttachmentMb} MB each, at most 10
-          files.
+          {t(
+            'or choose them from your device. PDF only, up to {{maxAttachmentMb}} MB each, at most 10 files.',
+            { maxAttachmentMb },
+          )}
         </p>
         <input
           ref={inputRef}
@@ -69,7 +73,7 @@ export function PdfDropZone({
           multiple
           className="sr-only"
           tabIndex={-1}
-          aria-label="Choose PDF files"
+          aria-label={t('Choose PDF files')}
           data-testid="pdf-input"
           disabled={disabled}
           onChange={(e) => {
@@ -83,7 +87,7 @@ export function PdfDropZone({
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
         >
-          Choose PDF files
+          {t('Choose PDF files')}
         </Button>
       </div>
 
@@ -98,7 +102,7 @@ export function PdfDropZone({
       {files.length > 0 && (
         <ul
           className="mt-3 divide-y divide-border rounded-lg border border-border bg-surface"
-          aria-label="Selected files"
+          aria-label={t('Selected files')}
         >
           {files.map((file) => (
             <li key={`${file.name}-${file.size}`} className="flex items-center gap-3 px-3 py-2">
@@ -112,7 +116,7 @@ export function PdfDropZone({
                   setLocalError(null);
                   onFilesChange(files.filter((f) => f !== file));
                 }}
-                aria-label={`Remove ${file.name}`}
+                aria-label={t('Remove {{name}}', { name: file.name })}
                 className="flex size-10 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-primary-soft hover:text-destructive disabled:opacity-50"
               >
                 <X className="size-4" aria-hidden="true" />

@@ -18,6 +18,9 @@ import { caseTypeLabel } from '@/lib/case-status';
 import { formatPkr } from '@/lib/format';
 import { MESSAGES } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const decimal2 = /^\d{1,10}(\.\d{1,2})?$/;
 
@@ -26,14 +29,14 @@ const policySchema = z.object({
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of MB.')
+    .regex(/^\d+$/, msg('Enter a whole number of MB.'))
     .refine((v) => Number(v) >= 1 && Number(v) <= 100, 'Enter a value from 1 to 100 MB.'),
   caseRegistrationOpen: z.boolean(),
   filingFeeRateModifier: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d{1,3}(\.\d{1,2})?$/, 'Enter a percentage with at most two decimals.')
+    .regex(/^\d{1,3}(\.\d{1,2})?$/, msg('Enter a percentage with at most two decimals.'))
     .refine((v) => Number(v) >= 0 && Number(v) <= 100, 'Enter a percentage from 0 to 100.'),
   courtDayStart: z
     .string()
@@ -49,7 +52,7 @@ const policySchema = z.object({
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d{1,2}(\.\d{1,2})?$/, 'Enter a percentage with at most two decimals.')
+    .regex(/^\d{1,2}(\.\d{1,2})?$/, msg('Enter a percentage with at most two decimals.'))
     .refine((v) => Number(v) >= 0 && Number(v) <= 10, 'Enter a percentage from 0 to 10.'),
   adValoremCapPkr: z
     .string()
@@ -60,49 +63,49 @@ const policySchema = z.object({
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of days.')
+    .regex(/^\d+$/, msg('Enter a whole number of days.'))
     .refine((v) => Number(v) >= 1 && Number(v) <= 90, 'Enter a value from 1 to 90 days.'),
   maxEvidenceMb: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of MB.')
+    .regex(/^\d+$/, msg('Enter a whole number of MB.'))
     .refine((v) => Number(v) >= 1 && Number(v) <= 200, 'Enter a value from 1 to 200 MB.'),
   attendanceDefaultRadiusM: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of metres.')
+    .regex(/^\d+$/, msg('Enter a whole number of metres.'))
     .refine((v) => Number(v) >= 50 && Number(v) <= 5000, 'Enter a value from 50 to 5000 metres.'),
   attendanceMaxAccuracyM: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of metres.')
+    .regex(/^\d+$/, msg('Enter a whole number of metres.'))
     .refine((v) => Number(v) >= 10 && Number(v) <= 1000, 'Enter a value from 10 to 1000 metres.'),
   summonsMaxGpsAccuracyM: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of metres.')
+    .regex(/^\d+$/, msg('Enter a whole number of metres.'))
     .refine((v) => Number(v) >= 10 && Number(v) <= 500, 'Enter a value from 10 to 500 metres.'),
   summonsDefaultDueDays: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of days.')
+    .regex(/^\d+$/, msg('Enter a whole number of days.'))
     .refine((v) => Number(v) >= 1 && Number(v) <= 90, 'Enter a value from 1 to 90 days.'),
   securityEscalationThreshold: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of attempts.')
+    .regex(/^\d+$/, msg('Enter a whole number of attempts.'))
     .refine((v) => Number(v) >= 1 && Number(v) <= 20, 'Enter a value from 1 to 20 attempts.'),
   hearingSlotMinutes: z
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .regex(/^\d+$/, 'Enter a whole number of minutes.')
+    .regex(/^\d+$/, msg('Enter a whole number of minutes.'))
     .refine((v) => Number(v) >= 10 && Number(v) <= 240, 'Enter a value from 10 to 240 minutes.'),
   fees: z.array(
     z.object({
@@ -138,6 +141,7 @@ const toValues = (s: Settings): PolicyValues => ({
 
 /** UC-2.3: Global Variables and Application Constants. */
 export default function PoliciesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -221,16 +225,16 @@ export default function PoliciesPage() {
   return (
     <>
       <PageHeader
-        title="Global Variables and Application Constants"
-        description="System-wide policies. Changes apply immediately to everyone."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'System Policies' }]}
+        title={t('Global Variables and Application Constants')}
+        description={t('System-wide policies. Changes apply immediately to everyone.')}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('System Policies') }]}
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
-        <div role="status" aria-label="Loading policies" className="space-y-4">
+        <div role="status" aria-label={t('Loading policies')} className="space-y-4">
           <Skeleton className="h-48" />
           <Skeleton className="h-64" />
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only">{t('Loading…')}</span>
         </div>
       ) : (
         <form
@@ -253,13 +257,13 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Filing and uploads</CardTitle>
+              <CardTitle>{t('Filing and uploads')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               <Field
-                label="Max Attachment Limit (MB)"
+                label={t('Max Attachment Limit (MB)')}
                 required
-                hint="PDF files above this size are refused. Allowed range 1 to 100 MB."
+                hint={t('PDF files above this size are refused. Allowed range 1 to 100 MB.')}
                 error={errors.maxAttachmentMb?.message}
               >
                 {(p) => (
@@ -275,12 +279,14 @@ export default function PoliciesPage() {
               <div className="flex items-start justify-between gap-4 rounded-md border border-border p-4">
                 <div>
                   <p id="reg-label" className="font-semibold">
-                    Case registration open
+                    {t('Case registration open')}
                   </p>
                   <p id="reg-hint" className="text-sm text-text-muted">
                     {open
-                      ? 'Litigants and verified lawyers can file new cases.'
-                      : 'New case filing is closed. Users see "Case registration is currently closed."'}
+                      ? t('Litigants and verified lawyers can file new cases.')
+                      : t(
+                          'New case filing is closed. Users see "Case registration is currently closed."',
+                        )}
                   </p>
                 </div>
                 <Controller
@@ -303,10 +309,10 @@ export default function PoliciesPage() {
                         aria-hidden="true"
                         className={cn(
                           'absolute top-0.5 size-5 rounded-full transition-all',
-                          field.value ? 'left-[22px] bg-on-primary' : 'left-0.5 bg-text-muted',
+                          field.value ? 'start-[22px] bg-on-primary' : 'start-0.5 bg-text-muted',
                         )}
                       />
-                      <span className="sr-only">{field.value ? 'On' : 'Off'}</span>
+                      <span className="sr-only">{field.value ? 'On' : t('Off')}</span>
                     </button>
                   )}
                 />
@@ -316,36 +322,41 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Fee calculation and evidence</CardTitle>
+              <CardTitle>{t('Fee calculation and evidence')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Civil Suits pay the base fee plus an ad valorem percentage of the claim value (up to
-                the cap). The filing fee rate modifier is then applied to the sum.
+                {t(
+                  'Civil Suits pay the base fee plus an ad valorem percentage of the claim value (up to the cap). The filing fee rate modifier is then applied to the sum.',
+                )}
               </p>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <Field
-                label="Ad valorem percentage (%)"
+                label={t('Ad valorem percentage (%)')}
                 required
-                hint="0 to 10"
+                hint={t('0 to 10')}
                 error={errors.adValoremPercent?.message}
               >
                 {(p) => <Input inputMode="decimal" {...register('adValoremPercent')} {...p} />}
               </Field>
-              <Field label="Ad valorem cap (PKR)" required error={errors.adValoremCapPkr?.message}>
+              <Field
+                label={t('Ad valorem cap (PKR)')}
+                required
+                error={errors.adValoremCapPkr?.message}
+              >
                 {(p) => <Input inputMode="decimal" {...register('adValoremCapPkr')} {...p} />}
               </Field>
               <Field
-                label="Challan due days"
+                label={t('Challan due days')}
                 required
-                hint="1 to 90"
+                hint={t('1 to 90')}
                 error={errors.challanDueDays?.message}
               >
                 {(p) => <Input inputMode="numeric" {...register('challanDueDays')} {...p} />}
               </Field>
               <Field
-                label="Max evidence file size (MB)"
+                label={t('Max evidence file size (MB)')}
                 required
-                hint="1 to 200"
+                hint={t('1 to 200')}
                 error={errors.maxEvidenceMb?.message}
               >
                 {(p) => <Input inputMode="numeric" {...register('maxEvidenceMb')} {...p} />}
@@ -355,17 +366,18 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Intern attendance</CardTitle>
+              <CardTitle>{t('Intern attendance')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Attendance is verified on the server against each court geo-fence (set on Courts &
-                Benches). The default radius applies to courts without their own radius.
+                {t(
+                  'Attendance is verified on the server against each court geo-fence (set on Courts & Benches). The default radius applies to courts without their own radius.',
+                )}
               </p>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <Field
-                label="Default geo-fence radius (m)"
+                label={t('Default geo-fence radius (m)')}
                 required
-                hint="50 to 5000"
+                hint={t('50 to 5000')}
                 error={errors.attendanceDefaultRadiusM?.message}
               >
                 {(p) => (
@@ -373,9 +385,9 @@ export default function PoliciesPage() {
                 )}
               </Field>
               <Field
-                label="Maximum location accuracy (m)"
+                label={t('Maximum location accuracy (m)')}
                 required
-                hint="10 to 1000. Check-ins reporting a worse accuracy are rejected."
+                hint={t('10 to 1000. Check-ins reporting a worse accuracy are rejected.')}
                 error={errors.attendanceMaxAccuracyM?.message}
               >
                 {(p) => (
@@ -387,18 +399,18 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Summons and process servers</CardTitle>
+              <CardTitle>{t('Summons and process servers')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Process servers must commit progress and proof with a GPS accuracy at least this
-                good. A device location can be spoofed and is not matched to the address in this
-                prototype.
+                {t(
+                  'Process servers must commit progress and proof with a GPS accuracy at least this good. A device location can be spoofed and is not matched to the address in this prototype.',
+                )}
               </p>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <Field
-                label="Maximum GPS accuracy (m)"
+                label={t('Maximum GPS accuracy (m)')}
                 required
-                hint="10 to 500"
+                hint={t('10 to 500')}
                 error={errors.summonsMaxGpsAccuracyM?.message}
               >
                 {(p) => (
@@ -406,9 +418,9 @@ export default function PoliciesPage() {
                 )}
               </Field>
               <Field
-                label="Default due period (days)"
+                label={t('Default due period (days)')}
                 required
-                hint="1 to 90"
+                hint={t('1 to 90')}
                 error={errors.summonsDefaultDueDays?.message}
               >
                 {(p) => <Input inputMode="numeric" {...register('summonsDefaultDueDays')} {...p} />}
@@ -418,17 +430,18 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Security</CardTitle>
+              <CardTitle>{t('Security')}</CardTitle>
               <p className="text-sm text-text-muted">
-                An account or address refused this many times on admin routes within 10 minutes
-                raises a Security Alert and its sessions are ended.
+                {t(
+                  'An account or address refused this many times on admin routes within 10 minutes raises a Security Alert and its sessions are ended.',
+                )}
               </p>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <Field
-                label="Escalation alert threshold (attempts)"
+                label={t('Escalation alert threshold (attempts)')}
                 required
-                hint="1 to 20"
+                hint={t('1 to 20')}
                 error={errors.securityEscalationThreshold?.message}
               >
                 {(p) => (
@@ -440,33 +453,34 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Court hours and hearing slots</CardTitle>
+              <CardTitle>{t('Court hours and hearing slots')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Courts sit Monday to Friday. Hearings are booked in consecutive slots inside these
-                hours. These cannot be changed while upcoming hearings exist.
+                {t(
+                  'Courts sit Monday to Friday. Hearings are booked in consecutive slots inside these hours. These cannot be changed while upcoming hearings exist.',
+                )}
               </p>
             </CardHeader>
             <CardContent className="grid gap-5 sm:grid-cols-3">
               <Field
-                label="Court day start"
+                label={t('Court day start')}
                 required
-                hint="24-hour, for example 09:00"
+                hint={t('24-hour, for example 09:00')}
                 error={errors.courtDayStart?.message}
               >
                 {(p) => <Input placeholder="09:00" {...register('courtDayStart')} {...p} />}
               </Field>
               <Field
-                label="Court day end"
+                label={t('Court day end')}
                 required
-                hint="24-hour, for example 14:00"
+                hint={t('24-hour, for example 14:00')}
                 error={errors.courtDayEnd?.message}
               >
                 {(p) => <Input placeholder="14:00" {...register('courtDayEnd')} {...p} />}
               </Field>
               <Field
-                label="Hearing slot length (minutes)"
+                label={t('Hearing slot length (minutes)')}
                 required
-                hint="10 to 240"
+                hint={t('10 to 240')}
                 error={errors.hearingSlotMinutes?.message}
               >
                 {(p) => <Input inputMode="numeric" {...register('hearingSlotMinutes')} {...p} />}
@@ -476,16 +490,16 @@ export default function PoliciesPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Court fees</CardTitle>
+              <CardTitle>{t('Court fees')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Filing fee per case type in PKR, and a percentage modifier applied on top.
+                {t('Filing fee per case type in PKR, and a percentage modifier applied on top.')}
               </p>
             </CardHeader>
             <CardContent className="space-y-5">
               <Field
-                label="Filing Fee Rate Modifier (%)"
+                label={t('Filing Fee Rate Modifier (%)')}
                 required
-                hint="0 to 100. Applied to the filing fees below."
+                hint={t('0 to 100. Applied to the filing fees below.')}
                 error={errors.filingFeeRateModifier?.message}
               >
                 {(p) => (
@@ -501,7 +515,11 @@ export default function PoliciesPage() {
                 {fees.map((f, i) => (
                   <Field
                     key={f.caseType}
-                    label={`${caseTypeLabel(f.caseType as Settings['fees'][number]['caseType'])} filing fee (PKR)`}
+                    label={t('{{caseTypeLabel}} filing fee (PKR)', {
+                      caseTypeLabel: caseTypeLabel(
+                        f.caseType as Settings['fees'][number]['caseType'],
+                      ),
+                    })}
                     hint={
                       Number.isFinite(Number(f.amount)) && f.amount
                         ? formatPkr(f.amount)
@@ -514,6 +532,7 @@ export default function PoliciesPage() {
                       <Input
                         inputMode="decimal"
                         className="max-w-48"
+                        // i18n-ignore
                         {...register(`fees.${i}.amount`)}
                         {...p}
                       />
@@ -525,7 +544,7 @@ export default function PoliciesPage() {
           </Card>
 
           <Button type="submit" size="lg" loading={save.isPending}>
-            <Save aria-hidden="true" /> Apply Policy Changes System-Wide
+            <Save aria-hidden="true" /> {t('Apply Policy Changes System-Wide')}
           </Button>
         </form>
       )}

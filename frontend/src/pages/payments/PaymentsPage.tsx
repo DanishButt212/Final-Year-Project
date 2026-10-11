@@ -24,11 +24,13 @@ import { parseApiError } from '@/lib/api';
 import { formatDate, formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { feesApi } from '@/lib/phase4-api';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 10;
 
 /** UC-4.3: transaction log with "Download Receipt Proof". */
 export default function PaymentsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const [showFailed, setShowFailed] = useState(false);
@@ -44,11 +46,11 @@ export default function PaymentsPage() {
   return (
     <>
       <PageHeader
-        title="Payments & Receipts"
-        description="Your court fee transactions. Download a receipt as proof of payment."
+        title={t('Payments & Receipts')}
+        description={t('Your court fee transactions. Download a receipt as proof of payment.')}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'Payments & Receipts' },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('Payments & Receipts') },
         ]}
       />
       <label className="mb-4 flex items-center gap-2 text-sm">
@@ -61,7 +63,7 @@ export default function PaymentsPage() {
             setPage(1);
           }}
         />
-        Show failed attempts
+        {t('Show failed attempts')}
       </label>
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
@@ -70,11 +72,13 @@ export default function PaymentsPage() {
         <Card>
           <EmptyState
             icon={ReceiptText}
-            title="No payments yet"
-            description="Pay a court fee from the Fees & Payment tab of a case and it will appear here."
+            title={t('No payments yet')}
+            description={t(
+              'Pay a court fee from the Fees & Payment tab of a case and it will appear here.',
+            )}
             action={
               <Button variant="secondary" asChild>
-                <Link to={portalPath(portal, 'cases')}>Open my cases</Link>
+                <Link to={portalPath(portal, 'cases')}>{t('Open my cases')}</Link>
               </Button>
             }
           />
@@ -82,15 +86,15 @@ export default function PaymentsPage() {
       ) : (
         data && (
           <>
-            <Table aria-label="Transaction log">
+            <Table aria-label={t('Transaction log')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Case</TableHead>
-                  <TableHead>Challan</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Receipt</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('Case')}</TableHead>
+                  <TableHead>{t('Challan')}</TableHead>
+                  <TableHead className="text-end">{t('Amount')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead>{t('Receipt')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -106,14 +110,14 @@ export default function PaymentsPage() {
                       </Link>
                     </TableCell>
                     <TableCell className="case-number whitespace-nowrap">{p.challanNo}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">
+                    <TableCell className="whitespace-nowrap text-end">
                       {formatPkr(p.amount)}
                     </TableCell>
                     <TableCell>
                       {p.status === 'SUCCESS' ? (
-                        <Badge variant="decided">Paid</Badge>
+                        <Badge variant="decided">{t('Paid')}</Badge>
                       ) : (
-                        <Badge variant="rejected">Failed</Badge>
+                        <Badge variant="rejected">{t('Failed')}</Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -126,9 +130,11 @@ export default function PaymentsPage() {
                               .downloadReceipt(p.id, p.receiptNo!)
                               .catch((e) => toast.error(parseApiError(e).message))
                           }
-                          aria-label={`Download Receipt Proof ${p.receiptNo}`}
+                          aria-label={t('Download Receipt Proof {{receiptNo}}', {
+                            receiptNo: p.receiptNo,
+                          })}
                         >
-                          <Download aria-hidden="true" /> Download Receipt Proof
+                          <Download aria-hidden="true" /> {t('Download Receipt Proof')}
                         </Button>
                       ) : (
                         <span className="text-text-muted">—</span>

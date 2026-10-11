@@ -20,15 +20,18 @@ import { roleHome } from '@/lib/navigation';
 import { FEEDBACK_CATEGORIES, feedbackApi, type FeedbackCategory } from '@/lib/phase4-api';
 import { MESSAGES } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const CHANNELS = [
-  { key: 'sms', label: 'SMS', hint: 'Text messages to your registered phone number.' },
+  { key: 'sms', label: 'SMS', hint: msg('Text messages to your registered phone number.') },
   {
     key: 'mobilePush',
-    label: 'Mobile Notifications',
-    hint: 'Push notifications on the DigitalAdaalat mobile app.',
+    label: msg('Mobile Notifications'),
+    hint: msg('Push notifications on the DigitalAdaalat mobile app.'),
   },
-  { key: 'email', label: 'Email', hint: 'Messages to your registered email address.' },
+  { key: 'email', label: msg('Email'), hint: msg('Messages to your registered email address.') },
 ] as const;
 
 type ChannelKey = (typeof CHANNELS)[number]['key'];
@@ -46,6 +49,7 @@ function Switch({
   hintId: string;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
@@ -64,16 +68,17 @@ function Switch({
         aria-hidden="true"
         className={cn(
           'absolute top-0.5 size-5 rounded-full transition-all',
-          checked ? 'left-[22px] bg-on-primary' : 'left-0.5 bg-text-muted',
+          checked ? 'start-[22px] bg-on-primary' : 'start-0.5 bg-text-muted',
         )}
       />
-      <span className="sr-only">{checked ? 'On' : 'Off'}</span>
+      <span className="sr-only">{checked ? 'On' : t('Off')}</span>
     </button>
   );
 }
 
 /** UC-5.3: "Notification Options Preferences". */
 export function NotificationPreferencesPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [prefs, setPrefs] = useState<Record<ChannelKey, boolean> | null>(null);
@@ -101,12 +106,12 @@ export function NotificationPreferencesPage() {
   return (
     <>
       <PageHeader
-        title="Notification Options Preferences"
-        description="Choose how you want to hear about hearings, payments and case updates."
+        title={t('Notification Options Preferences')}
+        description={t('Choose how you want to hear about hearings, payments and case updates.')}
         crumbs={[
-          { label: 'Dashboard', to: roleHome(user.role) },
-          { label: 'My Profile', to: '/profile' },
-          { label: 'Notification Options' },
+          { label: t('Dashboard'), to: roleHome(user.role) },
+          { label: t('My Profile'), to: '/profile' },
+          { label: t('Notification Options') },
         ]}
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
@@ -116,7 +121,7 @@ export function NotificationPreferencesPage() {
         <Card className="max-w-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="size-5 text-primary" aria-hidden="true" /> Channels
+              <Bell className="size-5 text-primary" aria-hidden="true" /> {t('Channels')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -124,10 +129,10 @@ export function NotificationPreferencesPage() {
             <div className="flex items-start justify-between gap-4 rounded-md border border-border bg-background p-4">
               <div>
                 <p id="ch-inapp" className="font-semibold">
-                  In-app notifications
+                  {t('In-app notifications')}
                 </p>
                 <p id="ch-inapp-hint" className="text-sm text-text-muted">
-                  Always on. They appear under the bell at the top of every page.
+                  {t('Always on. They appear under the bell at the top of every page.')}
                 </p>
               </div>
               <Switch checked disabled labelId="ch-inapp" hintId="ch-inapp-hint" />
@@ -139,7 +144,7 @@ export function NotificationPreferencesPage() {
               >
                 <div>
                   <p id={`ch-${c.key}`} className="font-semibold">
-                    {c.label}
+                    {t(c.label)}
                   </p>
                   <p id={`ch-${c.key}-hint`} className="text-sm text-text-muted">
                     {c.hint}
@@ -157,11 +162,12 @@ export function NotificationPreferencesPage() {
               </div>
             ))}
             <p className="text-sm text-text-muted">
-              In this demo version SMS, mobile and email messages are simulated and only written to
-              the server log.
+              {t(
+                'In this demo version SMS, mobile and email messages are simulated and only written to the server log.',
+              )}
             </p>
             <Button onClick={() => save.mutate()} loading={save.isPending}>
-              <Save aria-hidden="true" /> Save preferences
+              <Save aria-hidden="true" /> {t('Save preferences')}
             </Button>
           </CardContent>
         </Card>
@@ -177,13 +183,14 @@ const feedbackSchema = z.object({
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .min(10, 'Enter your feedback in 10 to 2000 characters.')
+    .min(10, msg('Enter your feedback in 10 to 2000 characters.'))
     .max(2000, 'Enter your feedback in 10 to 2000 characters.'),
 });
 type FeedbackValues = z.infer<typeof feedbackSchema>;
 
 /** UC-5.4: "System Feedback". */
 export function FeedbackPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -223,18 +230,21 @@ export function FeedbackPage() {
   return (
     <>
       <PageHeader
-        title="System Feedback"
-        description="Tell us what works and what does not. The registry team reads every message."
+        title={t('System Feedback')}
+        description={t(
+          'Tell us what works and what does not. The registry team reads every message.',
+        )}
         crumbs={[
-          { label: 'Dashboard', to: roleHome(user.role) },
-          { label: 'My Profile', to: '/profile' },
-          { label: 'System Feedback' },
+          { label: t('Dashboard'), to: roleHome(user.role) },
+          { label: t('My Profile'), to: '/profile' },
+          { label: t('System Feedback') },
         ]}
       />
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageSquareText className="size-5 text-primary" aria-hidden="true" /> Your feedback
+            <MessageSquareText className="size-5 text-primary" aria-hidden="true" />{' '}
+            {t('Your feedback')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -256,21 +266,21 @@ export function FeedbackPage() {
             {success && <Alert variant="success">{success}</Alert>}
             {formError && <Alert variant="error">{formError}</Alert>}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Category" required error={errors.category?.message}>
+              <Field label={t('Category')} required error={errors.category?.message}>
                 {(p) => (
                   <NativeSelect {...register('category')} {...p}>
                     {FEEDBACK_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
-                        {c.label}
+                        {t(c.label)}
                       </option>
                     ))}
                   </NativeSelect>
                 )}
               </Field>
-              <Field label="Rating (optional)">
+              <Field label={t('Rating (optional)')}>
                 {(p) => (
                   <NativeSelect {...register('rating')} {...p}>
-                    <option value="">No rating</option>
+                    <option value="">{t('No rating')}</option>
                     {[5, 4, 3, 2, 1].map((n) => (
                       <option key={n} value={n}>
                         {n} {n === 1 ? 'star' : 'stars'}
@@ -281,7 +291,7 @@ export function FeedbackPage() {
               </Field>
             </div>
             <Field
-              label="Narrative notes"
+              label={t('Narrative notes')}
               required
               hint={`${message.trim().length}/2000 characters (at least 10)`}
               error={errors.message?.message}
@@ -295,7 +305,7 @@ export function FeedbackPage() {
               )}
             </Field>
             <Button type="submit" loading={send.isPending}>
-              <Send aria-hidden="true" /> Transmit Feedback Data Log
+              <Send aria-hidden="true" /> {t('Transmit Feedback Data Log')}
             </Button>
           </form>
         </CardContent>

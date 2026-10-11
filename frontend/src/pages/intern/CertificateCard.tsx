@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Award, Download, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ import { parseApiError } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { certificateApi, type Certificate, type SealCheck } from '@/lib/phase5-api';
 import { isoToDdMmYyyy } from '@/lib/scheduling-api';
+import { useTranslation } from 'react-i18next';
 
 /** The issued certificate's facts with Download PDF and Verify seal. */
 export function CertificateDetails({
@@ -22,6 +24,7 @@ export function CertificateDetails({
   onDownload: () => Promise<void>;
   onVerify: () => Promise<SealCheck>;
 }) {
+  const { t } = useTranslation();
   const [check, setCheck] = useState<SealCheck | null>(null);
   const download = useMutation({
     mutationFn: onDownload,
@@ -36,50 +39,56 @@ export function CertificateDetails({
     <div className="space-y-4">
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
-          <dt className="text-text-muted">Certificate number</dt>
+          <dt className="text-text-muted">{t('Certificate number')}</dt>
           <dd className="case-number font-semibold">{cert.certificateNo}</dd>
         </div>
         <div>
-          <dt className="text-text-muted">Issued</dt>
+          <dt className="text-text-muted">{t('Issued')}</dt>
           <dd>{formatDateTime(cert.issuedAt)}</dd>
         </div>
         <div>
-          <dt className="text-text-muted">Intern</dt>
+          <dt className="text-text-muted">{t('Intern')}</dt>
           <dd className="font-semibold">{cert.internName}</dd>
         </div>
         <div>
-          <dt className="text-text-muted">Supervising lawyer</dt>
+          <dt className="text-text-muted">{t('Supervising lawyer')}</dt>
           <dd>
             {cert.lawyerName}, {cert.chamberName} ({cert.chamberCode})
           </dd>
         </div>
         <div>
-          <dt className="text-text-muted">Period</dt>
+          <dt className="text-text-muted">{t('Period')}</dt>
           <dd>
-            {isoToDdMmYyyy(cert.periodFrom)} to {isoToDdMmYyyy(cert.periodTo)}
+            {t('{{isoToDdMmYyyy}} to {{isoToDdMmYyyy2}}', {
+              isoToDdMmYyyy: isoToDdMmYyyy(cert.periodFrom),
+              isoToDdMmYyyy2: isoToDdMmYyyy(cert.periodTo),
+            })}
           </dd>
         </div>
         <div>
-          <dt className="text-text-muted">Approved research logs · attendance days</dt>
+          <dt className="text-text-muted">{t('Approved research logs · attendance days')}</dt>
           <dd>
             {cert.approvedLogs} · {cert.attendanceDays}
           </dd>
         </div>
         <div className="sm:col-span-2">
-          <dt className="text-text-muted">Seal (HMAC-SHA256)</dt>
+          <dt className="text-text-muted">{t('Seal (HMAC-SHA256)')}</dt>
           <dd className="break-all font-mono text-xs">{cert.seal}</dd>
         </div>
       </dl>
       <div className="flex flex-wrap gap-2">
         <Button loading={download.isPending} onClick={() => download.mutate()}>
-          <Download aria-hidden="true" /> Download PDF certificate
+          <Download aria-hidden="true" /> {t('Download PDF certificate')}
         </Button>
         <Button variant="secondary" loading={verify.isPending} onClick={() => verify.mutate()}>
-          <ShieldCheck aria-hidden="true" /> Verify seal
+          <ShieldCheck aria-hidden="true" /> {t('Verify seal')}
         </Button>
       </div>
       {check && (
-        <Alert variant={check.valid ? 'success' : 'error'} title={check.valid ? 'Valid' : 'Tampered'}>
+        <Alert
+          variant={check.valid ? 'success' : 'error'}
+          title={check.valid ? t('Valid') : t('Tampered')}
+        >
           {check.message}
         </Alert>
       )}
@@ -89,6 +98,7 @@ export function CertificateDetails({
 
 /** Lawyer's intern page: issue the completion certificate once an approved research log exists. */
 export function LawyerCertificateCard({ internId }: { internId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [confirm, setConfirm] = useState(false);
   const { data, isPending, isError, error } = useQuery({
@@ -111,7 +121,7 @@ export function LawyerCertificateCard({ internId }: { internId: string }) {
     <Card className="mb-6">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Award className="size-5 text-primary" aria-hidden="true" /> Completion certificate
+          <Award className="size-5 text-primary" aria-hidden="true" /> {t('Completion certificate')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -131,11 +141,17 @@ export function LawyerCertificateCard({ internId }: { internId: string }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-text-muted">
                 {data.eligible
-                  ? `${data.approvedLogs} approved research log${data.approvedLogs === 1 ? '' : 's'}. The certificate records the period, approved logs and attendance days as of today and cannot be changed later.`
-                  : data.message}
+                  ? `${
+                      data.approvedLogs === 1
+                        ? t('1 approved research log.')
+                        : t('{{count}} approved research logs.', { count: data.approvedLogs })
+                    } ${t(
+                      'The certificate records the period, approved logs and attendance days as of today and cannot be changed later.',
+                    )}`
+                  : translateText(data.message)}
               </p>
               <Button disabled={!data.eligible} onClick={() => setConfirm(true)}>
-                <Award aria-hidden="true" /> Issue completion certificate
+                <Award aria-hidden="true" /> {t('Issue completion certificate')}
               </Button>
             </div>
           )
@@ -144,9 +160,12 @@ export function LawyerCertificateCard({ internId }: { internId: string }) {
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title="Issue completion certificate"
-        description={`Issue the certificate now (${formatDate(new Date())})? It is sealed and cannot be edited or issued a second time.`}
-        confirmLabel="Issue certificate"
+        title={t('Issue completion certificate')}
+        description={t(
+          'Issue the certificate now ({{date}})? It is sealed and cannot be edited or issued a second time.',
+          { date: formatDate(new Date()) },
+        )}
+        confirmLabel={t('Issue certificate')}
         loading={issue.isPending}
         onConfirm={() => issue.mutate()}
       />

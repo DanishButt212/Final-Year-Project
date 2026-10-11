@@ -1,6 +1,9 @@
+import { ltr } from './format';
 import { api } from './api';
 import { pkIsoDate, pkMinutes } from './pk-time';
 import type { Paginated } from './types';
+
+import i18n, { msg } from '@/i18n';
 
 export type HearingStatus = 'SCHEDULED' | 'HELD' | 'ADJOURNED' | 'CANCELLED';
 
@@ -245,17 +248,19 @@ export function slotPassed(iso: string, start: string, now: Date = new Date()): 
 }
 
 export const WEEKDAYS = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
+  msg('Sunday'),
+  msg('Monday'),
+  msg('Tuesday'),
+  msg('Wednesday'),
+  msg('Thursday'),
+  msg('Friday'),
+  msg('Saturday'),
 ];
-export const weekdayName = (iso: string) => WEEKDAYS[new Date(`${iso}T00:00:00Z`).getUTCDay()];
+/** The weekday of an ISO date in the current language. */
+export const weekdayName = (iso: string) =>
+  i18n.t(WEEKDAYS[new Date(`${iso}T00:00:00Z`).getUTCDay()]);
 export const isoToDdMmYyyy = (iso: string) =>
-  `${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)}`;
+  ltr(`${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)}`);
 export const isWeekend = (iso: string) => {
   const d = new Date(`${iso}T00:00:00Z`).getUTCDay();
   return d === 0 || d === 6;

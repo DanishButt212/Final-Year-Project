@@ -48,7 +48,12 @@ export const authApi = {
 };
 
 export const usersApi = {
-  async updateMe(body: { phone?: string; profileImage?: string | null }) {
+  async updateMe(body: {
+    phone?: string;
+    profileImage?: string | null;
+    preferredLanguage?: 'en' | 'ur';
+    fontScale?: number;
+  }) {
     return (await api.patch<{ message: string; user: User }>('/users/me', body)).data;
   },
   async list(params: { page: number; limit: number; role?: Role; search?: string }) {

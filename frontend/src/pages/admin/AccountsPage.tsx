@@ -66,6 +66,9 @@ import { CNIC_REGEX, MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import type { Role, UserStatus } from '@/lib/types';
 import { fullName, USER_STATUS_LABEL } from './admin-helpers';
 import { UserStatusBadge, VerificationBadge } from './shared';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const PAGE_SIZE = 10;
 const STAFF_ROLES: CreateStaffPayload['role'][] = ['JUDGE', 'INTERN', 'PROCESS_SERVER', 'ADMIN'];
@@ -76,37 +79,39 @@ const ACTIONS: Record<
     menu: string;
     title: string;
     confirm: string;
-    text: (name: string) => string;
+    /** Template with {{name}}. */
+    text: string;
     destructive: boolean;
   }
 > = {
   suspend: {
-    menu: 'Suspend User Account',
-    title: 'Suspend this account?',
-    confirm: 'Suspend User Account',
-    text: (n) => `${n} will be signed out and cannot log in until the account is reactivated.`,
+    menu: msg('Suspend User Account'),
+    title: msg('Suspend this account?'),
+    confirm: msg('Suspend User Account'),
+    text: msg('{{name}} will be signed out and cannot log in until the account is reactivated.'),
     destructive: true,
   },
   block: {
-    menu: 'Revoke System Access Rights',
-    title: 'Revoke system access rights?',
-    confirm: 'Revoke Access',
-    text: (n) => `${n} will lose all access to the system immediately.`,
+    menu: msg('Revoke System Access Rights'),
+    title: msg('Revoke system access rights?'),
+    confirm: msg('Revoke Access'),
+    text: msg('{{name}} will lose all access to the system immediately.'),
     destructive: true,
   },
   reactivate: {
-    menu: 'Reactivate',
-    title: 'Reactivate this account?',
-    confirm: 'Reactivate',
-    text: (n) => `${n} will be able to log in again.`,
+    menu: msg('Reactivate'),
+    title: msg('Reactivate this account?'),
+    confirm: msg('Reactivate'),
+    text: msg('{{name}} will be able to log in again.'),
     destructive: false,
   },
   delete: {
-    menu: 'Delete',
-    title: 'Delete this account?',
-    confirm: 'Delete',
-    text: (n) =>
-      `${n} will be deactivated permanently and cannot log in. Their cases and audit history are kept.`,
+    menu: msg('Delete'),
+    title: msg('Delete this account?'),
+    confirm: msg('Delete'),
+    text: msg(
+      '{{name}} will be deactivated permanently and cannot log in. Their cases and audit history are kept.',
+    ),
     destructive: true,
   },
 };
@@ -141,23 +146,23 @@ const staffSchema = z
       .string()
       .trim()
       .min(1, MESSAGES.fieldRequired)
-      .max(50, 'Use 50 characters or fewer.'),
+      .max(50, msg('Use 50 characters or fewer.')),
     lastName: z
       .string()
       .trim()
       .min(1, MESSAGES.fieldRequired)
-      .max(50, 'Use 50 characters or fewer.'),
+      .max(50, msg('Use 50 characters or fewer.')),
     cnic: z
       .string()
       .trim()
       .min(1, MESSAGES.fieldRequired)
-      .regex(CNIC_REGEX, 'CNIC must be in the format 12345-1234567-1.'),
+      .regex(CNIC_REGEX, msg('CNIC must be in the format 12345-1234567-1.')),
     email: z.string().trim().min(1, MESSAGES.fieldRequired).email('Enter a valid email address.'),
     phone: z
       .string()
       .trim()
       .min(1, MESSAGES.fieldRequired)
-      .regex(PHONE_REGEX, 'Phone must be in the format +92 3XX XXXXXXX.'),
+      .regex(PHONE_REGEX, msg('Phone must be in the format +92 3XX XXXXXXX.')),
     courtId: z.string().optional(),
     courtroomId: z.string().optional(),
     supervisorLawyerId: z.string().optional(),
@@ -166,21 +171,37 @@ const staffSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.role === 'JUDGE' && !v.courtId) {
-      ctx.addIssue({ code: 'custom', path: ['courtId'], message: 'Choose the judge’s court.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['courtId'],
+        message: msg('Choose the judge’s court.'),
+      });
     }
     if (v.role === 'PROCESS_SERVER') {
       if (!v.badgeNumber)
-        ctx.addIssue({ code: 'custom', path: ['badgeNumber'], message: 'Enter the badge number.' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['badgeNumber'],
+          message: msg('Enter the badge number.'),
+        });
       if (!v.courtId)
-        ctx.addIssue({ code: 'custom', path: ['courtId'], message: 'Choose the precinct court.' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['courtId'],
+          message: msg('Choose the precinct court.'),
+        });
       if (!v.sector)
-        ctx.addIssue({ code: 'custom', path: ['sector'], message: 'Enter the assigned sector.' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['sector'],
+          message: msg('Enter the assigned sector.'),
+        });
     }
     if (v.role === 'INTERN' && !v.supervisorLawyerId) {
       ctx.addIssue({
         code: 'custom',
         path: ['supervisorLawyerId'],
-        message: 'Choose the verified lawyer who supervises this intern.',
+        message: msg('Choose the verified lawyer who supervises this intern.'),
       });
     }
   });
@@ -206,6 +227,7 @@ function AddStaffDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ name: string; email: string; link: string } | null>(
@@ -289,9 +311,9 @@ function AddStaffDialog({
     try {
       await navigator.clipboard.writeText(created.link);
       setCopied(true);
-      toast.success('Link copied.');
+      toast.success(t('Link copied.'));
     } catch {
-      toast.error('Could not copy. Select the link and copy it manually.');
+      toast.error(t('Could not copy. Select the link and copy it manually.'));
     }
   }
 
@@ -301,18 +323,22 @@ function AddStaffDialog({
         {created ? (
           <>
             <DialogHeader>
-              <DialogTitle>Account created</DialogTitle>
+              <DialogTitle>{t('Account created')}</DialogTitle>
               <DialogDescription>
-                {created.name} ({created.email}) can set a password with the link below.
+                {t('{{name}} ({{email}}) can set a password with the link below.', {
+                  name: created.name,
+                  email: created.email,
+                })}
               </DialogDescription>
             </DialogHeader>
-            <Alert variant="error" title="Shown only once">
-              The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it
-              now and give it to the staff member. It is valid for 72 hours.
+            <Alert variant="error" title={t('Shown only once')}>
+              {t(
+                'The server keeps only a fingerprint of this link, so it cannot be shown again. Copy it now and give it to the staff member. It is valid for 72 hours.',
+              )}
             </Alert>
             <div className="mt-4 space-y-2">
               <label htmlFor="reset-link" className="block text-sm font-medium">
-                One-time password setup link
+                {t('One-time password setup link')}
               </label>
               <div className="flex gap-2">
                 <input
@@ -323,12 +349,12 @@ function AddStaffDialog({
                   className="min-h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 font-mono text-sm"
                 />
                 <Button variant="secondary" onClick={copyLink}>
-                  <Copy aria-hidden="true" /> {copied ? 'Copied' : 'Copy'}
+                  <Copy aria-hidden="true" /> {copied ? t('Copied') : t('Copy')}
                 </Button>
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => close(false)}>Done</Button>
+              <Button onClick={() => close(false)}>{t('Done')}</Button>
             </DialogFooter>
           </>
         ) : (
@@ -343,10 +369,11 @@ function AddStaffDialog({
             )}
           >
             <DialogHeader>
-              <DialogTitle>Add staff account</DialogTitle>
+              <DialogTitle>{t('Add staff account')}</DialogTitle>
               <DialogDescription>
-                The person receives a link to choose their own password. Public registration stays
-                for litigants and lawyers only.
+                {t(
+                  'The person receives a link to choose their own password. Public registration stays for litigants and lawyers only.',
+                )}
               </DialogDescription>
             </DialogHeader>
             {formError && (
@@ -356,22 +383,22 @@ function AddStaffDialog({
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Field label="Role" required error={errors.role?.message}>
+                <Field label={t('Role')} required error={errors.role?.message}>
                   {(p) => (
                     <NativeSelect {...register('role')} {...p}>
                       {STAFF_ROLES.map((r) => (
                         <option key={r} value={r}>
-                          {ROLE_LABEL[r]}
+                          {t(ROLE_LABEL[r])}
                         </option>
                       ))}
                     </NativeSelect>
                   )}
                 </Field>
               </div>
-              <Field label="First name" required error={errors.firstName?.message}>
+              <Field label={t('First name')} required error={errors.firstName?.message}>
                 {(p) => <Input autoComplete="off" {...register('firstName')} {...p} />}
               </Field>
-              <Field label="Last name" required error={errors.lastName?.message}>
+              <Field label={t('Last name')} required error={errors.lastName?.message}>
                 {(p) => <Input autoComplete="off" {...register('lastName')} {...p} />}
               </Field>
               <Field label="CNIC" required hint="12345-1234567-1" error={errors.cnic?.message}>
@@ -384,28 +411,34 @@ function AddStaffDialog({
                   />
                 )}
               </Field>
-              <Field label="Phone" required hint="+92 3XX XXXXXXX" error={errors.phone?.message}>
+              <Field
+                label={t('Phone')}
+                required
+                hint={t('+92 3XX XXXXXXX')}
+                error={errors.phone?.message}
+              >
                 {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
               <div className="sm:col-span-2">
-                <Field label="Email" required error={errors.email?.message}>
+                <Field label={t('Email')} required error={errors.email?.message}>
                   {(p) => <Input type="email" autoComplete="off" {...register('email')} {...p} />}
                 </Field>
               </div>
               {role === 'INTERN' && (
                 <div className="sm:col-span-2">
                   <Field
-                    label="Supervising lawyer"
+                    label={t('Supervising lawyer')}
                     required
-                    hint="An intern works under the chamber of this verified lawyer."
+                    hint={t('An intern works under the chamber of this verified lawyer.')}
                     error={errors.supervisorLawyerId?.message}
                   >
                     {(p) => (
                       <NativeSelect {...register('supervisorLawyerId')} {...p}>
-                        <option value="">Choose a verified lawyer</option>
+                        <option value="">{t('Choose a verified lawyer')}</option>
                         {lawyers.data?.data.map((l) => (
                           <option key={l.id} value={l.id}>
-                            {l.user.firstName} {l.user.lastName} ({l.barNumber ?? 'no bar number'})
+                            {l.user.firstName} {l.user.lastName} (
+                            {l.barNumber ?? t('no bar number')})
                           </option>
                         ))}
                       </NativeSelect>
@@ -415,19 +448,19 @@ function AddStaffDialog({
               )}
               {role === 'PROCESS_SERVER' && (
                 <>
-                  <Field label="Badge number" required error={errors.badgeNumber?.message}>
+                  <Field label={t('Badge number')} required error={errors.badgeNumber?.message}>
                     {(p) => <Input maxLength={30} {...register('badgeNumber')} {...p} />}
                   </Field>
                   <Field
-                    label="Assigned sector"
+                    label={t('Assigned sector')}
                     required
                     error={errors.sector?.message}
-                    hint="For example Gulgasht Colony"
+                    hint={t('For example Gulgasht Colony')}
                   >
                     {(p) => <Input maxLength={80} {...register('sector')} {...p} />}
                   </Field>
                   <div className="sm:col-span-2">
-                    <Field label="Precinct court" required error={errors.courtId?.message}>
+                    <Field label={t('Precinct court')} required error={errors.courtId?.message}>
                       {(p) => (
                         <Controller
                           control={control}
@@ -438,7 +471,7 @@ function AddStaffDialog({
                               onChange={(e) => field.onChange(e.target.value)}
                               {...p}
                             >
-                              <option value="">Choose a court</option>
+                              <option value="">{t('Choose a court')}</option>
                               {courts.data?.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.name}
@@ -454,7 +487,7 @@ function AddStaffDialog({
               )}
               {role === 'JUDGE' && (
                 <>
-                  <Field label="Court" required error={errors.courtId?.message}>
+                  <Field label={t('Court')} required error={errors.courtId?.message}>
                     {(p) => (
                       <Controller
                         control={control}
@@ -467,7 +500,7 @@ function AddStaffDialog({
                             }}
                             {...p}
                           >
-                            <option value="">Choose a court</option>
+                            <option value="">{t('Choose a court')}</option>
                             {courts.data?.map((c) => (
                               <option key={c.id} value={c.id}>
                                 {c.name}
@@ -478,10 +511,10 @@ function AddStaffDialog({
                       />
                     )}
                   </Field>
-                  <Field label="Courtroom (optional)" error={errors.courtroomId?.message}>
+                  <Field label={t('Courtroom (optional)')} error={errors.courtroomId?.message}>
                     {(p) => (
                       <NativeSelect disabled={!courtId} {...register('courtroomId')} {...p}>
-                        <option value="">No fixed courtroom</option>
+                        <option value="">{t('No fixed courtroom')}</option>
                         {rooms.map((r) => (
                           <option key={r.id} value={r.id}>
                             {r.name}
@@ -495,10 +528,10 @@ function AddStaffDialog({
             </div>
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={() => close(false)}>
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button type="submit" loading={create.isPending}>
-                <UserPlus aria-hidden="true" /> Create account
+                <UserPlus aria-hidden="true" /> {t('Create account')}
               </Button>
             </DialogFooter>
           </form>
@@ -512,6 +545,7 @@ function AddStaffDialog({
 
 /** UC-2.1: Global Account Management & Registry Control. */
 export default function AccountsPage() {
+  const { t } = useTranslation();
   const { user: me } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -560,12 +594,12 @@ export default function AccountsPage() {
   return (
     <>
       <PageHeader
-        title="Global Account Management & Registry Control"
-        description="Every registered litigant, lawyer and staff account."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Account Management' }]}
+        title={t('Global Account Management & Registry Control')}
+        description={t('Every registered litigant, lawyer and staff account.')}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Account Management') }]}
         actions={
           <Button onClick={() => setAdding(true)}>
-            <UserPlus aria-hidden="true" /> Add staff account
+            <UserPlus aria-hidden="true" /> {t('Add staff account')}
           </Button>
         }
       />
@@ -579,15 +613,15 @@ export default function AccountsPage() {
       <form
         onSubmit={onSearch}
         role="search"
-        aria-label="Search accounts"
+        aria-label={t('Search accounts')}
         className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end"
       >
         <div className="flex-1">
-          <Field label="Search">
+          <Field label={t('Search')}>
             {(p) => (
               <Input
                 type="search"
-                placeholder="Name, email or CNIC"
+                placeholder={t('Name, email or CNIC')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 {...p}
@@ -596,7 +630,7 @@ export default function AccountsPage() {
           </Field>
         </div>
         <div className="lg:w-48">
-          <Field label="Role">
+          <Field label={t('Role')}>
             {(p) => (
               <NativeSelect
                 value={role}
@@ -606,10 +640,10 @@ export default function AccountsPage() {
                 }}
                 {...p}
               >
-                <option value="">All roles</option>
+                <option value="">{t('All roles')}</option>
                 {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
                   <option key={r} value={r}>
-                    {ROLE_LABEL[r]}
+                    {t(ROLE_LABEL[r])}
                   </option>
                 ))}
               </NativeSelect>
@@ -617,7 +651,7 @@ export default function AccountsPage() {
           </Field>
         </div>
         <div className="lg:w-48">
-          <Field label="Status">
+          <Field label={t('Status')}>
             {(p) => (
               <NativeSelect
                 value={status}
@@ -627,7 +661,7 @@ export default function AccountsPage() {
                 }}
                 {...p}
               >
-                <option value="">All statuses</option>
+                <option value="">{t('All statuses')}</option>
                 {(Object.keys(USER_STATUS_LABEL) as UserStatus[]).map((s) => (
                   <option key={s} value={s}>
                     {USER_STATUS_LABEL[s]}
@@ -638,7 +672,7 @@ export default function AccountsPage() {
           </Field>
         </div>
         <Button type="submit" variant="secondary">
-          <Search aria-hidden="true" /> Search
+          <Search aria-hidden="true" /> {t('Search')}
         </Button>
       </form>
 
@@ -650,23 +684,23 @@ export default function AccountsPage() {
         <Card>
           <EmptyState
             icon={UsersRound}
-            title="No accounts found"
-            description="Try a different search or clear the filters."
+            title={t('No accounts found')}
+            description={t('Try a different search or clear the filters.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Accounts">
+            <Table aria-label={t('Accounts')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>{t('Name')}</TableHead>
                   <TableHead>CNIC</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Registered</TableHead>
+                  <TableHead>{t('Role')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead>{t('Registered')}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -681,7 +715,7 @@ export default function AccountsPage() {
                         <span className="block text-text-muted">{u.email}</span>
                         {u.id === me?.id && (
                           <Badge variant="accent" className="mt-1">
-                            You
+                            {t('You')}
                           </Badge>
                         )}
                       </TableCell>
@@ -689,7 +723,7 @@ export default function AccountsPage() {
                         {u.cnic}
                       </TableCell>
                       <TableCell>
-                        <span className="block">{ROLE_LABEL[u.role]}</span>
+                        <span className="block">{t(ROLE_LABEL[u.role])}</span>
                         {u.court && <span className="block text-text-muted">{u.court.name}</span>}
                         {u.lawyerProfile && (
                           <span className="mt-1 block">
@@ -701,14 +735,14 @@ export default function AccountsPage() {
                         <UserStatusBadge status={u.status} />
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{formatDate(u.createdAt)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-end">
                         {actions.length > 0 && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                aria-label={`Actions for ${name}`}
+                                aria-label={t('Actions for {{name}}', { name })}
                               >
                                 <MoreHorizontal aria-hidden="true" />
                               </Button>
@@ -723,7 +757,7 @@ export default function AccountsPage() {
                                       destructive={a !== 'reactivate'}
                                       onSelect={() => setPending({ user: u, action: a })}
                                     >
-                                      <Icon aria-hidden="true" /> {ACTIONS[a].menu}
+                                      <Icon aria-hidden="true" /> {t(ACTIONS[a].menu)}
                                     </DropdownMenuItem>
                                   </div>
                                 );
@@ -753,9 +787,9 @@ export default function AccountsPage() {
         <ConfirmDialog
           open
           onOpenChange={(o) => !o && setPending(null)}
-          title={ACTIONS[pending.action].title}
-          description={ACTIONS[pending.action].text(fullName(pending.user))}
-          confirmLabel={ACTIONS[pending.action].confirm}
+          title={t(ACTIONS[pending.action].title)}
+          description={t(ACTIONS[pending.action].text, { name: fullName(pending.user) })}
+          confirmLabel={t(ACTIONS[pending.action].confirm)}
           destructive={ACTIONS[pending.action].destructive}
           loading={change.isPending}
           onConfirm={() => change.mutate({ id: pending.user.id, action: pending.action })}

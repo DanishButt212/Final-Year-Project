@@ -24,11 +24,13 @@ import { parseApiError } from '@/lib/api';
 import { adminApi } from '@/lib/admin-api';
 import { caseTypeLabel } from '@/lib/case-status';
 import { formatDate } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 10;
 
 /** "My Allocated Cases": the table shown on the judge dashboard and on /judge/cases. */
 export function MyAllocatedCases() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -47,18 +49,18 @@ export function MyAllocatedCases() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Allocated Cases</CardTitle>
-        <p className="text-sm text-text-muted">Cases the registrar has allocated to you.</p>
+        <CardTitle>{t('My Allocated Cases')}</CardTitle>
+        <p className="text-sm text-text-muted">{t('Cases the registrar has allocated to you.')}</p>
       </CardHeader>
       <div className="space-y-4 p-5">
         <form
           onSubmit={onSearch}
           role="search"
-          aria-label="Search allocated cases"
+          aria-label={t('Search allocated cases')}
           className="flex flex-col gap-3 sm:flex-row sm:items-end"
         >
           <div className="flex-1">
-            <Field label="Search by case number or title">
+            <Field label={t('Search by case number or title')}>
               {(p) => (
                 <Input
                   type="search"
@@ -70,7 +72,7 @@ export function MyAllocatedCases() {
             </Field>
           </div>
           <Button type="submit" variant="secondary">
-            <Search aria-hidden="true" /> Search
+            <Search aria-hidden="true" /> {t('Search')}
           </Button>
         </form>
 
@@ -81,25 +83,25 @@ export function MyAllocatedCases() {
         ) : data && data.data.length === 0 ? (
           <EmptyState
             icon={Briefcase}
-            title={search ? 'No cases match your search' : 'No cases allocated to you yet'}
+            title={search ? t('No cases match your search') : t('No cases allocated to you yet')}
             description={
               search
-                ? 'Try a different case number or title.'
-                : 'When the registrar allocates a case to you, it will be listed here.'
+                ? t('Try a different case number or title.')
+                : t('When the registrar allocates a case to you, it will be listed here.')
             }
           />
         ) : (
           data && (
             <>
-              <Table aria-label="My allocated cases">
+              <Table aria-label={t('My allocated cases')}>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Case number</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Filing date</TableHead>
-                    <TableHead>Filed by</TableHead>
+                    <TableHead>{t('Case number')}</TableHead>
+                    <TableHead>{t('Title')}</TableHead>
+                    <TableHead>{t('Type')}</TableHead>
+                    <TableHead>{t('Status')}</TableHead>
+                    <TableHead>{t('Filing date')}</TableHead>
+                    <TableHead>{t('Filed by')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -138,12 +140,13 @@ export function MyAllocatedCases() {
 }
 
 export default function JudgeCasesPage() {
+  const { t } = useTranslation();
   return (
     <>
       <PageHeader
-        title="My Allocated Cases"
-        description="Cases allocated to you by the registrar."
-        crumbs={[{ label: 'Dashboard', to: '/judge' }, { label: 'My Allocated Cases' }]}
+        title={t('My Allocated Cases')}
+        description={t('Cases allocated to you by the registrar.')}
+        crumbs={[{ label: t('Dashboard'), to: '/judge' }, { label: t('My Allocated Cases') }]}
       />
       <MyAllocatedCases />
     </>

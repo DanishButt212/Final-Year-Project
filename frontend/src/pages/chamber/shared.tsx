@@ -12,22 +12,29 @@ import { LAWYER_PENDING_MESSAGE } from '@/hooks/use-filing-gate';
 import { type RetainerStatus } from '@/lib/chamber-api';
 import { RETAINER_LABEL } from './helpers';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /** Wraps every /lawyer/chamber page: only VERIFIED lawyers get in, everyone else sees a clear banner. */
 export function ChamberGate() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const status = user?.lawyerProfile?.verificationStatus;
   if (status === 'VERIFIED') return <Outlet />;
   return (
     <>
-      <PageHeader title="Chamber" description="Your private chamber workspace." />
+      <PageHeader title={t('Chamber')} description={t('Your private chamber workspace.')} />
       <Alert
         variant={status === 'REJECTED' ? 'error' : 'info'}
-        title={status === 'REJECTED' ? 'Verification rejected' : 'Verification pending'}
+        title={status === 'REJECTED' ? t('Verification rejected') : t('Verification pending')}
       >
         {status === 'REJECTED'
-          ? 'Your Bar Council registration could not be verified, so the chamber is not available. Please contact the registrar.'
-          : `${LAWYER_PENDING_MESSAGE} The chamber becomes available once the registry verifies you.`}
+          ? t(
+              'Your Bar Council registration could not be verified, so the chamber is not available. Please contact the registrar.',
+            )
+          : t(
+              '{{LAWYER_PENDING_MESSAGE}} The chamber becomes available once the registry verifies you.',
+              { LAWYER_PENDING_MESSAGE: t(LAWYER_PENDING_MESSAGE) },
+            )}
       </Alert>
     </>
   );
@@ -88,13 +95,15 @@ export function ChipInput({
   id: string;
   placeholder?: string;
 }) {
+  const { t } = useTranslation();
   const [text, setText] = useState('');
   // "bail, section 497" becomes two chips: entries are split on commas, trimmed and de-duplicated.
   const add = (raw = text) => {
     const next = [...values];
     for (const part of raw.split(',')) {
       const v = part.trim();
-      if (v && next.length < max && !next.some((x) => x.toLowerCase() === v.toLowerCase())) next.push(v);
+      if (v && next.length < max && !next.some((x) => x.toLowerCase() === v.toLowerCase()))
+        next.push(v);
     }
     if (next.length !== values.length) onChange(next);
     setText('');
@@ -129,9 +138,9 @@ export function ChipInput({
           variant="secondary"
           onClick={() => add()}
           disabled={values.length >= max}
-          aria-label={`Add to ${label}`}
+          aria-label={t('Add to {{label}}', { label })}
         >
-          <Plus aria-hidden="true" /> Add
+          <Plus aria-hidden="true" /> {t('Add')}
         </Button>
       </div>
       {values.length > 0 && (
@@ -140,14 +149,14 @@ export function ChipInput({
             <li
               key={v}
               className={cn(
-                'inline-flex items-center gap-1 rounded-md border border-border bg-primary-soft py-1 pl-2.5 pr-1 text-sm',
+                'inline-flex items-center gap-1 rounded-md border border-border bg-primary-soft py-1 ps-2.5 pe-1 text-sm',
               )}
             >
               {v}
               <button
                 type="button"
                 onClick={() => onChange(values.filter((x) => x !== v))}
-                aria-label={`Remove ${v}`}
+                aria-label={t('Remove {{v}}', { v })}
                 className="flex size-6 items-center justify-center rounded hover:bg-surface"
               >
                 <X className="size-4" aria-hidden="true" />
@@ -161,9 +170,10 @@ export function ChipInput({
 }
 
 export function BackToDashboard() {
+  const { t } = useTranslation();
   return (
     <Button asChild variant="secondary">
-      <Link to="/lawyer/chamber">Chamber dashboard</Link>
+      <Link to="/lawyer/chamber">{t('Chamber dashboard')}</Link>
     </Button>
   );
 }

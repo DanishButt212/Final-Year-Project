@@ -15,6 +15,7 @@ import { caseTypeLabel, judgeBench } from '@/lib/case-status';
 import { formatDate } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { MESSAGES } from '@/lib/schemas';
+import { useTranslation } from 'react-i18next';
 
 function Stat({ icon: Icon, label, value }: { icon: typeof Scale; label: string; value: number }) {
   return (
@@ -36,6 +37,7 @@ function Stat({ icon: Icon, label, value }: { icon: typeof Scale; label: string;
 
 /** Dashboard block for litigants and lawyers: case totals and the five most recent cases (real API data). */
 export default function CaseOverview() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const gate = useFilingGate();
   const { data, isPending, isError, error } = useQuery({
@@ -48,18 +50,18 @@ export default function CaseOverview() {
   const base = portalPath(portal, 'cases');
 
   return (
-    <section aria-label="Case overview" className="mb-6 space-y-6">
+    <section aria-label={t('Case overview')} className="mb-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">Your cases</h2>
+        <h2 className="text-xl font-bold">{t('Your cases')}</h2>
         {gate.canFile ? (
           <Button asChild size="lg">
             <Link to={portalPath(portal, 'new-case')}>
-              <FilePlus2 aria-hidden="true" /> New Case Submission
+              <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
             </Link>
           </Button>
         ) : (
           <Button size="lg" disabled aria-describedby="filing-gate-reason">
-            <FilePlus2 aria-hidden="true" /> New Case Submission
+            <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
           </Button>
         )}
       </div>
@@ -70,7 +72,7 @@ export default function CaseOverview() {
               ? 'info'
               : 'error'
           }
-          title="New filing unavailable"
+          title={t('New filing unavailable')}
         >
           <span id="filing-gate-reason">{gate.reason}</span>
         </Alert>
@@ -79,17 +81,21 @@ export default function CaseOverview() {
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
 
       {isPending ? (
-        <div role="status" aria-label="Loading cases" className="grid gap-4 sm:grid-cols-2">
+        <div role="status" aria-label={t('Loading cases')} className="grid gap-4 sm:grid-cols-2">
           <Skeleton className="h-24" />
           <Skeleton className="h-24" />
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only">{t('Loading…')}</span>
         </div>
       ) : (
         data && (
           <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <Stat icon={Scale} label="Total cases" value={data.total} />
-              <Stat icon={Hourglass} label="Pending assignment" value={data.pendingAssignment} />
+              <Stat icon={Scale} label={t('Total cases')} value={data.total} />
+              <Stat
+                icon={Hourglass}
+                label={t('Pending assignment')}
+                value={data.pendingAssignment}
+              />
               <Link
                 to={portalPath(portal, 'payments')}
                 className="flex items-center gap-4 rounded-lg border border-border bg-surface p-5 text-text no-underline hover:bg-primary-soft"
@@ -105,17 +111,17 @@ export default function CaseOverview() {
                     {data.unpaidFees ?? 0}
                   </span>
                   <span className="mt-1 block text-sm text-text-muted">
-                    Unpaid fees · Payments & Receipts
+                    {t('Unpaid fees · Payments & Receipts')}
                   </span>
                 </span>
               </Link>
             </div>
             <Card>
               <CardHeader className="flex-row items-center justify-between">
-                <CardTitle>Recent cases</CardTitle>
+                <CardTitle>{t('Recent cases')}</CardTitle>
                 {data.recent.length > 0 && (
                   <Link to={base} className="text-sm font-semibold">
-                    View all
+                    {t('View all')}
                   </Link>
                 )}
               </CardHeader>
@@ -123,10 +129,10 @@ export default function CaseOverview() {
                 <EmptyState
                   icon={Briefcase}
                   title={MESSAGES.emptyPortfolio}
-                  description="Submit your first case to see it here."
+                  description={t('Submit your first case to see it here.')}
                   action={
                     <Button asChild variant="secondary" size="sm">
-                      <Link to={portalPath(portal, 'new-case')}>New Case Submission</Link>
+                      <Link to={portalPath(portal, 'new-case')}>{t('New Case Submission')}</Link>
                     </Button>
                   }
                 />
@@ -144,8 +150,11 @@ export default function CaseOverview() {
                           </span>
                           <span className="block break-words font-semibold">{c.title}</span>
                           <span className="block text-sm text-text-muted">
-                            {caseTypeLabel(c.caseType)} · {judgeBench(c)} · Filed{' '}
-                            {formatDate(c.filingDate)}
+                            {t('{{caseTypeLabel}} · {{judgeBench}} · Filed {{date}}', {
+                              caseTypeLabel: caseTypeLabel(c.caseType),
+                              judgeBench: judgeBench(c),
+                              date: formatDate(c.filingDate),
+                            })}
                           </span>
                         </span>
                         <StatusBadge status={c.status} />

@@ -14,6 +14,7 @@ import {
   LawyerDashboard,
   LitigantDashboard,
 } from './dashboards';
+import { useTranslation } from 'react-i18next';
 
 /** Process servers work in their own console at /process-server. */
 const ProcessServerHome = () => <Navigate to="/process-server" replace />;
@@ -40,6 +41,7 @@ export function PortalHome() {
 
 /** /:portal/:feature → a clear "later phase" page for every sidebar item. */
 export function ComingSoonPage({ feature: featureProp }: { feature?: string }) {
+  const { t } = useTranslation();
   const { portal: slug, feature: featureParam } = useParams();
   const feature = featureProp ?? featureParam;
   const { user } = useAuth();
@@ -52,18 +54,21 @@ export function ComingSoonPage({ feature: featureProp }: { feature?: string }) {
   return (
     <>
       <PageHeader
-        title={item.label}
-        description={item.description}
-        crumbs={[{ label: 'Dashboard', to: portalPath(portal, '') }, { label: item.label }]}
+        title={t(item.label)}
+        description={t(item.description)}
+        crumbs={[{ label: t('Dashboard'), to: portalPath(portal, '') }, { label: item.label }]}
       />
       <Card className="max-w-2xl">
         <EmptyState
           icon={Hammer}
-          title="Coming in a later phase"
-          description={`${item.label} is planned but not built yet. This page will be replaced when the feature is delivered.`}
+          title={t('Coming in a later phase')}
+          description={t(
+            '{{label}} is planned but not built yet. This page will be replaced when the feature is delivered.',
+            { label: item.label },
+          )}
           action={
             <Button asChild variant="secondary">
-              <Link to={portalPath(portal, '')}>Back to dashboard</Link>
+              <Link to={portalPath(portal, '')}>{t('Back to dashboard')}</Link>
             </Button>
           }
         />

@@ -17,6 +17,7 @@ import { applyServerError } from '@/lib/form-errors';
 import { formatDate, initials } from '@/lib/format';
 import { ROLE_LABEL, roleHome } from '@/lib/navigation';
 import { MESSAGES, profileSchema, summaryFor, type ProfileValues } from '@/lib/schemas';
+import { useTranslation } from 'react-i18next';
 
 function ReadOnly({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -28,6 +29,7 @@ function ReadOnly({ label, value, mono }: { label: string; value: string; mono?:
 }
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const { user, setUser } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -64,14 +66,16 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeader
-        title="My profile"
-        description="Your account details. You can change your phone number and profile picture."
-        crumbs={[{ label: 'Dashboard', to: roleHome(user.role) }, { label: 'My profile' }]}
+        title={t('My profile')}
+        description={t(
+          'Your account details. You can change your phone number and profile picture.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: roleHome(user.role) }, { label: t('My profile') }]}
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Account details</CardTitle>
+            <CardTitle>{t('Account details')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="flex items-center gap-4">
@@ -93,21 +97,25 @@ export default function ProfilePage() {
                 <p className="font-heading text-lg font-bold">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="text-sm text-text-muted">{ROLE_LABEL[user.role]}</p>
+                <p className="text-sm text-text-muted">{t(ROLE_LABEL[user.role])}</p>
               </div>
             </div>
             <dl className="grid gap-4 sm:grid-cols-2">
-              <ReadOnly label="Email address" value={user.email} />
-              {user.username && <ReadOnly label="Username" value={user.username} />}
+              <ReadOnly label={t('Email address')} value={user.email} />
+              {user.username && <ReadOnly label={t('Username')} value={user.username} />}
               <ReadOnly label="CNIC" value={user.cnic} mono />
-              <ReadOnly label="Member since" value={formatDate(user.createdAt)} />
+              <ReadOnly label={t('Member since')} value={formatDate(user.createdAt)} />
               {user.lawyerProfile?.barNumber && (
-                <ReadOnly label="Bar Council number" value={user.lawyerProfile.barNumber} mono />
+                <ReadOnly
+                  label={t('Bar Council number')}
+                  value={user.lawyerProfile.barNumber}
+                  mono
+                />
               )}
             </dl>
             {verification && (
               <div>
-                <p className="mb-1 text-sm text-text-muted">Lawyer verification</p>
+                <p className="mb-1 text-sm text-text-muted">{t('Lawyer verification')}</p>
                 <Badge
                   variant={
                     verification === 'VERIFIED'
@@ -118,10 +126,10 @@ export default function ProfilePage() {
                   }
                 >
                   {verification === 'VERIFIED'
-                    ? 'Verified'
+                    ? t('Verified')
                     : verification === 'PENDING'
-                      ? 'Pending verification'
-                      : 'Rejected'}
+                      ? t('Pending verification')
+                      : t('Rejected')}
                 </Badge>
               </div>
             )}
@@ -130,7 +138,7 @@ export default function ProfilePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Edit contact details</CardTitle>
+            <CardTitle>{t('Edit contact details')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form
@@ -140,16 +148,16 @@ export default function ProfilePage() {
             >
               {formError && <Alert variant="error">{formError}</Alert>}
               <Field
-                label="Mobile number"
-                hint="Format: +92 3XX XXXXXXX"
+                label={t('Mobile number')}
+                hint={t('Format: +92 3XX XXXXXXX')}
                 error={errors.phone?.message}
                 required
               >
                 {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
               <Field
-                label="Profile picture link"
-                hint="A link starting with https://. Leave empty to remove your picture."
+                label={t('Profile picture link')}
+                hint={t('A link starting with https://. Leave empty to remove your picture.')}
                 error={errors.profileImage?.message}
               >
                 {(p) => (
@@ -157,7 +165,7 @@ export default function ProfilePage() {
                 )}
               </Field>
               <Button type="submit" loading={isSubmitting} disabled={!isDirty}>
-                <Save aria-hidden="true" /> Save changes
+                <Save aria-hidden="true" /> {t('Save changes')}
               </Button>
             </form>
           </CardContent>

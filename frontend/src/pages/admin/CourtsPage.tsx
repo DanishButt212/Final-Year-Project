@@ -27,9 +27,11 @@ import { adminApi, type CourtRow } from '@/lib/admin-api';
 import { applyServerError } from '@/lib/form-errors';
 import { MESSAGES } from '@/lib/schemas';
 import { UserStatusBadge } from './shared';
+import { useTranslation } from 'react-i18next';
 
 /** Geo-fence of a court complex, used to verify intern attendance on the server. */
 function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [lat, setLat] = useState(court.latitude === null ? '' : String(court.latitude));
   const [lng, setLng] = useState(court.longitude === null ? '' : String(court.longitude));
@@ -56,7 +58,7 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
 
   function locateMe() {
     if (!('geolocation' in navigator)) {
-      setError('This browser cannot provide your location.');
+      setError(t('This browser cannot provide your location.'));
       return;
     }
     setLocating(true);
@@ -68,7 +70,7 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
         setLocating(false);
       },
       () => {
-        setError('Location access was denied or is unavailable.');
+        setError(t('Location access was denied or is unavailable.'));
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 20_000 },
@@ -79,11 +81,11 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
     e.preventDefault();
     const bad =
       (lat.trim() === '') !== (lng.trim() === '')
-        ? 'Enter both latitude and longitude, or leave both empty.'
+        ? t('Enter both latitude and longitude, or leave both empty.')
         : lat.trim() !== '' && !(Math.abs(Number(lat)) <= 90 && Math.abs(Number(lng)) <= 180)
-          ? 'Latitude must be between -90 and 90 and longitude between -180 and 180.'
+          ? t('Latitude must be between -90 and 90 and longitude between -180 and 180.')
           : radius.trim() !== '' && !(Number(radius) >= 50 && Number(radius) <= 5000)
-            ? 'Radius must be between 50 and 5000 metres.'
+            ? t('Radius must be between 50 and 5000 metres.')
             : null;
     if (bad) return setError(bad);
     setError(null);
@@ -95,7 +97,7 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
       <DialogContent>
         <form noValidate onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Attendance geo-fence</DialogTitle>
+            <DialogTitle>{t('Attendance geo-fence')}</DialogTitle>
             <DialogDescription>{court.name}</DialogDescription>
           </DialogHeader>
           {error && (
@@ -104,12 +106,12 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
             </Alert>
           )}
           <p className="mb-4 text-sm text-text-muted">
-            The seeded coordinates are only approximate placeholders for Multan. To test attendance
-            where you are, stand at the spot and use your current location. Leave latitude and
-            longitude empty to remove the geo-fence (attendance cannot be verified at that court).
+            {t(
+              'The seeded coordinates are only approximate placeholders for Multan. To test attendance where you are, stand at the spot and use your current location. Leave latitude and longitude empty to remove the geo-fence (attendance cannot be verified at that court).',
+            )}
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Latitude">
+            <Field label={t('Latitude')}>
               {(p) => (
                 <Input
                   inputMode="decimal"
@@ -119,7 +121,7 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
                 />
               )}
             </Field>
-            <Field label="Longitude">
+            <Field label={t('Longitude')}>
               {(p) => (
                 <Input
                   inputMode="decimal"
@@ -131,8 +133,8 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
             </Field>
             <div className="sm:col-span-2">
               <Field
-                label="Radius (metres)"
-                hint="Empty uses the default radius from System Policies."
+                label={t('Radius (metres)')}
+                hint={t('Empty uses the default radius from System Policies.')}
               >
                 {(p) => (
                   <Input
@@ -152,14 +154,14 @@ function GeofenceDialog({ court, onClose }: { court: CourtRow; onClose: () => vo
             onClick={locateMe}
             loading={locating}
           >
-            <LocateFixed aria-hidden="true" /> Use my current location
+            <LocateFixed aria-hidden="true" /> {t('Use my current location')}
           </Button>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose} disabled={save.isPending}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" loading={save.isPending}>
-              Save geo-fence
+              {t('Save geo-fence')}
             </Button>
           </DialogFooter>
         </form>
@@ -182,6 +184,7 @@ type RoomTarget =
   | { mode: 'edit'; court: CourtRow; room: CourtRow['courtrooms'][number] };
 
 function RoomDialog({ target, onClose }: { target: RoomTarget; onClose: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const editing = target.mode === 'edit';
   const [formError, setFormError] = useState<string | null>(null);
@@ -224,7 +227,7 @@ function RoomDialog({ target, onClose }: { target: RoomTarget; onClose: () => vo
           })}
         >
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit courtroom' : 'Add courtroom'}</DialogTitle>
+            <DialogTitle>{editing ? t('Edit courtroom') : t('Add courtroom')}</DialogTitle>
             <DialogDescription>{target.court.name}</DialogDescription>
           </DialogHeader>
           {formError && (
@@ -233,12 +236,12 @@ function RoomDialog({ target, onClose }: { target: RoomTarget; onClose: () => vo
             </Alert>
           )}
           <div className="space-y-4">
-            <Field label="Courtroom name" required error={errors.name?.message}>
+            <Field label={t('Courtroom name')} required error={errors.name?.message}>
               {(p) => <Input autoComplete="off" {...register('name')} {...p} />}
             </Field>
             <Field
-              label="Bench number"
-              hint="Optional, for example 1 for Bench I."
+              label={t('Bench number')}
+              hint={t('Optional, for example 1 for Bench I.')}
               error={errors.benchNo?.message}
             >
               {(p) => <Input inputMode="numeric" {...register('benchNo')} {...p} />}
@@ -246,10 +249,10 @@ function RoomDialog({ target, onClose }: { target: RoomTarget; onClose: () => vo
           </div>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose} disabled={save.isPending}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" loading={save.isPending}>
-              {editing ? 'Save changes' : 'Add courtroom'}
+              {editing ? t('Save changes') : t('Add courtroom')}
             </Button>
           </DialogFooter>
         </form>
@@ -260,6 +263,7 @@ function RoomDialog({ target, onClose }: { target: RoomTarget; onClose: () => vo
 
 /** Courts, benches (courtrooms) and the judges with their active caseload. */
 export default function CourtsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [target, setTarget] = useState<RoomTarget | null>(null);
   const [fence, setFence] = useState<CourtRow | null>(null);
@@ -281,20 +285,22 @@ export default function CourtsPage() {
   return (
     <>
       <PageHeader
-        title="Courts & Benches"
-        description="Courtrooms and the judges attached to each court, with their active caseload."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Courts & Benches' }]}
+        title={t('Courts & Benches')}
+        description={t(
+          'Courtrooms and the judges attached to each court, with their active caseload.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Courts & Benches') }]}
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
-        <div role="status" aria-label="Loading courts" className="space-y-4">
+        <div role="status" aria-label={t('Loading courts')} className="space-y-4">
           <Skeleton className="h-56" />
           <Skeleton className="h-56" />
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only">{t('Loading…')}</span>
         </div>
       ) : data && data.length === 0 ? (
         <Card>
-          <EmptyState icon={Building2} title="No courts configured" />
+          <EmptyState icon={Building2} title={t('No courts configured')} />
         </Card>
       ) : (
         <div className="space-y-6">
@@ -305,35 +311,44 @@ export default function CourtsPage() {
                   <CardTitle>{court.name}</CardTitle>
                   <p className="text-sm text-text-muted">
                     {court.city} ·{' '}
-                    {court.type === 'HIGH_COURT' ? 'High Court' : 'District & Sessions'}
+                    {court.type === 'HIGH_COURT' ? t('High Court') : t('District & Sessions')}
                   </p>
                   <p className="text-sm text-text-muted">
                     {court.latitude === null
-                      ? 'No attendance geo-fence set.'
-                      : `Geo-fence: ${court.latitude}, ${court.longitude} · ${court.geofenceRadiusM ?? 'default'} m`}
+                      ? t('No attendance geo-fence set.')
+                      : court.geofenceRadiusM
+                        ? t('Geo-fence: {{latitude}}, {{longitude}} · {{radius}} m', {
+                            latitude: court.latitude,
+                            longitude: court.longitude,
+                            radius: court.geofenceRadiusM,
+                          })
+                        : t('Geo-fence: {{latitude}}, {{longitude}} · default radius', {
+                            latitude: court.latitude,
+                            longitude: court.longitude,
+                          })}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" size="sm" onClick={() => setFence(court)}>
                     <MapPin aria-hidden="true" />
-                    {court.latitude === null ? 'Set attendance geo-fence' : 'Edit geo-fence'}
+                    {court.latitude === null ? t('Set attendance geo-fence') : t('Edit geo-fence')}
                   </Button>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => setTarget({ mode: 'create', court })}
                   >
-                    <Plus aria-hidden="true" /> Add courtroom
+                    <Plus aria-hidden="true" /> {t('Add courtroom')}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="grid gap-6 lg:grid-cols-2">
                 <div>
                   <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-text-muted">
-                    Courtrooms
+                    {t('Courtrooms')}
                   </h3>
                   {court.courtrooms.length === 0 ? (
-                    <p className="text-text-muted">No courtrooms yet.</p>
+                    <p className="text-text-muted">{t('No courtrooms yet.')}</p>
                   ) : (
                     <ul className="divide-y divide-border rounded-md border border-border">
                       {court.courtrooms.map((r) => (
@@ -344,13 +359,13 @@ export default function CourtsPage() {
                           <span>
                             <span className="font-semibold">{r.name}</span>
                             {r.benchNo && (
-                              <span className="ml-2 text-sm text-text-muted">
-                                Bench {r.benchNo}
+                              <span className="ms-2 text-sm text-text-muted">
+                                {t('Bench {{benchNo}}', { benchNo: r.benchNo })}
                               </span>
                             )}
                             {!r.isActive && (
-                              <Badge variant="neutral" className="ml-2">
-                                Inactive
+                              <Badge variant="neutral" className="ms-2">
+                                {t('Inactive')}
                               </Badge>
                             )}
                           </span>
@@ -359,18 +374,18 @@ export default function CourtsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => setTarget({ mode: 'edit', court, room: r })}
-                              aria-label={`Edit ${r.name}`}
+                              aria-label={t('Edit {{name}}', { name: r.name })}
                             >
-                              <Pencil aria-hidden="true" /> Edit
+                              <Pencil aria-hidden="true" /> {t('Edit')}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => toggle.mutate({ id: r.id, isActive: !r.isActive })}
                               disabled={toggle.isPending}
-                              aria-label={`${r.isActive ? 'Deactivate' : 'Activate'} ${r.name}`}
+                              aria-label={`${r.isActive ? t('Deactivate') : t('Activate')} ${r.name}`}
                             >
-                              {r.isActive ? 'Deactivate' : 'Activate'}
+                              {r.isActive ? t('Deactivate') : t('Activate')}
                             </Button>
                           </span>
                         </li>
@@ -380,13 +395,13 @@ export default function CourtsPage() {
                 </div>
                 <div>
                   <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-text-muted">
-                    Judges
+                    {t('Judges')}
                   </h3>
                   {court.judges.length === 0 ? (
                     <EmptyState
                       icon={Gavel}
-                      title="No judges attached"
-                      description="Add a judge from Account Management."
+                      title={t('No judges attached')}
+                      description={t('Add a judge from Account Management.')}
                     />
                   ) : (
                     <ul className="divide-y divide-border rounded-md border border-border">
@@ -400,13 +415,15 @@ export default function CourtsPage() {
                             <span>
                               <span className="font-semibold">{j.name}</span>
                               <span className="block text-sm text-text-muted">
-                                {room ? room.name : 'No fixed courtroom'}
+                                {room ? room.name : t('No fixed courtroom')}
                               </span>
                             </span>
                             <span className="flex items-center gap-2">
                               {j.status !== 'ACTIVE' && <UserStatusBadge status={j.status} />}
                               <Badge variant="neutral">
-                                {j.activeCases} active {j.activeCases === 1 ? 'case' : 'cases'}
+                                {j.activeCases === 1
+                                  ? t('1 active case')
+                                  : t('{{count}} active cases', { count: j.activeCases })}
                               </Badge>
                             </span>
                           </li>

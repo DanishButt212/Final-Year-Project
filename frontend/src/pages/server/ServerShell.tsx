@@ -1,3 +1,4 @@
+import { LanguageToggle } from '@/components/preferences/PreferenceControls';
 import { Suspense } from 'react';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { ClipboardList, LogOut, UserCircle } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Logo } from '@/components/layout/Logo';
 import { NotificationBell } from '@/components/layout/NotificationBell';
 import { toast } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const tab = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -18,13 +20,14 @@ const tab = ({ isActive }: { isActive: boolean }) =>
 
 /** Mobile-first layout of the process server console: top bar, content and a bottom navigation. */
 export function ServerShell() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   if (!user) return null;
 
   async function handleLogout() {
     await logout();
-    toast.success('Logged out successfully.');
+    toast.success(t('Logged out successfully.'));
     navigate('/login', { replace: true });
   }
 
@@ -32,22 +35,23 @@ export function ServerShell() {
     <div className="flex min-h-screen flex-col bg-background">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:font-semibold focus:text-primary"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:font-semibold focus:text-primary"
       >
-        Skip to main content
+        {t('Skip to main content')}
       </a>
       <header className="bg-primary text-on-primary">
         <div className="mx-auto flex min-h-14 max-w-3xl items-center justify-between gap-2 px-4">
           <Logo to="/process-server" />
           <div className="flex items-center gap-1">
+            <LanguageToggle tone="inverse" className="me-1 hidden sm:inline-flex" />
             <NotificationBell />
             <button
               type="button"
               onClick={handleLogout}
-              aria-label="Log out"
+              aria-label={t('Log out')}
               className="flex size-11 items-center justify-center rounded-md hover:bg-primary-hover focus-visible:outline-white"
             >
-              <LogOut className="size-5" aria-hidden="true" />
+              <LogOut className="size-5 rtl:-scale-x-100" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -58,17 +62,17 @@ export function ServerShell() {
         </Suspense>
       </main>
       <nav
-        aria-label="Console navigation"
+        aria-label={t('Console navigation')}
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface"
       >
         <div className="mx-auto flex max-w-3xl">
           <NavLink to="/process-server" end className={tab}>
             <ClipboardList className="size-6" aria-hidden="true" />
-            Duty Roster
+            {t('Duty Roster')}
           </NavLink>
           <NavLink to="/process-server/profile" className={tab}>
             <UserCircle className="size-6" aria-hidden="true" />
-            Profile
+            {t('Profile')}
           </NavLink>
         </div>
       </nav>

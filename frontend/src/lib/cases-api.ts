@@ -1,6 +1,7 @@
 import { api } from './api';
 import type { CaseStatus, CaseType } from './case-status';
 import type { Paginated } from './types';
+import { msg } from '@/i18n';
 
 export interface CaseListItem {
   id: string;
@@ -82,9 +83,9 @@ export interface CaseHearing {
 export type DecisionType = 'JUDGMENT' | 'DISMISSED' | 'DISPOSED';
 
 export const DECISION_LABEL: Record<DecisionType, string> = {
-  JUDGMENT: 'Judgment',
-  DISMISSED: 'Dismissed',
-  DISPOSED: 'Disposed',
+  JUDGMENT: msg('Judgment'),
+  DISMISSED: msg('Dismissed'),
+  DISPOSED: msg('Disposed'),
 };
 
 export interface CaseDecision {

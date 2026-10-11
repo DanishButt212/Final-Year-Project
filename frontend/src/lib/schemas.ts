@@ -1,19 +1,20 @@
 import { z } from 'zod';
+import { msg } from '@/i18n';
 
 /** Messages are part of the product spec; the form-level summaries below are the exact required strings. */
 export const MESSAGES = {
-  fieldRequired: 'This field is required.',
-  missingFields: 'Please complete all required fields.',
-  invalidFields: 'Please correct the highlighted fields.',
-  loginFailed: 'Invalid username or password.',
-  loginSuccess: 'Logged into the system successfully.',
-  registerSuccess: 'Your registration request has been submitted successfully.',
-  resetSuccess: 'Password updated successfully.',
-  profileUpdated: 'Profile details updated successfully.',
-  caseIncomplete: 'Incomplete case details.',
-  caseSubmitted: 'Case form data captured successfully.',
-  documentAttached: 'Legal document attached successfully.',
-  emptyPortfolio: 'No active or past legal cases found in your portfolio.',
+  fieldRequired: msg('This field is required.'),
+  missingFields: msg('Please complete all required fields.'),
+  invalidFields: msg('Please correct the highlighted fields.'),
+  loginFailed: msg('Invalid username or password.'),
+  loginSuccess: msg('Logged into the system successfully.'),
+  registerSuccess: msg('Your registration request has been submitted successfully.'),
+  resetSuccess: msg('Password updated successfully.'),
+  profileUpdated: msg('Profile details updated successfully.'),
+  caseIncomplete: msg('Incomplete case details.'),
+  caseSubmitted: msg('Case form data captured successfully.'),
+  documentAttached: msg('Legal document attached successfully.'),
+  emptyPortfolio: msg('No active or past legal cases found in your portfolio.'),
 } as const;
 
 export const CNIC_REGEX = /^\d{5}-\d{7}-\d$/;
@@ -30,7 +31,9 @@ const password = z
   .min(1, MESSAGES.fieldRequired)
   .regex(
     PASSWORD_REGEX,
-    'Password must be 8 to 72 characters with an uppercase letter, a lowercase letter and a number.',
+    msg(
+      'Password must be 8 to 72 characters with an uppercase letter, a lowercase letter and a number.',
+    ),
   );
 const confirmPassword = z.string().min(1, MESSAGES.fieldRequired);
 
@@ -39,7 +42,11 @@ const passwordsMatch = <T extends { password: string; confirmPassword: string }>
   ctx: z.RefinementCtx,
 ) => {
   if (data.confirmPassword && data.password !== data.confirmPassword) {
-    ctx.addIssue({ code: 'custom', path: ['confirmPassword'], message: 'Passwords do not match.' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['confirmPassword'],
+      message: msg('Passwords do not match.'),
+    });
   }
 };
 
@@ -69,15 +76,19 @@ export const registerSchema = z
     barNumber: z
       .string()
       .trim()
-      .max(30, 'Use 30 characters or fewer.')
-      .regex(/^[A-Za-z0-9/-]*$/, 'Bar number may contain letters, digits, - and /.')
+      .max(30, msg('Use 30 characters or fewer.'))
+      .regex(/^[A-Za-z0-9/-]*$/, msg('Bar number may contain letters, digits, - and /.'))
       .optional(),
   })
   .superRefine(passwordsMatch)
   .superRefine((v, ctx) => {
     // Lawyers must give their Bar Council number; the registry checks it before approving the account.
     if (v.role === 'LAWYER' && !v.barNumber) {
-      ctx.addIssue({ code: 'custom', path: ['barNumber'], message: 'Enter your Bar Council number.' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['barNumber'],
+        message: msg('Enter your Bar Council number.'),
+      });
     }
   });
 export type RegisterValues = z.infer<typeof registerSchema>;
@@ -95,10 +106,10 @@ export const profileSchema = z.object({
   profileImage: z
     .string()
     .trim()
-    .max(500, 'Use 500 characters or fewer.')
+    .max(500, msg('Use 500 characters or fewer.'))
     .regex(
       /^(https?:\/\/\S+|\/uploads\/[\w\-./]+)?$/,
-      'Profile image must be a link starting with https://.',
+      msg('Profile image must be a link starting with https://.'),
     )
     .optional(),
 });
@@ -117,11 +128,11 @@ export function summaryFor(errors: Record<string, { message?: string } | undefin
 const optionalCnic = z
   .string()
   .trim()
-  .regex(/^(\d{5}-\d{7}-\d)?$/, 'CNIC must be in the format 12345-1234567-1.');
+  .regex(/^(\d{5}-\d{7}-\d)?$/, msg('CNIC must be in the format 12345-1234567-1.'));
 const optionalPhone = z
   .string()
   .trim()
-  .regex(/^(\+92 3\d{2} \d{7})?$/, 'Phone must be in the format +92 3XX XXXXXXX.');
+  .regex(/^(\+92 3\d{2} \d{7})?$/, msg('Phone must be in the format +92 3XX XXXXXXX.'));
 
 export const partySchema = z.object({
   name: required.max(120, 'Use 120 characters or fewer.'),
@@ -140,12 +151,15 @@ export const caseSchema = z.object({
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .min(20, 'Relief sought must be at least 20 characters.')
+    .min(20, msg('Relief sought must be at least 20 characters.'))
     .max(5000, 'Use 5000 characters or fewer.'),
   claimAmountPkr: z
     .string()
     .trim()
-    .regex(/^(\d{1,12}(\.\d{1,2})?)?$/, 'Enter an amount of 0 or more in PKR, for example 1850000.')
+    .regex(
+      /^(\d{1,12}(\.\d{1,2})?)?$/,
+      msg('Enter an amount of 0 or more in PKR, for example 1850000.'),
+    )
     .optional(),
   petitioners: z.array(partySchema).min(1, 'Add at least one petitioner.'),
   respondents: z.array(partySchema).min(1, 'Add at least one respondent.'),
@@ -165,7 +179,9 @@ export function caseSummaryFor(errors: unknown): string {
     if (
       typeof message === 'string' &&
       (message === MESSAGES.fieldRequired ||
+        // i18n-ignore (comparisons with the English message, not display text)
         message.startsWith('Relief sought must be at least') ||
+        // i18n-ignore
         message.startsWith('Add at least'))
     ) {
       return true;

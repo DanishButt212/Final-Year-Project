@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateText } from '@/lib/server-messages';
 import { AlertTriangle, CalendarCheck, CheckCircle2, Clock, Circle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +43,7 @@ export function Badge({
   children: React.ReactNode;
   className?: string;
 }) {
+  useTranslation(); // re-render on language change
   const { cls, Icon } = VARIANTS[variant];
   return (
     <span
@@ -51,7 +54,9 @@ export function Badge({
       )}
     >
       <Icon className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-      <span className="break-words">{children}</span>
+      <span className="break-words">
+        {typeof children === 'string' ? translateText(children) : children}
+      </span>
     </span>
   );
 }

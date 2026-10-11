@@ -1,5 +1,8 @@
 import axios, { AxiosError } from 'axios';
+import { translateServerMessage } from './server-messages';
 import type { ApiErrorBody } from './types';
+
+import { msg } from '@/i18n';
 
 export const api = axios.create({
   // Relative by default: Vite (dev) and Vercel (production) proxy /api to the backend, so the auth cookie is
@@ -21,8 +24,9 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
 const SILENT_401 = ['/auth/login', '/auth/me', '/auth/session', '/auth/logout', '/auth/register'];
 
 export const SESSION_NOTICE_KEY = 'da_session_notice';
-export const SESSION_TERMINATED_TEXT =
-  'Your session was ended for security reasons. Please sign in again.';
+export const SESSION_TERMINATED_TEXT = msg(
+  'Your session was ended for security reasons. Please sign in again.',
+);
 
 /** Reads (without clearing) the message left for the login page. */
 export function peekSessionNotice(): string | null {
@@ -62,22 +66,47 @@ api.interceptors.response.use(
   },
 );
 
-/** Pulls the API's consistent error shape out of an Axios error. */
+/** The API error in the reader's language: the message and every field message (see server-messages.ts). */
+function localized(body: ApiErrorBody): ApiErrorBody {
+  return {
+    ...body,
+    message: translateServerMessage(body.message),
+    ...(body.details
+      ? {
+          details: body.details.map((d) =>
+            Array.isArray(d.messages)
+              ? { ...d, messages: d.messages.map((m) => translateServerMessage(m)) }
+              : d,
+          ),
+        }
+      : {}),
+  };
+}
+
+/** Pulls the API's consistent error shape out of an Axios error, translated to the current language. */
 export function parseApiError(error: unknown): ApiErrorBody {
+  return localized(parseRawApiError(error));
+}
+
+function parseRawApiError(error: unknown): ApiErrorBody {
   if (axios.isAxiosError<ApiErrorBody>(error)) {
     if (error.response?.data?.message) return error.response.data;
     if (!error.response) {
       return {
         statusCode: 0,
         code: 'NETWORK_ERROR',
-        message: 'Cannot reach the server. Check your connection and try again.',
+        message: msg('Cannot reach the server. Check your connection and try again.'),
       };
     }
     return {
       statusCode: error.response.status,
       code: 'ERROR',
-      message: 'Something went wrong. Please try again later.',
+      message: msg('Something went wrong. Please try again later.'),
     };
   }
-  return { statusCode: 0, code: 'ERROR', message: 'Something went wrong. Please try again later.' };
+  return {
+    statusCode: 0,
+    code: 'ERROR',
+    message: msg('Something went wrong. Please try again later.'),
+  };
 }

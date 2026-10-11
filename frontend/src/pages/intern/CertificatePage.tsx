@@ -8,9 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { parseApiError } from '@/lib/api';
 import { certificateApi } from '@/lib/phase5-api';
 import { CertificateDetails } from './CertificateCard';
+import { useTranslation } from 'react-i18next';
 
 /** Intern "Certificate": view, download and verify the completion certificate once the lawyer issues it. */
 export default function CertificatePage() {
+  const { t } = useTranslation();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['intern', 'certificate'],
     queryFn: certificateApi.mine,
@@ -18,9 +20,11 @@ export default function CertificatePage() {
   return (
     <>
       <PageHeader
-        title="Completion Certificate"
-        description="Your internship completion certificate, issued by your supervising lawyer."
-        crumbs={[{ label: 'Dashboard', to: '/intern' }, { label: 'Certificate' }]}
+        title={t('Completion Certificate')}
+        description={t(
+          'Your internship completion certificate, issued by your supervising lawyer.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/intern' }, { label: t('Certificate') }]}
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
@@ -40,8 +44,10 @@ export default function CertificatePage() {
           <Card className="max-w-3xl">
             <EmptyState
               icon={Award}
-              title={data.message ?? 'No certificate yet.'}
-              description="Your lawyer can issue it once at least one of your research logs is approved."
+              title={data.message ?? t('No certificate yet.')}
+              description={t(
+                'Your lawyer can issue it once at least one of your research logs is approved.',
+              )}
             />
           </Card>
         )

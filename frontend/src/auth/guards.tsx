@@ -3,14 +3,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { roleHome } from '@/lib/navigation';
 import type { Role } from '@/lib/types';
 import { useAuth } from './useAuth';
+import { useTranslation } from 'react-i18next';
 
 function FullPageLoader() {
+  const { t } = useTranslation();
   return (
-    <div role="status" aria-label="Loading" className="mx-auto max-w-3xl space-y-4 p-8">
+    <div role="status" aria-label={t('Loading')} className="mx-auto max-w-3xl space-y-4 p-8">
       <Skeleton className="h-8 w-1/3" />
       <Skeleton className="h-32 w-full" />
       <Skeleton className="h-32 w-full" />
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{t('Loading…')}</span>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { api } from './api';
 import type { CaseType } from './case-status';
 import type { Paginated, Role } from './types';
+import { msg } from '@/i18n';
 
 /** Saves a blob response with a file name (authenticated downloads: the cookie is sent by Axios). */
 export async function downloadBlob(url: string, filename: string) {
@@ -103,11 +104,11 @@ export const EVIDENCE_CATEGORIES: {
   label: string;
   extensions: string[];
 }[] = [
-  { value: 'VIDEO', label: 'Video', extensions: ['mp4', 'webm'] },
-  { value: 'AUDIO', label: 'Audio', extensions: ['mp3', 'wav', 'm4a'] },
+  { value: 'VIDEO', label: msg('Video'), extensions: ['mp4', 'webm'] },
+  { value: 'AUDIO', label: msg('Audio'), extensions: ['mp3', 'wav', 'm4a'] },
   {
     value: 'SCANNED_DOCUMENT',
-    label: 'Scanned Records Document',
+    label: msg('Scanned Records Document'),
     extensions: ['pdf', 'jpg', 'jpeg', 'png'],
   },
 ];
@@ -194,10 +195,10 @@ export type FeedbackCategory = 'USABILITY' | 'TECHNICAL_ISSUE' | 'SUGGESTION' | 
 export type FeedbackStatus = 'NEW' | 'PROCESSED' | 'ARCHIVED';
 
 export const FEEDBACK_CATEGORIES: { value: FeedbackCategory; label: string }[] = [
-  { value: 'USABILITY', label: 'Usability' },
-  { value: 'TECHNICAL_ISSUE', label: 'Technical issue' },
-  { value: 'SUGGESTION', label: 'Suggestion' },
-  { value: 'OTHER', label: 'Other' },
+  { value: 'USABILITY', label: msg('Usability') },
+  { value: 'TECHNICAL_ISSUE', label: msg('Technical issue') },
+  { value: 'SUGGESTION', label: msg('Suggestion') },
+  { value: 'OTHER', label: msg('Other') },
 ];
 
 export interface FeedbackItem {

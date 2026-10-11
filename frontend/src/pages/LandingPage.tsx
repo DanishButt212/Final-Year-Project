@@ -13,14 +13,15 @@ import {
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useLocation, useOutletContext } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { CaseProgress } from '@/components/case/CaseProgress';
+import SealIntro from '@/components/intro/SealIntro';
 import { CaseStatusLookup } from '@/components/landing/CaseStatusLookup';
 import type { PublicOutletContext } from '@/components/layout/PublicLayout';
+import { Logo } from '@/components/layout/Logo';
 import { Button } from '@/components/ui/button';
 import { useReveal } from '@/hooks/use-reveal';
 import { msg } from '@/i18n';
@@ -28,8 +29,6 @@ import { roleHome } from '@/lib/navigation';
 import { EXAMPLE_PROGRESS, PROGRESS_STAGES, STAGE_LABEL } from '@/lib/progress';
 import { cn } from '@/lib/utils';
 
-const loadIntro = () => import('@/components/intro/SealIntro');
-const SealIntro = lazy(loadIntro);
 const INTRO_KEY = 'da_intro_seen';
 /** Fallback when sessionStorage is blocked: once per page load. */
 let introShownThisLoad = false;
@@ -44,9 +43,6 @@ function shouldPlayIntro(): boolean {
     return true;
   }
 }
-
-// Start fetching the intro chunk as soon as this page module loads, so its timeline starts on time.
-if (shouldPlayIntro()) void loadIntro();
 
 function markIntroSeen() {
   introShownThisLoad = true;
@@ -195,6 +191,7 @@ export default function LandingPage() {
   const [introDone, setIntroDone] = useState(false);
   // Plays once auth is known: never for signed-in users, only on "/" itself.
   const playing = eligible && !introDone && !loading && !user;
+  const holdingForStartup = eligible && !introDone && !user;
   useHashScroll();
 
   useEffect(() => {
@@ -208,141 +205,152 @@ export default function LandingPage() {
 
   return (
     <>
-      {playing && outlet && (
-        <Suspense
-          fallback={createPortal(
-            <div className="fixed inset-0 z-[100] bg-background" aria-hidden="true" />,
-            document.body,
-          )}
+      {holdingForStartup && !playing && (
+        <div
+          className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center bg-background"
+          role="status"
+          aria-label={t('Loading DigitalAdaalat')}
         >
-          <SealIntro targetRef={outlet.sealRef} onDone={endIntro} />
-        </Suspense>
+          <div className="flex flex-col items-center gap-4">
+            <Logo to="/" tone="default" sealSize={88} />
+            <span className="text-sm font-semibold tracking-[0.2em] text-text-muted uppercase">
+              {t('Judicial ERP · Pakistan')}
+            </span>
+          </div>
+        </div>
       )}
 
-      <section className="border-b border-border bg-surface">
-        <div className="mx-auto grid max-w-6xl items-start gap-8 px-4 py-10 sm:py-14 lg:grid-cols-[1fr_24rem] lg:gap-12">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-semibold text-primary">
-              <Landmark className="size-4" aria-hidden="true" />
-              <span>{t('Judicial ERP for the courts of Pakistan')}</span>
-            </p>
-            <h1 className="mt-3 max-w-2xl text-3xl font-bold sm:text-4xl lg:text-5xl">
-              {t("Pakistan's courts, now digital.")}
-            </h1>
-            <p className="mt-4 max-w-2xl text-lg text-text-muted">
-              {t(
-                'File cases, pay court fees, track hearings and attend virtual hearings online, from anywhere in Pakistan.',
-              )}
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link to="/register">
-                  <UserPlus aria-hidden="true" /> {t('Register')}
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="secondary">
-                <Link to="/login">
-                  <LogIn aria-hidden="true" className="rtl:-scale-x-100" /> {t('Sign in')}
-                </Link>
-              </Button>
+      {playing && outlet && <SealIntro targetRef={outlet.sealRef} onDone={endIntro} />}
+
+      <div
+        aria-hidden={holdingForStartup ? true : undefined}
+        style={holdingForStartup ? { visibility: 'hidden' } : undefined}
+      >
+        <section className="border-b border-border bg-surface">
+          <div className="mx-auto grid max-w-6xl items-start gap-8 px-4 py-10 sm:py-14 lg:grid-cols-[1fr_24rem] lg:gap-12">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <Landmark className="size-4" aria-hidden="true" />
+                <span>{t('Judicial ERP for the courts of Pakistan')}</span>
+              </p>
+              <h1 className="mt-3 max-w-2xl text-3xl font-bold sm:text-4xl lg:text-5xl">
+                {t("Pakistan's courts, now digital.")}
+              </h1>
+              <p className="mt-4 max-w-2xl text-lg text-text-muted">
+                {t(
+                  'File cases, pay court fees, track hearings and attend virtual hearings online, from anywhere in Pakistan.',
+                )}
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild size="lg">
+                  <Link to="/register">
+                    <UserPlus aria-hidden="true" /> {t('Register')}
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="secondary">
+                  <Link to="/login">
+                    <LogIn aria-hidden="true" className="rtl:-scale-x-100" /> {t('Sign in')}
+                  </Link>
+                </Button>
+              </div>
+            </div>
+            <div id="case-status" tabIndex={-1} className="scroll-mt-24 outline-none">
+              <CaseStatusLookup />
             </div>
           </div>
-          <div id="case-status" tabIndex={-1} className="scroll-mt-24 outline-none">
-            <CaseStatusLookup />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section
-        id="features"
-        tabIndex={-1}
-        aria-labelledby="features-heading"
-        className="mx-auto max-w-6xl scroll-mt-20 px-4 py-12 outline-none"
-      >
-        <h2 id="features-heading" className="text-2xl font-bold">
-          {t('Built for everyone in the courtroom')}
-        </h2>
-        <p className="mt-2 max-w-2xl text-text-muted">
-          {t('Six portals, one system: each role sees the tools it needs and nothing more.')}
-        </p>
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {ROLES.map(({ icon: Icon, title, summary, points }) => (
-            <Reveal as="li" key={title}>
-              <article className="h-full rounded-lg border border-border bg-surface p-5">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <h3 className="text-base font-bold">{t(title)}</h3>
-                </div>
-                <p className="mt-3 text-sm font-medium text-text">{t(summary)}</p>
-                <ul className="mt-3 space-y-2 text-sm text-text-muted">
-                  {points.map((p) => (
-                    <li key={p} className="flex gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="mt-2 size-1.5 shrink-0 rounded-full bg-accent"
-                      />
-                      <span>{t(p)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            </Reveal>
-          ))}
-        </ul>
-      </section>
-
-      <section
-        id="how-it-works"
-        tabIndex={-1}
-        aria-labelledby="how-heading"
-        className="scroll-mt-20 border-y border-border bg-surface outline-none"
-      >
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <h2 id="how-heading" className="text-2xl font-bold">
-            {t('How it works')}
+        <section
+          id="features"
+          tabIndex={-1}
+          aria-labelledby="features-heading"
+          className="mx-auto max-w-6xl scroll-mt-20 px-4 py-12 outline-none"
+        >
+          <h2 id="features-heading" className="text-2xl font-bold">
+            {t('Built for everyone in the courtroom')}
           </h2>
           <p className="mt-2 max-w-2xl text-text-muted">
-            {t(
-              'Every case moves through the same five stages, and you can follow each one online.',
-            )}
+            {t('Six portals, one system: each role sees the tools it needs and nothing more.')}
           </p>
-          <Reveal className="mt-8">
-            <CaseProgress progress={EXAMPLE_PROGRESS} staticExample headingId="how-heading" />
-          </Reveal>
-          <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {PROGRESS_STAGES.map((stage, i) => (
-              <Reveal as="li" key={stage} className="rounded-md border border-border p-4">
-                <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">
-                  {t('Step {{n}}', { n: i + 1 })}
-                </p>
-                <h3 className="mt-1 text-base font-bold">{t(STAGE_LABEL[stage])}</h3>
-                <p className="mt-1 text-sm text-text-muted">{t(STEP_TEXT[stage])}</p>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {ROLES.map(({ icon: Icon, title, summary, points }) => (
+              <Reveal as="li" key={title}>
+                <article className="h-full rounded-lg border border-border bg-surface p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
+                    <h3 className="text-base font-bold">{t(title)}</h3>
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-text">{t(summary)}</p>
+                  <ul className="mt-3 space-y-2 text-sm text-text-muted">
+                    {points.map((p) => (
+                      <li key={p} className="flex gap-2">
+                        <span
+                          aria-hidden="true"
+                          className="mt-2 size-1.5 shrink-0 rounded-full bg-accent"
+                        />
+                        <span>{t(p)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </article>
               </Reveal>
             ))}
-          </ol>
-        </div>
-      </section>
+          </ul>
+        </section>
 
-      <section aria-labelledby="trust-heading" className="mx-auto max-w-6xl px-4 py-12">
-        <h2 id="trust-heading" className="text-2xl font-bold">
-          {t('Security you can verify')}
-        </h2>
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {TRUST.map(({ icon: Icon, title, text }) => (
-            <Reveal as="li" key={title} className="flex gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-accent text-primary">
-                <Icon className="size-5" aria-hidden="true" />
-              </span>
-              <div>
-                <h3 className="text-base font-bold">{t(title)}</h3>
-                <p className="mt-1 text-sm text-text-muted">{t(text)}</p>
-              </div>
+        <section
+          id="how-it-works"
+          tabIndex={-1}
+          aria-labelledby="how-heading"
+          className="scroll-mt-20 border-y border-border bg-surface outline-none"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-12">
+            <h2 id="how-heading" className="text-2xl font-bold">
+              {t('How it works')}
+            </h2>
+            <p className="mt-2 max-w-2xl text-text-muted">
+              {t(
+                'Every case moves through the same five stages, and you can follow each one online.',
+              )}
+            </p>
+            <Reveal className="mt-8">
+              <CaseProgress progress={EXAMPLE_PROGRESS} staticExample headingId="how-heading" />
             </Reveal>
-          ))}
-        </ul>
-      </section>
+            <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              {PROGRESS_STAGES.map((stage, i) => (
+                <Reveal as="li" key={stage} className="rounded-md border border-border p-4">
+                  <p className="text-xs font-semibold tracking-wide text-text-muted uppercase">
+                    {t('Step {{n}}', { n: i + 1 })}
+                  </p>
+                  <h3 className="mt-1 text-base font-bold">{t(STAGE_LABEL[stage])}</h3>
+                  <p className="mt-1 text-sm text-text-muted">{t(STEP_TEXT[stage])}</p>
+                </Reveal>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section aria-labelledby="trust-heading" className="mx-auto max-w-6xl px-4 py-12">
+          <h2 id="trust-heading" className="text-2xl font-bold">
+            {t('Security you can verify')}
+          </h2>
+          <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {TRUST.map(({ icon: Icon, title, text }) => (
+              <Reveal as="li" key={title} className="flex gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full border border-accent text-primary">
+                  <Icon className="size-5" aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold">{t(title)}</h3>
+                  <p className="mt-1 text-sm text-text-muted">{t(text)}</p>
+                </div>
+              </Reveal>
+            ))}
+          </ul>
+        </section>
+      </div>
     </>
   );
 }

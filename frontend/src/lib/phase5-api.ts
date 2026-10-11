@@ -1,17 +1,18 @@
 import { api } from './api';
 import { downloadBlob } from './phase4-api';
 import type { Paginated } from './types';
+import { msg } from '@/i18n';
 
 // ---------------------------------------------------------------- judge orders
 
 export type OrderOutcome = 'COMPLETED' | 'ADJOURNED' | 'JUDGMENT' | 'DISMISSED' | 'DISPOSED';
 
 export const ORDER_OUTCOME_LABEL: Record<OrderOutcome, string> = {
-  COMPLETED: 'Hearing completed',
-  ADJOURNED: 'Adjourned',
-  JUDGMENT: 'Judgment',
-  DISMISSED: 'Dismissed',
-  DISPOSED: 'Disposed of',
+  COMPLETED: msg('Hearing completed'),
+  ADJOURNED: msg('Adjourned'),
+  JUDGMENT: msg('Judgment'),
+  DISMISSED: msg('Dismissed'),
+  DISPOSED: msg('Disposed of'),
 };
 
 export interface JudgeOrder {

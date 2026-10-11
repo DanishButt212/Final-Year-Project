@@ -6,7 +6,7 @@
  *     [--frames=500,1200] [--login=email:password] [--intro]
  * Writes e2e/artifacts/shots/<name>[-<frame>].png (git-ignored). Never prints credentials.
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 
@@ -45,18 +45,27 @@ await page.addInitScript(
   { lang: opt.lang, scale: opt.scale, intro: Boolean(opt.intro) },
 );
 
+/** Credentials for a role from the git-ignored docs/DEV_ACCOUNTS.md (read here, never printed). */
+function devAccount(role) {
+  const md = readFileSync(join(import.meta.dirname, '..', '..', 'docs', 'DEV_ACCOUNTS.md'), 'utf8');
+  for (const line of md.split(/\r?\n/)) {
+    const cells = line.split('|').map((c) => c.trim());
+    if (cells[1] !== role) continue;
+    const email = cells[2].split(/\s+/).find((w) => w.includes('@'));
+    const password = (cells[3].match(/`([^`]+)`/) ?? [])[1];
+    if (email && password) return `${email}:${password}`;
+  }
+  throw new Error(`No dev account for role ${role}`);
+}
+if (opt.role) opt.login = devAccount(opt.role);
+
 if (opt.login) {
   const [email, password] = opt.login.split(':');
   await page.goto(`${base}/login`);
-  await page
-    .getByLabel(/email|username/i)
-    .first()
-    .fill(email);
-  await page.locator('input[type="password"]').first().fill(password);
-  await page
-    .getByRole('button', { name: /log in|لاگ اِن/i })
-    .first()
-    .click();
+  // Structural selectors: the form may already be in Urdu.
+  await page.locator('input[name="identifier"]:visible').first().fill(email);
+  await page.locator('input[type="password"]:visible').first().fill(password);
+  await page.locator('form:visible button[type="submit"]').first().click();
   await page.waitForURL((u) => !u.pathname.startsWith('/login'), { timeout: 20000 });
 }
 

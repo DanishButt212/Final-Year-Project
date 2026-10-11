@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { STATUS_LABEL, type Priority, type SummonsStatus } from '@/lib/summons-api';
+import { useTranslation } from 'react-i18next';
 
 const VARIANT = {
   PENDING_ASSIGNMENT: 'pending',
@@ -14,13 +15,15 @@ export function SummonsStatusBadge({ status }: { status: SummonsStatus }) {
 }
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
+  const { t } = useTranslation();
   return priority === 'URGENT' ? (
-    <Badge variant="rejected">Urgent</Badge>
+    <Badge variant="rejected">{t('Urgent')}</Badge>
   ) : (
-    <Badge variant="neutral">Normal</Badge>
+    <Badge variant="neutral">{t('Normal')}</Badge>
   );
 }
 
 export function OverdueBadge({ overdue }: { overdue: boolean }) {
-  return overdue ? <Badge variant="overdue">Overdue</Badge> : null;
+  const { t } = useTranslation();
+  return overdue ? <Badge variant="overdue">{t('Overdue')}</Badge> : null;
 }

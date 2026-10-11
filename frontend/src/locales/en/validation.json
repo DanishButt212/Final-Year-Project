@@ -1,1 +1,15 @@
-{}
+{
+  "Case form data captured successfully.": "Case form data captured successfully.",
+  "Enter an amount of 0 or more in PKR, for example 1850000.": "Enter an amount of 0 or more in PKR, for example 1850000.",
+  "Incomplete case details.": "Incomplete case details.",
+  "Legal document attached successfully.": "Legal document attached successfully.",
+  "Logged into the system successfully.": "Logged into the system successfully.",
+  "No active or past legal cases found in your portfolio.": "No active or past legal cases found in your portfolio.",
+  "Password updated successfully.": "Password updated successfully.",
+  "Profile details updated successfully.": "Profile details updated successfully.",
+  "Profile image must be a link starting with https://.": "Profile image must be a link starting with https://.",
+  "This field is required.": "This field is required.",
+  "Use 30 characters or fewer.": "Use 30 characters or fewer.",
+  "Use 500 characters or fewer.": "Use 500 characters or fewer.",
+  "Your registration request has been submitted successfully.": "Your registration request has been submitted successfully."
+}

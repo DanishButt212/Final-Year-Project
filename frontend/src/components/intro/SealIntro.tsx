@@ -100,6 +100,7 @@ export default function SealIntro({
             className="da-intro-tagline text-xs font-semibold tracking-[0.25em] text-text-muted uppercase"
             dir="ltr"
           >
+            {/* i18n-ignore: brand text */}
             Judicial ERP · Pakistan
           </span>
         </div>

@@ -36,11 +36,13 @@ import {
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { AllocateDialog } from './AllocateDialog';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 10;
 
 /** Case Registry & Allocation: every case, with the pending-assignment queue highlighted. */
 export default function AdminCasesPage() {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<CaseStatus | ''>((params.get('status') as CaseStatus) ?? '');
@@ -86,23 +88,28 @@ export default function AdminCasesPage() {
   return (
     <>
       <PageHeader
-        title="Case Registry & Allocation"
-        description="All registered cases. Cases pending assignment are highlighted and can be allocated to a court, courtroom and judge."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Case Registry & Allocation' }]}
+        title={t('Case Registry & Allocation')}
+        description={t(
+          'All registered cases. Cases pending assignment are highlighted and can be allocated to a court, courtroom and judge.',
+        )}
+        crumbs={[
+          { label: t('Dashboard'), to: '/admin' },
+          { label: t('Case Registry & Allocation') },
+        ]}
       />
 
       <form
         onSubmit={onSearch}
         role="search"
-        aria-label="Search and filter cases"
+        aria-label={t('Search and filter cases')}
         className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         <div className="sm:col-span-2">
-          <Field label="Search by case number or title">
+          <Field label={t('Search by case number or title')}>
             {(p) => (
               <Input
                 type="search"
-                placeholder="For example DA-2026-CIV or Muhammad Ali"
+                placeholder={t('For example DA-2026-CIV or Muhammad Ali')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 {...p}
@@ -110,46 +117,46 @@ export default function AdminCasesPage() {
             )}
           </Field>
         </div>
-        <Field label="Status">
+        <Field label={t('Status')}>
           {(p) => (
             <NativeSelect
               value={status}
               onChange={(e) => reset(setStatus)(e.target.value as CaseStatus | '')}
               {...p}
             >
-              <option value="">All statuses</option>
+              <option value="">{t('All statuses')}</option>
               {(Object.keys(STATUS_BADGES) as CaseStatus[]).map((s) => (
                 <option key={s} value={s}>
-                  {STATUS_BADGES[s].label}
+                  {t(STATUS_BADGES[s].label)}
                 </option>
               ))}
             </NativeSelect>
           )}
         </Field>
-        <Field label="Case type">
+        <Field label={t('Case type')}>
           {(p) => (
             <NativeSelect
               value={caseType}
               onChange={(e) => reset(setCaseType)(e.target.value as CaseType | '')}
               {...p}
             >
-              <option value="">All case types</option>
-              {CASE_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              <option value="">{t('All case types')}</option>
+              {CASE_TYPES.map((ct) => (
+                <option key={ct.value} value={ct.value}>
+                  {t(ct.label)}
                 </option>
               ))}
             </NativeSelect>
           )}
         </Field>
-        <Field label="Court">
+        <Field label={t('Court')}>
           {(p) => (
             <NativeSelect
               value={courtId}
               onChange={(e) => reset(setCourtId)(e.target.value)}
               {...p}
             >
-              <option value="">All courts</option>
+              <option value="">{t('All courts')}</option>
               {courts.data?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -158,7 +165,7 @@ export default function AdminCasesPage() {
             </NativeSelect>
           )}
         </Field>
-        <Field label="Filed from">
+        <Field label={t('Filed from')}>
           {(p) => (
             <DatePicker
               value={from}
@@ -168,7 +175,7 @@ export default function AdminCasesPage() {
             />
           )}
         </Field>
-        <Field label="Filed to">
+        <Field label={t('Filed to')}>
           {(p) => (
             <DatePicker
               value={to}
@@ -180,7 +187,7 @@ export default function AdminCasesPage() {
         </Field>
         <div className="flex items-end">
           <Button type="submit" variant="secondary" className="w-full sm:w-auto">
-            <Search aria-hidden="true" /> Search
+            <Search aria-hidden="true" /> {t('Search')}
           </Button>
         </div>
       </form>
@@ -193,30 +200,30 @@ export default function AdminCasesPage() {
         <Card>
           <EmptyState
             icon={Briefcase}
-            title={filtering ? 'No cases match your filters' : 'No cases registered yet'}
+            title={filtering ? t('No cases match your filters') : t('No cases registered yet')}
             description={
               filtering
-                ? 'Try different filters or clear the search.'
-                : 'Cases filed by litigants and lawyers will appear here.'
+                ? t('Try different filters or clear the search.')
+                : t('Cases filed by litigants and lawyers will appear here.')
             }
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Case registry">
+            <Table aria-label={t('Case registry')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Case number</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Filed by</TableHead>
-                  <TableHead>Judge bench</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Court fee</TableHead>
-                  <TableHead>Filed</TableHead>
+                  <TableHead>{t('Case number')}</TableHead>
+                  <TableHead>{t('Title')}</TableHead>
+                  <TableHead>{t('Type')}</TableHead>
+                  <TableHead>{t('Filed by')}</TableHead>
+                  <TableHead>{t('Judge bench')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead>{t('Court fee')}</TableHead>
+                  <TableHead>{t('Filed')}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -226,7 +233,7 @@ export default function AdminCasesPage() {
                   return (
                     <TableRow
                       key={c.id}
-                      className={cn(pending && 'border-l-4 border-l-accent bg-accent-soft')}
+                      className={cn(pending && 'border-s-4 border-l-accent bg-accent-soft')}
                     >
                       <TableCell className="whitespace-nowrap">
                         <Link to={`/admin/cases/${c.id}`} className="case-number font-medium">
@@ -253,24 +260,24 @@ export default function AdminCasesPage() {
                           }
                         >
                           {c.feeStatus === 'PAID'
-                            ? 'Paid'
+                            ? t('Paid')
                             : c.feeStatus === 'UNPAID'
-                              ? 'Unpaid'
-                              : 'No challan'}
+                              ? t('Unpaid')
+                              : t('No challan')}
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatDate(c.filingDate)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-end">
                         {(pending || c.status === 'ALLOCATED') && (
                           <Button
                             size="sm"
                             variant={pending ? 'primary' : 'secondary'}
                             onClick={() => setAllocating(c)}
-                            aria-label={`${pending ? 'Allocate' : 'Re-allocate'} ${c.ucn}`}
+                            aria-label={`${pending ? t('Allocate') : 'Re-allocate'} ${c.ucn}`}
                           >
-                            <Shuffle aria-hidden="true" /> {pending ? 'Allocate' : 'Re-allocate'}
+                            <Shuffle aria-hidden="true" /> {pending ? t('Allocate') : 'Re-allocate'}
                           </Button>
                         )}
                       </TableCell>

@@ -13,9 +13,11 @@ import { isoToDdMmYyyy, schedulingApi, todayIso, weekdayName } from '@/lib/sched
 import { HearingStatusBadge } from '@/pages/scheduling/UserSchedulePages';
 import { JoinRoomButton, VirtualBadge } from '@/pages/virtual/JoinRoomButton';
 import { OrderOutcomeBadge } from './JudgeOrdersPage';
+import { useTranslation } from 'react-i18next';
 
 /** Judge dashboard: today's hearings before this judge, in time order, with the video room link when virtual. */
 export function TodayHearingsPanel() {
+  const { t } = useTranslation();
   const today = todayIso();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['hearings', 'judge', 'today', today],
@@ -26,7 +28,7 @@ export function TodayHearingsPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Today's cause list</CardTitle>
+        <CardTitle>{t("Today's cause list")}</CardTitle>
         <p className="text-sm text-text-muted">
           {weekdayName(today)} {isoToDdMmYyyy(today)}
         </p>
@@ -43,8 +45,8 @@ export function TodayHearingsPanel() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
-          title="No cases listed today"
-          description="Cases fixed before you for today will appear here."
+          title={t('No cases listed today')}
+          description={t('Cases fixed before you for today will appear here.')}
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -76,7 +78,7 @@ export function TodayHearingsPanel() {
       )}
       <div className="border-t border-border px-5 py-3">
         <Link to="/judge/schedule" className="text-sm font-semibold">
-          My full schedule
+          {t('My full schedule')}
         </Link>
       </div>
     </Card>
@@ -85,6 +87,7 @@ export function TodayHearingsPanel() {
 
 /** Judge dashboard: the five most recent orders and decisions. */
 export function RecentOrdersPanel() {
+  const { t } = useTranslation();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['judge', 'orders', { page: 1, search: '', outcome: '', recent: true }],
     queryFn: () => judgeOrdersApi.list({ page: 1, limit: 5 }),
@@ -93,8 +96,10 @@ export function RecentOrdersPanel() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent orders</CardTitle>
-        <p className="text-sm text-text-muted">The last orders and decisions you recorded.</p>
+        <CardTitle>{t('Recent orders')}</CardTitle>
+        <p className="text-sm text-text-muted">
+          {t('The last orders and decisions you recorded.')}
+        </p>
       </CardHeader>
       {isError && (
         <div className="px-5 pb-5">
@@ -108,8 +113,8 @@ export function RecentOrdersPanel() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Gavel}
-          title="No orders recorded"
-          description="Orders and judgments you record will be shown here."
+          title={t('No orders recorded')}
+          description={t('Orders and judgments you record will be shown here.')}
         />
       ) : (
         <ul className="divide-y divide-border">
@@ -120,7 +125,9 @@ export function RecentOrdersPanel() {
                   {o.ucn}
                 </Link>
                 <p className="font-semibold">{o.title}</p>
-                <p className="text-sm text-text-muted">Recorded {formatDateTime(o.recordedAt)}</p>
+                <p className="text-sm text-text-muted">
+                  {t('Recorded {{dateTime}}', { dateTime: formatDateTime(o.recordedAt) })}
+                </p>
               </div>
               <OrderOutcomeBadge outcome={o.outcome} />
             </li>
@@ -129,7 +136,7 @@ export function RecentOrdersPanel() {
       )}
       <div className="border-t border-border px-5 py-3">
         <Button asChild variant="secondary" size="sm">
-          <Link to="/judge/orders">All orders</Link>
+          <Link to="/judge/orders">{t('All orders')}</Link>
         </Button>
       </div>
     </Card>

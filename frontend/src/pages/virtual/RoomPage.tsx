@@ -12,9 +12,11 @@ import { PORTALS, portalPath } from '@/lib/navigation';
 import { isoToDdMmYyyy } from '@/lib/scheduling-api';
 import { virtualApi, type JitsiApi } from '@/lib/virtual-api';
 import { JitsiRoom } from './JitsiRoom';
+import { useTranslation } from 'react-i18next';
 
 /** Full-page conferencing room for the case's parties and judge (UC-3.3). */
 export default function RoomPage() {
+  const { t } = useTranslation();
   const { hearingId = '' } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -54,7 +56,7 @@ export default function RoomPage() {
   });
   const removed =
     me.data && (me.data.status === 'EJECTED' || me.data.sessionStatus === 'ENDED')
-      ? (me.data.message ?? 'This virtual hearing session has ended.')
+      ? (me.data.message ?? t('This virtual hearing session has ended.'))
       : null;
   const closed = left ?? removed;
   useEffect(() => {
@@ -65,7 +67,8 @@ export default function RoomPage() {
     if (!a || at <= mountedAt.current || at <= applied.current) return;
     applied.current = at;
     void (async () => {
-      if (m.lastCommand === 'MUTE_AUDIO' && !(await a.isAudioMuted())) a.executeCommand('toggleAudio');
+      if (m.lastCommand === 'MUTE_AUDIO' && !(await a.isAudioMuted()))
+        a.executeCommand('toggleAudio');
       if (m.lastCommand === 'DISABLE_VIDEO' && !(await a.isVideoMuted())) {
         a.executeCommand('toggleVideo');
       }
@@ -87,17 +90,17 @@ export default function RoomPage() {
         <div className="flex min-w-0 items-center gap-3">
           <ScalesIcon className="size-7 shrink-0" />
           <div className="min-w-0">
-            <p className="font-heading text-lg font-bold leading-tight">Virtual Courtroom</p>
+            <p className="font-heading text-lg font-bold leading-tight">{t('Virtual Courtroom')}</p>
             {h && (
               <p className="truncate text-sm opacity-90">
-                <span className="case-number">{h.ucn}</span> · {h.title} ·{' '}
-                {isoToDdMmYyyy(h.date)} {h.startTime}–{h.endTime} · {h.judge}
+                <span className="case-number">{h.ucn}</span> · {h.title} · {isoToDdMmYyyy(h.date)}{' '}
+                {h.startTime}–{h.endTime} · {h.judge}
               </p>
             )}
           </div>
         </div>
         <Button variant="secondary" onClick={leave}>
-          <LogOut aria-hidden="true" /> Leave
+          <LogOut className="rtl:-scale-x-100" aria-hidden="true" /> {t('Leave')}
         </Button>
       </header>
       <main className="flex flex-1 flex-col p-3 sm:p-4">
@@ -105,20 +108,22 @@ export default function RoomPage() {
           <Skeleton className="flex-1" />
         ) : join.isError ? (
           <div className="mx-auto mt-10 w-full max-w-xl space-y-4">
-            <Alert variant="error" title="You cannot enter the video room">
+            <Alert variant="error" title={t('You cannot enter the video room')}>
               {parseApiError(join.error).message}
             </Alert>
             <Link to={back} className="inline-flex items-center gap-1 font-semibold">
-              <ArrowLeft className="size-4" aria-hidden="true" /> Back to the hearing schedule
+              <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden="true" />{' '}
+              {t('Back to the hearing schedule')}
             </Link>
           </div>
         ) : closed ? (
           <div className="mx-auto mt-10 w-full max-w-xl space-y-4">
-            <Alert variant="info" title="You have left the video room">
+            <Alert variant="info" title={t('You have left the video room')}>
               {closed}
             </Alert>
             <Link to={back} className="inline-flex items-center gap-1 font-semibold">
-              <ArrowLeft className="size-4" aria-hidden="true" /> Back to the hearing schedule
+              <ArrowLeft className="size-4 rtl:-scale-x-100" aria-hidden="true" />{' '}
+              {t('Back to the hearing schedule')}
             </Link>
           </div>
         ) : (
@@ -126,7 +131,7 @@ export default function RoomPage() {
             <JitsiRoom
               join={join.data}
               onApi={onApi}
-              onLeft={() => setLeft('You left the virtual hearing.')}
+              onLeft={() => setLeft(t('You left the virtual hearing.'))}
               className="min-h-[70dvh] w-full flex-1 overflow-hidden rounded-md bg-black"
             />
           )

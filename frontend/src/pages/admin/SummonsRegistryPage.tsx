@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollText, Search, ShieldCheck, ShieldAlert, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -43,6 +44,7 @@ import {
   type Priority,
 } from '@/lib/summons-api';
 import { OverdueBadge, PriorityBadge, SummonsStatusBadge } from '@/pages/server/badges';
+import { useTranslation } from 'react-i18next';
 
 const today = () => {
   const d = new Date();
@@ -62,6 +64,7 @@ function ServerSelect({
   allowEmpty?: boolean;
   sector?: string;
 }) {
+  const { t } = useTranslation();
   const servers = useQuery({
     queryKey: ['admin', 'process-servers'],
     queryFn: () => adminSummonsApi.servers(),
@@ -69,12 +72,20 @@ function ServerSelect({
   return (
     <NativeSelect id={id} value={value} onChange={(e) => onChange(e.target.value)}>
       <option value="">
-        {allowEmpty ? 'Leave unassigned for now' : 'Choose a process server'}
+        {allowEmpty ? t('Leave unassigned for now') : t('Choose a process server')}
       </option>
       {servers.data?.map((s) => (
         <option key={s.id} value={s.id}>
-          {s.name} ({s.badgeNumber}) · {s.sector} · {s.openWorkload} open
-          {sector && s.sector.toLowerCase() === sector.toLowerCase() ? ' · matches sector' : ''}
+          {t('{{name}} ({{badgeNumber}}) · {{sector}} · {{openWorkload}} open{{value}}', {
+            name: s.name,
+            badgeNumber: s.badgeNumber,
+            sector: s.sector,
+            openWorkload: s.openWorkload,
+            value:
+              sector && s.sector.toLowerCase() === sector.toLowerCase()
+                ? ` · ${t('matches sector')}`
+                : '',
+          })}
         </option>
       ))}
     </NativeSelect>
@@ -89,6 +100,7 @@ function IssueDialog({
   initialCaseId: string | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [caseId, setCaseId] = useState(initialCaseId ?? '');
   const [caseSearch, setCaseSearch] = useState('');
@@ -145,16 +157,16 @@ function IssueDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const next: Record<string, string> = {};
-    if (!caseId) next.caseId = 'Choose an allocated case.';
-    if (!recipient.trim()) next.recipientName = 'Enter the recipient name.';
+    if (!caseId) next.caseId = t('Choose an allocated case.');
+    if (!recipient.trim()) next.recipientName = t('Enter the recipient name.');
     if (cnic.trim() && !CNIC_REGEX.test(cnic.trim()))
-      next.recipientCnic = 'CNIC must be in the format 12345-1234567-1.';
+      next.recipientCnic = t('CNIC must be in the format 12345-1234567-1.');
     if (address.trim().length < 10)
-      next.serviceAddress = 'Enter the full service address (at least 10 characters).';
-    if (!sector.trim()) next.sector = 'Enter the sector.';
-    if (due && due < today()) next.dueDate = 'The due date must be today or later.';
+      next.serviceAddress = t('Enter the full service address (at least 10 characters).');
+    if (!sector.trim()) next.sector = t('Enter the sector.');
+    if (due && due < today()) next.dueDate = t('The due date must be today or later.');
     setErrors(next);
-    if (Object.keys(next).length) return setFormError('Please correct the highlighted fields.');
+    if (Object.keys(next).length) return setFormError(t('Please correct the highlighted fields.'));
     setFormError(null);
     issue.mutate({
       caseId,
@@ -175,9 +187,11 @@ function IssueDialog({
       <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
         <form noValidate onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Issue Summons</DialogTitle>
+            <DialogTitle>{t('Issue Summons')}</DialogTitle>
             <DialogDescription>
-              Issue a summons or notice for an allocated case and assign it to a process server.
+              {t(
+                'Issue a summons or notice for an allocated case and assign it to a process server.',
+              )}
             </DialogDescription>
           </DialogHeader>
           {formError && (
@@ -189,7 +203,7 @@ function IssueDialog({
             <div className="sm:col-span-2 space-y-2">
               {initialCaseId ? (
                 <p className="rounded-md border border-border bg-primary-soft p-2 text-sm">
-                  Case:{' '}
+                  {t('Case:')}{' '}
                   <span className="case-number font-semibold">{parties.data?.ucn ?? '...'}</span>{' '}
                   {parties.data?.title}
                 </p>
@@ -197,8 +211,8 @@ function IssueDialog({
                 <>
                   <div className="flex gap-2">
                     <Input
-                      aria-label="Search cases by number or title"
-                      placeholder="Search case number or title"
+                      aria-label={t('Search cases by number or title')}
+                      placeholder={t('Search case number or title')}
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
                     />
@@ -207,10 +221,10 @@ function IssueDialog({
                       variant="secondary"
                       onClick={() => setCaseSearch(searchText.trim())}
                     >
-                      <Search aria-hidden="true" /> Search
+                      <Search aria-hidden="true" /> {t('Search')}
                     </Button>
                   </div>
-                  <Field label="Allocated case" required error={errors.caseId}>
+                  <Field label={t('Allocated case')} required error={errors.caseId}>
                     {(p) => (
                       <NativeSelect
                         {...p}
@@ -220,7 +234,7 @@ function IssueDialog({
                           setPartyId('');
                         }}
                       >
-                        <option value="">Choose a case</option>
+                        <option value="">{t('Choose a case')}</option>
                         {found.data?.data
                           .filter((c) => c.judge)
                           .map((c) => (
@@ -234,35 +248,35 @@ function IssueDialog({
                 </>
               )}
               {parties.data && !parties.data.allocated && (
-                <Alert variant="error">This case is not allocated to a bench yet.</Alert>
+                <Alert variant="error">{t('This case is not allocated to a bench yet.')}</Alert>
               )}
             </div>
-            <Field label="Type" required>
+            <Field label={t('Type')} required>
               {(p) => (
                 <NativeSelect
                   {...p}
                   value={noticeType}
                   onChange={(e) => setNoticeType(e.target.value as NoticeType)}
                 >
-                  <option value="SUMMONS">Summons</option>
-                  <option value="NOTICE">Notice</option>
+                  <option value="SUMMONS">{t('Summons')}</option>
+                  <option value="NOTICE">{t('Notice')}</option>
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Priority" required>
+            <Field label={t('Priority')} required>
               {(p) => (
                 <NativeSelect
                   {...p}
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as Priority)}
                 >
-                  <option value="NORMAL">Normal</option>
-                  <option value="URGENT">Urgent</option>
+                  <option value="NORMAL">{t('Normal')}</option>
+                  <option value="URGENT">{t('Urgent')}</option>
                 </NativeSelect>
               )}
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Party of the case (fills the recipient)">
+              <Field label={t('Party of the case (fills the recipient)')}>
                 {(p) => (
                   <NativeSelect
                     {...p}
@@ -270,7 +284,7 @@ function IssueDialog({
                     disabled={!parties.data}
                     onChange={(e) => pickParty(e.target.value)}
                   >
-                    <option value="">Enter the recipient manually</option>
+                    <option value="">{t('Enter the recipient manually')}</option>
                     {parties.data?.parties.map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.name} ({x.role})
@@ -280,7 +294,7 @@ function IssueDialog({
                 )}
               </Field>
             </div>
-            <Field label="Recipient name" required error={errors.recipientName}>
+            <Field label={t('Recipient name')} required error={errors.recipientName}>
               {(p) => (
                 <Input
                   maxLength={120}
@@ -291,14 +305,14 @@ function IssueDialog({
               )}
             </Field>
             <Field
-              label="Recipient CNIC (optional)"
+              label={t('Recipient CNIC (optional)')}
               error={errors.recipientCnic}
               hint="12345-1234567-1"
             >
               {(p) => <Input {...p} value={cnic} onChange={(e) => setCnic(e.target.value)} />}
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Service address" required error={errors.serviceAddress}>
+              <Field label={t('Service address')} required error={errors.serviceAddress}>
                 {(p) => (
                   <Textarea
                     rows={2}
@@ -310,7 +324,12 @@ function IssueDialog({
                 )}
               </Field>
             </div>
-            <Field label="Sector" required error={errors.sector} hint="For example Gulgasht Colony">
+            <Field
+              label={t('Sector')}
+              required
+              error={errors.sector}
+              hint={t('For example Gulgasht Colony')}
+            >
               {(p) => (
                 <Input
                   maxLength={80}
@@ -321,9 +340,9 @@ function IssueDialog({
               )}
             </Field>
             <Field
-              label="Due date"
+              label={t('Due date')}
               error={errors.dueDate}
-              hint="Empty uses the default period from System Policies."
+              hint={t('Empty uses the default period from System Policies.')}
             >
               {(p) => (
                 <DatePicker
@@ -335,7 +354,7 @@ function IssueDialog({
               )}
             </Field>
             <div className="sm:col-span-2">
-              <Field label="Process server" error={errors.serverId}>
+              <Field label={t('Process server')} error={errors.serverId}>
                 {(p) => (
                   <ServerSelect
                     id={p.id}
@@ -350,10 +369,10 @@ function IssueDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose} disabled={issue.isPending}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" loading={issue.isPending}>
-              <ScrollText aria-hidden="true" /> Issue
+              <ScrollText aria-hidden="true" /> {t('Issue')}
             </Button>
           </DialogFooter>
         </form>
@@ -371,6 +390,7 @@ function ProofImage({
   kind: 'photo' | 'signature';
   label: string;
 }) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -399,7 +419,7 @@ function ProofImage({
         />
       ) : (
         <p className="text-sm text-text-muted">
-          {failed ? `${label} could not be loaded.` : 'Loading...'}
+          {failed ? t('{{label}} could not be loaded.', { label }) : 'Loading...'}
         </p>
       )}
       <figcaption className="text-sm text-text-muted">{label}</figcaption>
@@ -409,6 +429,7 @@ function ProofImage({
 
 /** Detail dialog: attempts, proof, verify seal, reassign and cancel. */
 function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [newServer, setNewServer] = useState('');
   const [reason, setReason] = useState('');
@@ -461,14 +482,14 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
         <DialogHeader>
           <DialogTitle>
             {data
-              ? `${data.noticeType === 'NOTICE' ? 'Notice' : 'Summons'} to ${data.recipientName}`
-              : 'Summons'}
+              ? `${data.noticeType === 'NOTICE' ? t('Notice') : t('Summons')} to ${data.recipientName}`
+              : t('Summons')}
           </DialogTitle>
           <DialogDescription>{data ? `${data.ucn} · ${data.caseTitle}` : ''}</DialogDescription>
         </DialogHeader>
         {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
         {isPending ? (
-          <p>Loading...</p>
+          <p>{t('Loading...')}</p>
         ) : (
           data && (
             <div className="space-y-5">
@@ -479,47 +500,50 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
               </div>
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-text-muted">Service address</dt>
+                  <dt className="text-text-muted">{t('Service address')}</dt>
                   <dd className="font-medium">{data.serviceAddress}</dd>
                 </div>
                 <div>
-                  <dt className="text-text-muted">Sector</dt>
+                  <dt className="text-text-muted">{t('Sector')}</dt>
                   <dd className="font-medium">{data.sector}</dd>
                 </div>
                 <div>
-                  <dt className="text-text-muted">Recipient CNIC</dt>
+                  <dt className="text-text-muted">{t('Recipient CNIC')}</dt>
                   <dd className="font-mono">{data.recipientCnic ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-text-muted">Due</dt>
+                  <dt className="text-text-muted">{t('Due')}</dt>
                   <dd className="font-medium">{formatDate(data.dueBy)}</dd>
                 </div>
                 <div>
-                  <dt className="text-text-muted">Process server</dt>
+                  <dt className="text-text-muted">{t('Process server')}</dt>
                   <dd className="font-medium">
                     {data.server
                       ? `${data.server.name} (${data.server.badgeNumber})`
-                      : 'Not assigned'}
+                      : t('Not assigned')}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-text-muted">Issued by</dt>
+                  <dt className="text-text-muted">{t('Issued by')}</dt>
                   <dd className="font-medium">
-                    {data.issuedBy ?? '—'} on {formatDate(data.issuedAt)}
+                    {t('{{value}} on {{date}}', {
+                      value: data.issuedBy ?? '—',
+                      date: formatDate(data.issuedAt),
+                    })}
                   </dd>
                 </div>
                 {data.cancelReason && (
                   <div className="sm:col-span-2">
-                    <dt className="text-text-muted">Cancellation reason</dt>
+                    <dt className="text-text-muted">{t('Cancellation reason')}</dt>
                     <dd>{data.cancelReason}</dd>
                   </div>
                 )}
               </dl>
 
               <section>
-                <h3 className="mb-2 font-bold">Attempt timeline</h3>
+                <h3 className="mb-2 font-bold">{t('Attempt timeline')}</h3>
                 {data.attempts.length === 0 ? (
-                  <p className="text-text-muted">No attempts logged.</p>
+                  <p className="text-text-muted">{t('No attempts logged.')}</p>
                 ) : (
                   <ol className="space-y-2">
                     {data.attempts.map((a) => (
@@ -539,30 +563,37 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
 
               {data.proof && (
                 <section className="space-y-3">
-                  <h3 className="font-bold">Execution proof</h3>
+                  <h3 className="font-bold">{t('Execution proof')}</h3>
                   <p className="text-sm">
-                    {data.proof.serviceMode === 'PERSONAL_DELIVERY'
-                      ? 'Delivered in person'
-                      : 'Refused, affixed to gate'}{' '}
-                    on {formatDateTime(data.proof.executedAt)} at {data.proof.latitude},{' '}
-                    {data.proof.longitude} (±{Math.round(Number(data.proof.accuracyM))} m).
+                    {t('{{value}} on {{dateTime}} at {{latitude}}, {{longitude}} (±{{round}} m).', {
+                      value:
+                        data.proof.serviceMode === 'PERSONAL_DELIVERY'
+                          ? t('Delivered in person')
+                          : t('Refused, affixed to gate'),
+                      dateTime: formatDateTime(data.proof.executedAt),
+                      latitude: data.proof.latitude,
+                      longitude: data.proof.longitude,
+                      round: Math.round(Number(data.proof.accuracyM)),
+                    })}
                   </p>
                   <p className="text-sm">{data.proof.notes}</p>
                   <div className="flex flex-wrap gap-4">
                     {data.proof.hasPhoto && (
-                      <ProofImage id={id} kind="photo" label="Photo of the served notice" />
+                      <ProofImage id={id} kind="photo" label={t('Photo of the served notice')} />
                     )}
                     {data.proof.hasSignature && (
-                      <ProofImage id={id} kind="signature" label="Recipient signature" />
+                      <ProofImage id={id} kind="signature" label={t('Recipient signature')} />
                     )}
                   </div>
                   <p className="break-all font-mono text-xs text-text-muted">
-                    Seal: {data.proof.seal}
+                    {t('Seal: {{seal}}', { seal: data.proof.seal })}
                   </p>
                   <p className="text-xs text-text-muted">
                     {data.proof.sealVersion === 1
-                      ? 'Seal version 1: covers the execution details, photo and signature.'
-                      : 'Seal version 2: also covers the case number, recipient and service address.'}
+                      ? t('Seal version 1: covers the execution details, photo and signature.')
+                      : t(
+                          'Seal version 2: also covers the case number, recipient and service address.',
+                        )}
                   </p>
                   <div className="flex flex-wrap items-center gap-3">
                     <Button
@@ -570,20 +601,21 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
                       onClick={() => verify.mutate()}
                       loading={verify.isPending}
                     >
-                      <ShieldCheck aria-hidden="true" /> Verify seal
+                      <ShieldCheck aria-hidden="true" /> {t('Verify seal')}
                     </Button>
                     {verdict && (
                       <Badge variant={verdict.result === 'valid' ? 'decided' : 'rejected'}>
-                        {verdict.result === 'valid' ? 'Valid' : 'Tampered'}
+                        {verdict.result === 'valid' ? t('Valid') : t('Tampered')}
                       </Badge>
                     )}
                   </div>
                   {verdict && (
                     <Alert variant={verdict.result === 'valid' ? 'success' : 'error'}>
                       {verdict.result === 'tampered' && (
-                        <ShieldAlert className="mr-1 inline size-4" aria-hidden="true" />
+                        <ShieldAlert className="me-1 inline size-4" aria-hidden="true" />
                       )}
-                      {verdict.message} (seal version {verdict.sealVersion})
+                      {translateText(verdict.message)}{' '}
+                      {t('(seal version {{version}})', { version: verdict.sealVersion })}
                     </Alert>
                   )}
                 </section>
@@ -591,7 +623,7 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
 
               {open && (
                 <section className="space-y-3 border-t border-border pt-4">
-                  <h3 className="font-bold">{data.server ? 'Reassign' : 'Assign'}</h3>
+                  <h3 className="font-bold">{data.server ? t('Reassign') : t('Assign')}</h3>
                   <div className="flex flex-wrap gap-2">
                     <div className="min-w-0 flex-1">
                       <ServerSelect
@@ -605,13 +637,13 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
                       disabled={!newServer}
                       loading={assign.isPending}
                     >
-                      {data.server ? 'Reassign' : 'Assign'}
+                      {data.server ? t('Reassign') : t('Assign')}
                     </Button>
                   </div>
                   {cancelling ? (
                     <div className="space-y-2">
                       <Field
-                        label="Reason for cancelling"
+                        label={t('Reason for cancelling')}
                         required
                         error={reasonError ?? undefined}
                       >
@@ -631,21 +663,21 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
                           loading={cancel.isPending}
                           onClick={() => {
                             if (reason.trim().length < 5)
-                              return setReasonError('The reason must be 5 to 300 characters.');
+                              return setReasonError(t('The reason must be 5 to 300 characters.'));
                             setReasonError(null);
                             cancel.mutate();
                           }}
                         >
-                          Cancel summons
+                          {t('Cancel summons')}
                         </Button>
                         <Button variant="secondary" onClick={() => setCancelling(false)}>
-                          Keep it
+                          {t('Keep it')}
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <Button variant="secondary" onClick={() => setCancelling(true)}>
-                      Cancel this summons
+                      {t('Cancel this summons')}
                     </Button>
                   )}
                 </section>
@@ -654,7 +686,7 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
           )
         )}
         <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>{t('Close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -671,6 +703,7 @@ const STATUSES = [
 
 /** "Summons & Notices Registry" */
 export default function SummonsRegistryPage() {
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const issueCase = params.get('issue');
   const [issuing, setIssuing] = useState(Boolean(issueCase));
@@ -703,12 +736,14 @@ export default function SummonsRegistryPage() {
   return (
     <>
       <PageHeader
-        title="Summons & Notices Registry"
-        description="Issue summons and notices for allocated cases and assign them to process servers."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Summons & Notices' }]}
+        title={t('Summons & Notices Registry')}
+        description={t(
+          'Issue summons and notices for allocated cases and assign them to process servers.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Summons & Notices') }]}
         actions={
           <Button onClick={() => setIssuing(true)}>
-            <Plus aria-hidden="true" /> Issue Summons
+            <Plus aria-hidden="true" /> {t('Issue Summons')}
           </Button>
         }
       />
@@ -722,11 +757,11 @@ export default function SummonsRegistryPage() {
         }}
       >
         <div className="md:col-span-2">
-          <Field label="Search case number or recipient">
+          <Field label={t('Search case number or recipient')}>
             {(p) => <Input {...p} value={text} onChange={(e) => setText(e.target.value)} />}
           </Field>
         </div>
-        <Field label="Status">
+        <Field label={t('Status')}>
           {(p) => (
             <NativeSelect
               {...p}
@@ -736,7 +771,7 @@ export default function SummonsRegistryPage() {
                 setPage(1);
               }}
             >
-              <option value="">All statuses</option>
+              <option value="">{t('All statuses')}</option>
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
                   {s.replace(/_/g, ' ').toLowerCase()}
@@ -745,7 +780,7 @@ export default function SummonsRegistryPage() {
             </NativeSelect>
           )}
         </Field>
-        <Field label="Process server">
+        <Field label={t('Process server')}>
           {(p) => (
             <NativeSelect
               {...p}
@@ -755,7 +790,7 @@ export default function SummonsRegistryPage() {
                 setPage(1);
               }}
             >
-              <option value="">All servers</option>
+              <option value="">{t('All servers')}</option>
               {servers.data?.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -774,11 +809,11 @@ export default function SummonsRegistryPage() {
               setPage(1);
             }}
           />
-          Overdue only
+          {t('Overdue only')}
         </label>
         <div>
           <Button type="submit" variant="secondary">
-            <Search aria-hidden="true" /> Search
+            <Search aria-hidden="true" /> {t('Search')}
           </Button>
         </div>
       </form>
@@ -789,23 +824,23 @@ export default function SummonsRegistryPage() {
         <Card>
           <EmptyState
             icon={ScrollText}
-            title="No summons found"
-            description="Issue a summons from an allocated case."
+            title={t('No summons found')}
+            description={t('Issue a summons from an allocated case.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Summons registry">
+            <Table aria-label={t('Summons registry')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Case</TableHead>
-                  <TableHead>Recipient</TableHead>
-                  <TableHead>Sector</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead>Server</TableHead>
-                  <TableHead>Action</TableHead>
+                  <TableHead>{t('Case')}</TableHead>
+                  <TableHead>{t('Recipient')}</TableHead>
+                  <TableHead>{t('Sector')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead>{t('Due')}</TableHead>
+                  <TableHead>{t('Server')}</TableHead>
+                  <TableHead>{t('Action')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -833,7 +868,7 @@ export default function SummonsRegistryPage() {
                     <TableCell>{s.server ? s.server.name : '—'}</TableCell>
                     <TableCell>
                       <Button size="sm" variant="secondary" onClick={() => setOpen(s)}>
-                        Details
+                        {t('Details')}
                       </Button>
                     </TableCell>
                   </TableRow>

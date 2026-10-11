@@ -14,6 +14,9 @@ import { authApi } from '@/lib/auth-api';
 import { applyServerError } from '@/lib/form-errors';
 import { registerSchema, summaryFor, type RegisterValues } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const FIELDS = [
   'firstName',
@@ -28,11 +31,17 @@ const FIELDS = [
 ] as const;
 
 const ROLE_OPTIONS = [
-  { value: 'LITIGANT', label: 'Litigant', hint: 'I am a party to a case', icon: UserRound },
-  { value: 'LAWYER', label: 'Lawyer', hint: 'I run a chamber', icon: Scale },
+  {
+    value: 'LITIGANT',
+    label: msg('Litigant'),
+    hint: msg('I am a party to a case'),
+    icon: UserRound,
+  },
+  { value: 'LAWYER', label: msg('Lawyer'), hint: 'I run a chamber', icon: Scale },
 ] as const;
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -66,13 +75,15 @@ export default function RegisterPage() {
   return (
     <AuthCard
       wide
-      title="Create an account"
-      description="Public registration is for litigants and lawyers. Other accounts are created by an administrator."
+      title={t('Create an account')}
+      description={t(
+        'Public registration is for litigants and lawyers. Other accounts are created by an administrator.',
+      )}
       footer={
         <p>
-          Already registered?{' '}
+          {t('Already registered?')}{' '}
           <Link to="/login" className="font-semibold">
-            Log in
+            {t('Log in')}
           </Link>
         </p>
       }
@@ -85,7 +96,7 @@ export default function RegisterPage() {
         {formError && <Alert variant="error">{formError}</Alert>}
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium">I am registering as a</legend>
+          <legend className="mb-2 text-sm font-medium">{t('I am registering as a')}</legend>
           <div className="grid gap-3 sm:grid-cols-2">
             {ROLE_OPTIONS.map(({ value, label, hint, icon: Icon }) => (
               <label
@@ -112,13 +123,18 @@ export default function RegisterPage() {
         </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="First name" error={errors.firstName?.message} required>
+          <Field label={t('First name')} error={errors.firstName?.message} required>
             {(p) => <Input autoComplete="given-name" {...p} {...register('firstName')} />}
           </Field>
-          <Field label="Last name" error={errors.lastName?.message} required>
+          <Field label={t('Last name')} error={errors.lastName?.message} required>
             {(p) => <Input autoComplete="family-name" {...p} {...register('lastName')} />}
           </Field>
-          <Field label="CNIC" hint="Format: 12345-1234567-1" error={errors.cnic?.message} required>
+          <Field
+            label="CNIC"
+            hint={t('Format: 12345-1234567-1')}
+            error={errors.cnic?.message}
+            required
+          >
             {(p) => (
               <Input
                 inputMode="numeric"
@@ -129,8 +145,8 @@ export default function RegisterPage() {
             )}
           </Field>
           <Field
-            label="Mobile number"
-            hint="Format: +92 3XX XXXXXXX"
+            label={t('Mobile number')}
+            hint={t('Format: +92 3XX XXXXXXX')}
             error={errors.phone?.message}
             required
           >
@@ -138,15 +154,15 @@ export default function RegisterPage() {
           </Field>
         </div>
 
-        <Field label="Email address" error={errors.email?.message} required>
+        <Field label={t('Email address')} error={errors.email?.message} required>
           {(p) => <Input type="email" autoComplete="email" {...p} {...register('email')} />}
         </Field>
 
         {role === 'LAWYER' && (
           <Field
-            label="Bar Council number"
+            label={t('Bar Council number')}
             required
-            hint="An administrator checks it with the Bar Council before you can file cases."
+            hint={t('An administrator checks it with the Bar Council before you can file cases.')}
             error={errors.barNumber?.message}
           >
             {(p) => <Input {...p} {...register('barNumber')} />}
@@ -155,14 +171,16 @@ export default function RegisterPage() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="Password"
-            hint="At least 8 characters with an uppercase letter, a lowercase letter and a number."
+            label={t('Password')}
+            hint={t(
+              'At least 8 characters with an uppercase letter, a lowercase letter and a number.',
+            )}
             error={errors.password?.message}
             required
           >
             {(p) => <PasswordInput autoComplete="new-password" {...p} {...register('password')} />}
           </Field>
-          <Field label="Confirm password" error={errors.confirmPassword?.message} required>
+          <Field label={t('Confirm password')} error={errors.confirmPassword?.message} required>
             {(p) => (
               <PasswordInput autoComplete="new-password" {...p} {...register('confirmPassword')} />
             )}
@@ -170,7 +188,7 @@ export default function RegisterPage() {
         </div>
 
         <Button type="submit" className="w-full" loading={isSubmitting}>
-          <UserPlus aria-hidden="true" /> Create account
+          <UserPlus aria-hidden="true" /> {t('Create account')}
         </Button>
       </form>
     </AuthCard>

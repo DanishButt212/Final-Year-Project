@@ -1,3 +1,4 @@
+import { FontSizeControl, LanguageToggle } from '@/components/preferences/PreferenceControls';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -28,10 +29,12 @@ import { MESSAGES, PHONE_REGEX } from '@/lib/schemas';
 import { mapsLink, serverApi, type ServerSummons } from '@/lib/summons-api';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { OverdueBadge, PriorityBadge, SummonsStatusBadge } from './badges';
+import { useTranslation } from 'react-i18next';
 
 const BIG = 'min-h-12 w-full text-base';
 
 function RosterCard({ s }: { s: ServerSummons }) {
+  const { t } = useTranslation();
   return (
     <li>
       <Link
@@ -51,7 +54,10 @@ function RosterCard({ s }: { s: ServerSummons }) {
         <p className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-text-muted">
           <span className="case-number text-text">{s.ucn}</span>
           <span>
-            {s.noticeType === 'NOTICE' ? 'Notice' : 'Summons'} · due {formatDate(s.dueBy)}
+            {t('{{value}} · due {{date}}', {
+              value: s.noticeType === 'NOTICE' ? t('Notice') : t('Summons'),
+              date: formatDate(s.dueBy),
+            })}
           </span>
         </p>
       </Link>
@@ -61,6 +67,7 @@ function RosterCard({ s }: { s: ServerSummons }) {
 
 /** "My Duty Roster": pending summons and notices assigned to this server. */
 export function RosterPage() {
+  const { t } = useTranslation();
   const roster = useQuery({ queryKey: ['server', 'roster'], queryFn: serverApi.roster });
   const summary = useQuery({ queryKey: ['server', 'summary'], queryFn: serverApi.summary });
 
@@ -68,8 +75,8 @@ export function RosterPage() {
     <>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">My Duty Roster</h1>
-          <p className="text-text-muted">Sorted by urgency, due date and sector.</p>
+          <h1 className="text-2xl font-bold">{t('My Duty Roster')}</h1>
+          <p className="text-text-muted">{t('Sorted by urgency, due date and sector.')}</p>
         </div>
         <Button
           variant="secondary"
@@ -79,17 +86,17 @@ export function RosterPage() {
             void summary.refetch();
           }}
           loading={roster.isFetching}
-          aria-label="Refresh roster"
+          aria-label={t('Refresh roster')}
         >
-          <RefreshCw aria-hidden="true" /> Refresh
+          <RefreshCw aria-hidden="true" /> {t('Refresh')}
         </Button>
       </div>
       {summary.data && (
         <dl className="mb-4 grid grid-cols-3 gap-2 text-center">
           {[
-            ['Open', summary.data.open],
-            ['Overdue', summary.data.overdue],
-            ['Done this week', summary.data.executedThisWeek],
+            [t('Open'), summary.data.open],
+            [t('Overdue'), summary.data.overdue],
+            [t('Done this week'), summary.data.executedThisWeek],
           ].map(([k, v]) => (
             <div key={String(k)} className="rounded-md border border-border bg-surface p-2">
               <dd className="text-xl font-bold">{v}</dd>
@@ -108,13 +115,13 @@ export function RosterPage() {
         <Card>
           <EmptyState
             icon={ScrollText}
-            title={roster.data.message ?? 'No outstanding summons found in your queue.'}
-            description="New assignments from the registry appear here."
+            title={roster.data.message ?? t('No outstanding summons found in your queue.')}
+            description={t('New assignments from the registry appear here.')}
           />
         </Card>
       ) : (
         roster.data && (
-          <ul className="space-y-3" aria-label="Duty roster">
+          <ul className="space-y-3" aria-label={t('Duty roster')}>
             {roster.data.data.map((s) => (
               <RosterCard key={s.id} s={s} />
             ))}
@@ -127,6 +134,7 @@ export function RosterPage() {
 
 /** One summons: address with a Maps link, attempts timeline and the two field actions. */
 export function SummonsPage() {
+  const { t } = useTranslation();
   const { summonsId } = useParams();
   const { data, isPending, error } = useQuery({
     queryKey: ['server', 'summons', summonsId],
@@ -146,7 +154,7 @@ export function SummonsPage() {
   return (
     <>
       <Link to="/process-server" className="mb-3 inline-block text-sm font-semibold">
-        Back to roster
+        {t('Back to roster')}
       </Link>
       <div className="flex flex-wrap items-center gap-2">
         <PriorityBadge priority={data.priority} />
@@ -157,43 +165,45 @@ export function SummonsPage() {
       <Card className="mt-3">
         <CardContent className="space-y-3">
           <div>
-            <p className="text-sm text-text-muted">Service address</p>
+            <p className="text-sm text-text-muted">{t('Service address')}</p>
             <p className="text-lg font-medium">{data.serviceAddress}</p>
-            <p className="text-sm text-text-muted">Sector: {data.sector}</p>
+            <p className="text-sm text-text-muted">
+              {t('Sector: {{sector}}', { sector: data.sector })}
+            </p>
           </div>
           <Button asChild variant="secondary" className={BIG}>
             <a href={mapsLink(data.serviceAddress)} target="_blank" rel="noopener noreferrer">
-              <ExternalLink aria-hidden="true" /> Open in Maps
+              <ExternalLink className="rtl:-scale-x-100" aria-hidden="true" /> {t('Open in Maps')}
             </a>
           </Button>
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <dt className="text-text-muted">Case number</dt>
+              <dt className="text-text-muted">{t('Case number')}</dt>
               <dd className="case-number font-semibold">{data.ucn}</dd>
             </div>
             <div>
-              <dt className="text-text-muted">Due</dt>
+              <dt className="text-text-muted">{t('Due')}</dt>
               <dd className="font-semibold">{formatDate(data.dueBy)}</dd>
             </div>
             <div className="col-span-2">
-              <dt className="text-text-muted">Case</dt>
+              <dt className="text-text-muted">{t('Case')}</dt>
               <dd>{data.caseTitle}</dd>
             </div>
           </dl>
         </CardContent>
       </Card>
 
-      <h2 className="mb-2 mt-6 text-lg font-bold">Attempts</h2>
+      <h2 className="mb-2 mt-6 text-lg font-bold">{t('Attempts')}</h2>
       {data.attempts.length === 0 ? (
-        <p className="text-text-muted">No progress entries yet.</p>
+        <p className="text-text-muted">{t('No progress entries yet.')}</p>
       ) : (
-        <ol className="space-y-2" aria-label="Attempts timeline">
+        <ol className="space-y-2" aria-label={t('Attempts timeline')}>
           {data.attempts.map((a) => (
             <li key={a.id} className="rounded-md border border-border bg-surface p-3">
               <p className="text-sm font-semibold">
                 {formatDateTime(a.createdAt)}{' '}
                 <span className="font-normal text-text-muted">
-                  · GPS ±{Math.round(Number(a.accuracyM))} m
+                  {t('· GPS ±{{round}} m', { round: Math.round(Number(a.accuracyM)) })}
                 </span>
               </p>
               <p>{a.notes}</p>
@@ -203,35 +213,37 @@ export function SummonsPage() {
       )}
 
       {data.status === 'EXECUTED' && (
-        <Alert variant="success" title="Executed" className="mt-6">
-          Proof secured on {formatDateTime(data.executedAt)} (
+        <Alert variant="success" title={t('Executed')} className="mt-6">
           {data.serviceMode === 'PERSONAL_DELIVERY'
-            ? 'delivered in person'
-            : 'refused, affixed to gate'}
-          ).
+            ? t('Proof secured on {{dateTime}} (delivered in person).', {
+                dateTime: formatDateTime(data.executedAt),
+              })
+            : t('Proof secured on {{dateTime}} (refused, affixed to gate).', {
+                dateTime: formatDateTime(data.executedAt),
+              })}
         </Alert>
       )}
       {data.status === 'CANCELLED' && (
-        <Alert variant="info" title="Cancelled" className="mt-6">
-          The registry cancelled this summons.
+        <Alert variant="info" title={t('Cancelled')} className="mt-6">
+          {t('The registry cancelled this summons.')}
         </Alert>
       )}
       {open && (
         <div className="mt-6 space-y-3">
           <Button asChild className={BIG}>
             <Link to={`/process-server/summons/${data.id}/attempt`}>
-              <MapPin aria-hidden="true" /> Attempt in Progress
+              <MapPin aria-hidden="true" /> {t('Attempt in Progress')}
             </Link>
           </Button>
           {data.status === 'ATTEMPT_IN_PROGRESS' ? (
             <Button asChild variant="secondary" className={BIG}>
               <Link to={`/process-server/summons/${data.id}/finalize`}>
-                <Camera aria-hidden="true" /> Finalize Notice Execution
+                <Camera aria-hidden="true" /> {t('Finalize Notice Execution')}
               </Link>
             </Button>
           ) : (
             <p className="text-sm text-text-muted">
-              Commit a progress log entry first; then you can finalize the execution.
+              {t('Commit a progress log entry first; then you can finalize the execution.')}
             </p>
           )}
         </div>
@@ -251,6 +263,7 @@ type ProfileValues = z.infer<typeof profileSchema>;
 
 /** "Staff Profile Settings": precinct, sector and badge are read-only; phone and photo are editable. */
 export function ServerProfilePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['server', 'profile'],
@@ -320,7 +333,19 @@ export function ServerProfilePage() {
 
   return (
     <>
-      <h1 className="mb-4 text-2xl font-bold">Staff Profile Settings</h1>
+      <h1 className="mb-4 text-2xl font-bold">{t('Staff Profile Settings')}</h1>
+      <section
+        aria-labelledby="display-heading"
+        className="mb-4 rounded-lg border border-border bg-surface p-4"
+      >
+        <h2 id="display-heading" className="mb-3 text-base font-bold">
+          {t('Language and text size')}
+        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <LanguageToggle />
+          <FontSizeControl />
+        </div>
+      </section>
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
         <Skeleton className="h-96" />
@@ -343,7 +368,7 @@ export function ServerProfilePage() {
                     {preview || photoUrl ? (
                       <img
                         src={preview ?? photoUrl ?? ''}
-                        alt="Profile verification photo"
+                        alt={t('Profile verification photo')}
                         className="size-full object-cover"
                       />
                     ) : (
@@ -357,35 +382,35 @@ export function ServerProfilePage() {
                 </div>
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <dt className="text-text-muted">Badge number</dt>
+                    <dt className="text-text-muted">{t('Badge number')}</dt>
                     <dd className="font-semibold">{data.badgeNumber}</dd>
                   </div>
                   <div>
-                    <dt className="text-text-muted">Badge status</dt>
+                    <dt className="text-text-muted">{t('Badge status')}</dt>
                     <dd>
                       <Badge variant={data.badgeStatus === 'ACTIVE' ? 'decided' : 'rejected'}>
-                        {data.badgeStatus === 'ACTIVE' ? 'Active' : 'Suspended'}
+                        {data.badgeStatus === 'ACTIVE' ? t('Active') : t('Suspended')}
                       </Badge>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-text-muted">Precinct</dt>
+                    <dt className="text-text-muted">{t('Precinct')}</dt>
                     <dd className="font-semibold">{data.precinct}</dd>
                   </div>
                   <div>
-                    <dt className="text-text-muted">Assigned sector</dt>
+                    <dt className="text-text-muted">{t('Assigned sector')}</dt>
                     <dd className="font-semibold">{data.sector}</dd>
                   </div>
                 </dl>
                 <Field
-                  label="Phone number"
+                  label={t('Phone number')}
                   required
                   error={errors.phone?.message}
-                  hint="+92 3XX XXXXXXX"
+                  hint={t('+92 3XX XXXXXXX')}
                 >
                   {(p) => <PhoneInput className="min-h-12" {...p} {...register('phone')} />}
                 </Field>
-                <Field label="Profile verification photo" hint="JPEG or PNG, up to 5 MB.">
+                <Field label={t('Profile verification photo')} hint={t('JPEG or PNG, up to 5 MB.')}>
                   {(p) => (
                     <input
                       type="file"
@@ -404,7 +429,7 @@ export function ServerProfilePage() {
                   )}
                 </Field>
                 <Button type="submit" className={BIG} loading={save.isPending}>
-                  <Save aria-hidden="true" /> Save profile
+                  <Save aria-hidden="true" /> {t('Save profile')}
                 </Button>
               </form>
             </CardContent>

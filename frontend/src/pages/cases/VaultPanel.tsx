@@ -42,9 +42,14 @@ import {
   type EvidenceCategory,
   type VaultItem,
 } from '@/lib/phase4-api';
+import { useTranslation } from 'react-i18next';
 
-export const LOCKED_TOOLTIP = 'Action Denied: Document is locked by order of the bench.';
-export const EXHIBIT_ADDED = 'Digital Exhibit Log Added Successfully.';
+import { msg } from '@/i18n';
+
+// eslint-disable-next-line react-refresh/only-export-components -- message constant, translated where shown
+export const LOCKED_TOOLTIP = msg('Action Denied: Document is locked by order of the bench.');
+// eslint-disable-next-line react-refresh/only-export-components -- message constant, translated where shown
+export const EXHIBIT_ADDED = msg('Digital Exhibit Log Added Successfully.');
 const MIN_DESC = 10;
 const MAX_DESC = 500;
 
@@ -52,6 +57,7 @@ const categoryLabel = (c: EvidenceCategory | null) =>
   EVIDENCE_CATEGORIES.find((x) => x.value === c)?.label ?? '—';
 
 function ShaCell({ sha }: { sha: string }) {
+  const { t } = useTranslation();
   return (
     <span className="inline-flex items-center gap-1">
       <span className="font-mono text-xs" title={sha}>
@@ -59,14 +65,14 @@ function ShaCell({ sha }: { sha: string }) {
       </span>
       <button
         type="button"
-        aria-label="Copy SHA-256"
+        aria-label={t('Copy SHA-256')}
         className="flex size-8 items-center justify-center rounded-md text-text-muted hover:bg-primary-soft hover:text-primary"
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(sha);
-            toast.success('SHA-256 copied.');
+            toast.success(t('SHA-256 copied.'));
           } catch {
-            toast.error('Could not copy. Select the value and copy it manually.');
+            toast.error(t('Could not copy. Select the value and copy it manually.'));
           }
         }}
       >
@@ -77,10 +83,11 @@ function ShaCell({ sha }: { sha: string }) {
 }
 
 function LockedBadge() {
+  const { t } = useTranslation();
   return (
     <Badge variant="neutral">
       <span className="inline-flex items-center gap-1">
-        <Lock className="size-3" aria-hidden="true" /> Locked
+        <Lock className="size-3" aria-hidden="true" /> {t('Locked')}
       </span>
     </Badge>
   );
@@ -88,6 +95,7 @@ function LockedBadge() {
 
 /** Exhibit upload form (UC-5.1). */
 function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason: string | null }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState<EvidenceCategory>('SCANNED_DOCUMENT');
@@ -124,7 +132,12 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
     const chosen = Array.from(list);
     const bad = chosen.find((f) => !allowed.includes(f.name.split('.').pop()?.toLowerCase() ?? ''));
     if (bad) {
-      setLocalError(`Choose ${meta.label.toLowerCase()} files only (${allowed.join(', ')}).`);
+      setLocalError(
+        t('Choose files of the type {{category}} only ({{extensions}}).', {
+          category: t(meta.label),
+          extensions: allowed.join(', '),
+        }),
+      );
       return;
     }
     setLocalError(null);
@@ -137,10 +150,11 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upload digital exhibits</CardTitle>
+        <CardTitle>{t('Upload digital exhibits')}</CardTitle>
         <p className="text-sm text-text-muted">
-          Files are encrypted and sealed with a SHA-256 hash. Video: mp4, webm. Audio: mp3, wav,
-          m4a. Scanned records: pdf, jpg, png. Up to 5 files at a time.
+          {t(
+            'Files are encrypted and sealed with a SHA-256 hash. Video: mp4, webm. Audio: mp3, wav, m4a. Scanned records: pdf, jpg, png. Up to 5 files at a time.',
+          )}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -148,7 +162,7 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
         {success && <Alert variant="success">{success}</Alert>}
         {error && <Alert variant="error">{error}</Alert>}
         <fieldset disabled={disabled || upload.isPending} className="space-y-4">
-          <Field label="File category" required>
+          <Field label={t('File category')} required>
             {(p) => (
               <NativeSelect
                 value={category}
@@ -161,7 +175,7 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
               >
                 {EVIDENCE_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
-                    {c.label}
+                    {t(c.label)}
                   </option>
                 ))}
               </NativeSelect>
@@ -174,12 +188,12 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
               multiple
               className="sr-only"
               tabIndex={-1}
-              aria-label="Choose exhibit files"
+              aria-label={t('Choose exhibit files')}
               accept={meta.extensions.map((x) => `.${x}`).join(',')}
               onChange={(e) => pick(e.target.files)}
             />
             <Button type="button" variant="secondary" onClick={() => inputRef.current?.click()}>
-              <UploadCloud aria-hidden="true" /> Choose files
+              <UploadCloud aria-hidden="true" /> {t('Choose files')}
             </Button>
             {localError && (
               <p role="alert" className="mt-2 text-sm font-medium text-destructive">
@@ -198,7 +212,7 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
                     </span>
                     <button
                       type="button"
-                      aria-label={`Remove ${f.name}`}
+                      aria-label={t('Remove {{name}}', { name: f.name })}
                       onClick={() => setFiles(files.filter((_, j) => j !== i))}
                       className="flex size-8 shrink-0 items-center justify-center rounded-md hover:bg-primary-soft"
                     >
@@ -210,9 +224,13 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
             )}
           </div>
           <Field
-            label="Descriptive summary"
+            label={t('Descriptive summary')}
             required
-            hint={`${description.trim().length}/${MAX_DESC} characters (at least ${MIN_DESC})`}
+            hint={t('{{count}}/{{max}} characters (at least {{min}})', {
+              count: description.trim().length,
+              max: MAX_DESC,
+              min: MIN_DESC,
+            })}
           >
             {(p) => (
               <Textarea
@@ -224,7 +242,7 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
               />
             )}
           </Field>
-          {progress !== null && <ProgressBar value={progress} label="Uploading exhibits" />}
+          {progress !== null && <ProgressBar value={progress} label={t('Uploading exhibits')} />}
           <Button
             type="button"
             loading={upload.isPending}
@@ -235,7 +253,7 @@ function UploadPanel({ caseId, blockedReason }: { caseId: string; blockedReason:
               upload.mutate();
             }}
           >
-            <Paperclip aria-hidden="true" /> Submit Exhibit Entry to Vault
+            <Paperclip aria-hidden="true" /> {t('Submit Exhibit Entry to Vault')}
           </Button>
         </fieldset>
       </CardContent>
@@ -252,6 +270,7 @@ function ExhibitRow({
   item: VaultItem;
   selection?: { ids: Set<string>; toggle: (id: string) => void };
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(item.description ?? '');
@@ -301,7 +320,7 @@ function ExhibitRow({
           <input
             type="checkbox"
             className="size-4"
-            aria-label={`Select ${item.name}`}
+            aria-label={t('Select {{name}}', { name: item.name })}
             disabled={item.locked}
             checked={selection.ids.has(item.id)}
             onChange={() => selection.toggle(item.id)}
@@ -316,11 +335,15 @@ function ExhibitRow({
               rows={3}
               maxLength={MAX_DESC}
               value={text}
-              aria-label="Exhibit description"
+              aria-label={t('Exhibit description')}
               onChange={(e) => setText(e.target.value)}
             />
             <p className="text-xs text-text-muted">
-              {text.trim().length}/{MAX_DESC} (at least {MIN_DESC})
+              {t('{{length}}/{{MAX_DESC}} (at least {{MIN_DESC}})', {
+                length: text.trim().length,
+                MAX_DESC,
+                MIN_DESC,
+              })}
             </p>
             {error && (
               <p role="alert" className="text-sm font-medium text-destructive">
@@ -334,7 +357,7 @@ function ExhibitRow({
                 loading={save.isPending}
                 disabled={text.trim().length < MIN_DESC}
               >
-                Save
+                {t('Save')}
               </Button>
               <Button
                 size="sm"
@@ -345,7 +368,7 @@ function ExhibitRow({
                   setError(null);
                 }}
               >
-                Cancel
+                {t('Cancel')}
               </Button>
             </div>
           </div>
@@ -353,7 +376,9 @@ function ExhibitRow({
           <span className="block text-sm text-text-muted">{item.description}</span>
         )}
         {item.locked && item.lockReason && (
-          <span className="mt-1 block text-xs text-text-muted">Order: {item.lockReason}</span>
+          <span className="mt-1 block text-xs text-text-muted">
+            {t('Order: {{lockReason}}', { lockReason: item.lockReason })}
+          </span>
         )}
       </TableCell>
       <TableCell>{categoryLabel(item.category)}</TableCell>
@@ -373,9 +398,9 @@ function ExhibitRow({
             variant="secondary"
             onClick={download}
             loading={downloading}
-            aria-label={`Download ${item.name}`}
+            aria-label={t('Download {{name}}', { name: item.name })}
           >
-            <Download aria-hidden="true" /> Download
+            <Download aria-hidden="true" /> {t('Download')}
           </Button>
           {item.canEdit && (
             <>
@@ -385,9 +410,9 @@ function ExhibitRow({
                   variant="ghost"
                   disabled={item.locked}
                   onClick={() => setEditing(true)}
-                  aria-label={`Edit description of ${item.name}`}
+                  aria-label={t('Edit description of {{name}}', { name: item.name })}
                 >
-                  <Pencil aria-hidden="true" /> Edit
+                  <Pencil aria-hidden="true" /> {t('Edit')}
                 </Button>
               </span>
               <span title={item.locked ? LOCKED_TOOLTIP : undefined}>
@@ -397,10 +422,15 @@ function ExhibitRow({
                   disabled={item.locked}
                   onClick={() => setConfirming(true)}
                   aria-label={
-                    item.locked ? `Delete ${item.name}. ${LOCKED_TOOLTIP}` : `Delete ${item.name}`
+                    item.locked
+                      ? t('Delete {{name}}. {{LOCKED_TOOLTIP}}', {
+                          name: item.name,
+                          LOCKED_TOOLTIP,
+                        })
+                      : t('Delete {{name}}', { name: item.name })
                   }
                 >
-                  <Trash2 aria-hidden="true" /> Delete
+                  <Trash2 aria-hidden="true" /> {t('Delete')}
                 </Button>
               </span>
             </>
@@ -409,9 +439,12 @@ function ExhibitRow({
         <ConfirmDialog
           open={confirming}
           onOpenChange={setConfirming}
-          title="Delete this exhibit?"
-          description={`${item.name} will be removed from the vault. The deletion is recorded in the audit trail.`}
-          confirmLabel="Delete"
+          title={t('Delete this exhibit?')}
+          description={t(
+            '{{name}} will be removed from the vault. The deletion is recorded in the audit trail.',
+            { name: item.name },
+          )}
+          confirmLabel={t('Delete')}
           destructive
           loading={remove.isPending}
           onConfirm={() => remove.mutate()}
@@ -436,6 +469,7 @@ export default function VaultPanel({
   readOnly?: boolean;
   selection?: { ids: Set<string>; toggle: (id: string) => void };
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data, isPending, isError, error } = useQuery({
     queryKey: vaultKey(caseId),
@@ -479,25 +513,25 @@ export default function VaultPanel({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Pleadings</CardTitle>
+          <CardTitle>{t('Pleadings')}</CardTitle>
           <p className="flex items-center gap-1.5 text-sm text-text-muted">
-            <Lock className="size-4" aria-hidden="true" /> Pleadings are locked to the case number
-            and cannot be changed or deleted.
+            <Lock className="size-4" aria-hidden="true" />{' '}
+            {t('Pleadings are locked to the case number and cannot be changed or deleted.')}
           </p>
         </CardHeader>
         {data.pleadings.length === 0 ? (
-          <EmptyState icon={FileText} title="No pleadings attached yet" />
+          <EmptyState icon={FileText} title={t('No pleadings attached yet')} />
         ) : (
           <div className="p-5">
-            <Table aria-label="Pleadings">
+            <Table aria-label={t('Pleadings')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Size</TableHead>
+                  <TableHead>{t('Name')}</TableHead>
+                  <TableHead>{t('Size')}</TableHead>
                   <TableHead>SHA-256</TableHead>
-                  <TableHead>Uploaded</TableHead>
+                  <TableHead>{t('Uploaded')}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -517,15 +551,15 @@ export default function VaultPanel({
                       {formatDate(d.uploadedAt)}
                       <span className="block text-sm text-text-muted">{d.uploadedBy}</span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button
                         size="sm"
                         variant="secondary"
                         loading={downloading === d.id}
                         onClick={() => download(d)}
-                        aria-label={`Download ${d.name}`}
+                        aria-label={t('Download {{name}}', { name: d.name })}
                       >
-                        <Download aria-hidden="true" /> Download
+                        <Download aria-hidden="true" /> {t('Download')}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -536,7 +570,7 @@ export default function VaultPanel({
         )}
         {canAttachPleadings && !readOnly && (
           <CardContent className="space-y-3 border-t border-border">
-            <p className="font-semibold">Attach more pleadings</p>
+            <p className="font-semibold">{t('Attach more pleadings')}</p>
             {pleadingError && <Alert variant="error">{pleadingError}</Alert>}
             <PdfDropZone
               files={files}
@@ -546,7 +580,7 @@ export default function VaultPanel({
               }}
               disabled={attach.isPending}
             />
-            {progress !== null && <ProgressBar value={progress} label="Uploading pleadings" />}
+            {progress !== null && <ProgressBar value={progress} label={t('Uploading pleadings')} />}
             <Button
               disabled={files.length === 0 || attach.isPending}
               loading={attach.isPending}
@@ -555,8 +589,10 @@ export default function VaultPanel({
                 attach.mutate();
               }}
             >
-              <Paperclip aria-hidden="true" /> Attach{' '}
-              {files.length > 1 ? `${files.length} documents` : 'document'}
+              <Paperclip aria-hidden="true" />{' '}
+              {files.length > 1
+                ? t('Attach {{count}} documents', { count: files.length })
+                : t('Attach document')}
             </Button>
           </CardContent>
         )}
@@ -566,36 +602,37 @@ export default function VaultPanel({
 
       <Card>
         <CardHeader>
-          <CardTitle>Exhibits</CardTitle>
+          <CardTitle>{t('Exhibits')}</CardTitle>
           <p className="text-sm text-text-muted">
-            Digital exhibits submitted to the vault. A judge can lock exhibits by order of the
-            bench.
+            {t(
+              'Digital exhibits submitted to the vault. A judge can lock exhibits by order of the bench.',
+            )}
           </p>
         </CardHeader>
         {data.exhibits.length === 0 ? (
           <EmptyState
             icon={FileText}
-            title="No exhibits in the vault"
-            description="Submitted video, audio and scanned records appear here."
+            title={t('No exhibits in the vault')}
+            description={t('Submitted video, audio and scanned records appear here.')}
           />
         ) : (
           <div className="p-5">
-            <Table aria-label="Exhibits">
+            <Table aria-label={t('Exhibits')}>
               <TableHeader>
                 <TableRow>
                   {selection && (
                     <TableHead>
-                      <span className="sr-only">Select</span>
+                      <span className="sr-only">{t('Select')}</span>
                     </TableHead>
                   )}
-                  <TableHead>Exhibit</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Size</TableHead>
+                  <TableHead>{t('Exhibit')}</TableHead>
+                  <TableHead>{t('Category')}</TableHead>
+                  <TableHead>{t('Size')}</TableHead>
                   <TableHead>SHA-256</TableHead>
-                  <TableHead>Added</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('Added')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>

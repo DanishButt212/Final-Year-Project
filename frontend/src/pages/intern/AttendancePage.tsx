@@ -1,3 +1,4 @@
+import { msg } from '@/i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, LogOut, MapPin } from 'lucide-react';
 import { useState } from 'react';
@@ -21,6 +22,7 @@ import {
 import { parseApiError } from '@/lib/api';
 import { getPosition, internApi, LOCATION_DENIED } from '@/lib/chamber-api';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { Trans, useTranslation } from 'react-i18next';
 
 const time = (v: string | null) => (v ? formatDateTime(v).slice(11) : '—');
 const thisMonth = () => {
@@ -29,7 +31,16 @@ const thisMonth = () => {
 };
 
 /** Geo-fenced "Check-In / Log Bench Attendance". The server verifies the position against the court geo-fence. */
+/** Today's attendance in one sentence per variant (with or without court, before or after check-out). */
+const ATTENDANCE_LINE: Record<string, string> = {
+  'court:in': msg('Checked in at <b>{{in}}</b> at {{court}}.'),
+  'court:out': msg('Checked in at <b>{{in}}</b> at {{court}}, checked out at {{out}}.'),
+  'none:in': msg('Checked in at <b>{{in}}</b>.'),
+  'none:out': msg('Checked in at <b>{{in}}</b>, checked out at {{out}}.'),
+};
+
 export default function AttendancePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [month, setMonth] = useState(thisMonth());
   const [busy, setBusy] = useState<'in' | 'out' | null>(null);
@@ -66,15 +77,17 @@ export default function AttendancePage() {
   return (
     <>
       <PageHeader
-        title="Attendance"
-        description="Log your presence at the court. You must be physically inside the court complex."
-        crumbs={[{ label: 'Dashboard', to: '/intern' }, { label: 'Attendance' }]}
+        title={t('Attendance')}
+        description={t(
+          'Log your presence at the court. You must be physically inside the court complex.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/intern' }, { label: t('Attendance') }]}
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <MapPin className="size-5 text-primary" aria-hidden="true" /> Today
+              <MapPin className="size-5 text-primary" aria-hidden="true" /> {t('Today')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -83,13 +96,28 @@ export default function AttendancePage() {
               <p className="flex flex-wrap items-center gap-2">
                 <CheckCircle2 className="size-5 text-primary" aria-hidden="true" />
                 <span>
-                  Checked in at <strong>{time(today.checkInAt)}</strong>
-                  {today.court ? ` at ${today.court}` : ''}
-                  {today.checkOutAt ? `, checked out at ${time(today.checkOutAt)}` : ''}.
+                  <Trans
+                    i18nKey={
+                      ATTENDANCE_LINE[
+                        `${today.court ? 'court' : 'none'}:${today.checkOutAt ? 'out' : 'in'}`
+                      ]
+                    }
+                    defaults={
+                      ATTENDANCE_LINE[
+                        `${today.court ? 'court' : 'none'}:${today.checkOutAt ? 'out' : 'in'}`
+                      ]
+                    }
+                    values={{
+                      in: time(today.checkInAt),
+                      court: today.court ?? '',
+                      out: today.checkOutAt ? time(today.checkOutAt) : '',
+                    }}
+                    components={{ b: <strong /> }}
+                  />
                 </span>
               </p>
             ) : (
-              <p className="text-text-muted">You have not logged attendance today.</p>
+              <p className="text-text-muted">{t('You have not logged attendance today.')}</p>
             )}
             <div className="flex flex-wrap gap-3">
               <Button
@@ -98,7 +126,7 @@ export default function AttendancePage() {
                 loading={busy === 'in'}
                 disabled={busy !== null || Boolean(today)}
               >
-                <MapPin aria-hidden="true" /> Check-In / Log Bench Attendance
+                <MapPin aria-hidden="true" /> {t('Check-In / Log Bench Attendance')}
               </Button>
               {today && !today.checkOutAt && (
                 <Button
@@ -108,30 +136,31 @@ export default function AttendancePage() {
                   loading={busy === 'out'}
                   disabled={busy !== null}
                 >
-                  <LogOut aria-hidden="true" /> Check out
+                  <LogOut className="rtl:-scale-x-100" aria-hidden="true" /> {t('Check out')}
                 </Button>
               )}
             </div>
             {busy && (
               <p className="text-sm text-text-muted" aria-live="polite">
-                Getting your location and verifying it with the server...
+                {t('Getting your location and verifying it with the server...')}
               </p>
             )}
             <p className="text-sm text-text-muted">
-              Your browser asks for permission to use your location. Allow it, ideally outdoors,
-              with an accuracy better than {data?.maxAccuracyM ?? 150} m. One check-in counts per
-              day. The coordinates are checked on the server and are not stored in the audit log.
+              {t(
+                'Your browser asks for permission to use your location. Allow it, ideally outdoors, with an accuracy better than {{value}} m. One check-in counts per day. The coordinates are checked on the server and are not stored in the audit log.',
+                { value: data?.maxAccuracyM ?? 150 },
+              )}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>History</CardTitle>
+            <CardTitle>{t('History')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="max-w-xs">
-              <Field label="Month">
+              <Field label={t('Month')}>
                 {(p) => (
                   <Input
                     type="month"
@@ -148,19 +177,19 @@ export default function AttendancePage() {
             ) : data && data.data.length === 0 ? (
               <EmptyState
                 icon={MapPin}
-                title="No attendance this month"
-                description="Verified check-ins appear here."
+                title={t('No attendance this month')}
+                description={t('Verified check-ins appear here.')}
               />
             ) : (
               data && (
-                <Table aria-label="Attendance history">
+                <Table aria-label={t('Attendance history')}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>In</TableHead>
-                      <TableHead>Out</TableHead>
-                      <TableHead>Court</TableHead>
-                      <TableHead>Location</TableHead>
+                      <TableHead>{t('Date')}</TableHead>
+                      <TableHead>{t('In')}</TableHead>
+                      <TableHead>{t('Out')}</TableHead>
+                      <TableHead>{t('Court')}</TableHead>
+                      <TableHead>{t('Location')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -172,7 +201,7 @@ export default function AttendancePage() {
                         <TableCell>{a.court ?? '—'}</TableCell>
                         <TableCell>
                           <Badge variant={a.verified ? 'decided' : 'rejected'}>
-                            {a.verified ? 'Verified' : 'Not verified'}
+                            {a.verified ? t('Verified') : t('Not verified')}
                           </Badge>
                         </TableCell>
                       </TableRow>

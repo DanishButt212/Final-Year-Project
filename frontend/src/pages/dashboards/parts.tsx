@@ -8,6 +8,8 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ROLE_LABEL } from '@/lib/navigation';
 
+import { useTranslation } from 'react-i18next';
+
 export function DashboardFrame({
   description,
   children,
@@ -15,14 +17,21 @@ export function DashboardFrame({
   description: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   if (!user) return null;
   return (
     <>
       <PageHeader
-        title={`Welcome, ${user.firstName} ${user.lastName}`}
-        description={`${ROLE_LABEL[user.role]} dashboard. ${description}`}
-        crumbs={[{ label: 'Dashboard' }]}
+        title={t('Welcome, {{firstName}} {{lastName}}', {
+          firstName: user.firstName,
+          lastName: user.lastName,
+        })}
+        description={t('{{role}} dashboard. {{description}}', {
+          role: t(ROLE_LABEL[user.role]),
+          description: t(description),
+        })}
+        crumbs={[{ label: t('Dashboard') }]}
       />
       {children}
     </>

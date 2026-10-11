@@ -31,8 +31,11 @@ import { applyServerError } from '@/lib/form-errors';
 import { formatDate, formatPkr } from '@/lib/format';
 import { MESSAGES, summaryFor } from '@/lib/schemas';
 import { todayInput, useClientOptions } from './helpers';
+import { useTranslation } from 'react-i18next';
 
-const HOURS_MESSAGE = 'Hours must be in steps of 0.25, between 0.25 and 24.';
+import { msg } from '@/i18n';
+
+const HOURS_MESSAGE = msg('Hours must be in steps of 0.25, between 0.25 and 24.');
 const schema = z.object({
   clientId: z.string().min(1, MESSAGES.fieldRequired),
   workedOn: z.string().min(1, MESSAGES.fieldRequired),
@@ -47,7 +50,7 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, MESSAGES.fieldRequired)
-    .min(3, 'Detail notes must be 3 to 500 characters.')
+    .min(3, msg('Detail notes must be 3 to 500 characters.'))
     .max(500, 'Detail notes must be 3 to 500 characters.'),
   rate: z
     .string()
@@ -64,6 +67,7 @@ const FIELDS = ['clientId', 'hours', 'notes', 'caseId', 'workedOn'];
 
 /** "Billable Hours Ledger Matrix" */
 export default function BillablePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const clients = useClientOptions();
   const profile = useQuery({ queryKey: ['chamber', 'profile'], queryFn: chamberApi.profile });
@@ -149,14 +153,16 @@ export default function BillablePage() {
   return (
     <>
       <PageHeader
-        title="Billable Hours Ledger Matrix"
-        description="Record time against a client. The amount is the hours multiplied by the hourly rate."
-        crumbs={[{ label: 'Dashboard', to: '/lawyer' }, { label: 'Billable Hours' }]}
+        title={t('Billable Hours Ledger Matrix')}
+        description={t(
+          'Record time against a client. The amount is the hours multiplied by the hourly rate.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/lawyer' }, { label: t('Billable Hours') }]}
       />
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="size-5 text-primary" aria-hidden="true" /> Record billable time
+            <Clock className="size-5 text-primary" aria-hidden="true" /> {t('Record billable time')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -178,10 +184,10 @@ export default function BillablePage() {
             {success && <Alert variant="success">{success}</Alert>}
             {formError && <Alert variant="error">{formError}</Alert>}
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Client" required error={errors.clientId?.message}>
+              <Field label={t('Client')} required error={errors.clientId?.message}>
                 {(p) => (
                   <NativeSelect {...p} {...register('clientId')}>
-                    <option value="">Select a client</option>
+                    <option value="">{t('Select a client')}</option>
                     {clients.data?.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name} ({c.clientCode})
@@ -190,7 +196,7 @@ export default function BillablePage() {
                   </NativeSelect>
                 )}
               </Field>
-              <Field label="Date worked" required error={errors.workedOn?.message}>
+              <Field label={t('Date worked')} required error={errors.workedOn?.message}>
                 {(p) => (
                   <Controller
                     control={control}
@@ -202,10 +208,10 @@ export default function BillablePage() {
                 )}
               </Field>
               <Field
-                label="Time (hours)"
+                label={t('Time (hours)')}
                 required
                 error={errors.hours?.message}
-                hint="Steps of 0.25, for example 3.5"
+                hint={t('Steps of 0.25, for example 3.5')}
               >
                 {(p) => (
                   <Input
@@ -220,9 +226,11 @@ export default function BillablePage() {
                 )}
               </Field>
               <Field
-                label="Hourly rate (PKR)"
+                label={t('Hourly rate (PKR)')}
                 error={errors.rate?.message}
-                hint={`Leave empty to use the chamber rate: ${formatPkr(defaultRate)}`}
+                hint={t('Leave empty to use the chamber rate: {{pkr}}', {
+                  pkr: formatPkr(defaultRate),
+                })}
               >
                 {(p) => (
                   <Input
@@ -237,22 +245,22 @@ export default function BillablePage() {
                 )}
               </Field>
               <div className="md:col-span-2">
-                <Field label="Detail notes" required error={errors.notes?.message}>
+                <Field label={t('Detail notes')} required error={errors.notes?.message}>
                   {(p) => (
                     <Textarea
                       rows={3}
                       maxLength={500}
-                      placeholder="Drafting constitutional writ petition response"
+                      placeholder={t('Drafting constitutional writ petition response')}
                       {...p}
                       {...register('notes')}
                     />
                   )}
                 </Field>
               </div>
-              <Field label="Linked case (optional)">
+              <Field label={t('Linked case (optional)')}>
                 {(p) => (
                   <NativeSelect {...p} {...register('caseId')}>
-                    <option value="">No linked case</option>
+                    <option value="">{t('No linked case')}</option>
                     {cases.data?.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.ucn} · {c.title}
@@ -268,7 +276,7 @@ export default function BillablePage() {
                     className="size-4 accent-primary"
                     {...register('charge')}
                   />
-                  Charge against retainer
+                  {t('Charge against retainer')}
                 </label>
               </div>
             </div>
@@ -276,7 +284,7 @@ export default function BillablePage() {
               className="rounded-md border border-border bg-primary-soft p-3 text-sm"
               aria-live="polite"
             >
-              Amount for this entry: <strong>{formatPkr(preview)}</strong>
+              {t('Amount for this entry:')} <strong>{formatPkr(preview)}</strong>
               {Number(hours) > 0 && (
                 <span className="text-text-muted">
                   {' '}
@@ -285,15 +293,15 @@ export default function BillablePage() {
               )}
             </p>
             <Button type="submit" loading={create.isPending}>
-              <Save aria-hidden="true" /> Record billable time
+              <Save aria-hidden="true" /> {t('Record billable time')}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <h2 className="mb-3 text-xl font-bold">Recorded entries</h2>
+      <h2 className="mb-3 text-xl font-bold">{t('Recorded entries')}</h2>
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <Field label="Client">
+        <Field label={t('Client')}>
           {(p) => (
             <NativeSelect
               {...p}
@@ -303,7 +311,7 @@ export default function BillablePage() {
                 setPage(1);
               }}
             >
-              <option value="">All clients</option>
+              <option value="">{t('All clients')}</option>
               {clients.data?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -312,7 +320,7 @@ export default function BillablePage() {
             </NativeSelect>
           )}
         </Field>
-        <Field label="From">
+        <Field label={t('From')}>
           {(p) => (
             <DatePicker
               {...p}
@@ -324,7 +332,7 @@ export default function BillablePage() {
             />
           )}
         </Field>
-        <Field label="To">
+        <Field label={t('To')}>
           {(p) => (
             <DatePicker
               {...p}
@@ -344,22 +352,22 @@ export default function BillablePage() {
         <Card>
           <EmptyState
             icon={Clock}
-            title="No billable entries"
-            description="Entries you record will appear here with their totals."
+            title={t('No billable entries')}
+            description={t('Entries you record will appear here with their totals.')}
           />
         </Card>
       ) : (
         list.data && (
           <>
-            <Table aria-label="Billable entries">
+            <Table aria-label={t('Billable entries')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Detail</TableHead>
-                  <TableHead className="text-right">Hours</TableHead>
-                  <TableHead className="text-right">Rate</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('Client')}</TableHead>
+                  <TableHead>{t('Detail')}</TableHead>
+                  <TableHead className="text-end">{t('Hours')}</TableHead>
+                  <TableHead className="text-end">{t('Rate')}</TableHead>
+                  <TableHead className="text-end">{t('Amount')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -374,11 +382,11 @@ export default function BillablePage() {
                       {b.description}
                       {b.ucn && <span className="case-number text-text-muted"> · {b.ucn}</span>}
                     </TableCell>
-                    <TableCell className="text-right">{Number(b.hours)}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">
+                    <TableCell className="text-end">{Number(b.hours)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-end">
                       {formatPkr(b.hourlyRate)}
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-right">
+                    <TableCell className="whitespace-nowrap text-end">
                       {formatPkr(b.amount)}
                     </TableCell>
                   </TableRow>
@@ -387,13 +395,13 @@ export default function BillablePage() {
               <TableFooter>
                 <TableRow>
                   <TableCell colSpan={3} className="font-bold">
-                    Total for the current filters
+                    {t('Total for the current filters')}
                   </TableCell>
-                  <TableCell className="text-right font-bold">
+                  <TableCell className="text-end font-bold">
                     {Number(list.data.totals.hours)}
                   </TableCell>
                   <TableCell />
-                  <TableCell className="whitespace-nowrap text-right font-bold">
+                  <TableCell className="whitespace-nowrap text-end font-bold">
                     {formatPkr(list.data.totals.amount)}
                   </TableCell>
                 </TableRow>

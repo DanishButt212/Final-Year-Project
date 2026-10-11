@@ -22,21 +22,29 @@ export function Wordmark({
 }: WordmarkProps) {
   const inverse = tone === 'inverse';
   return (
-    <span className={cn('inline-flex flex-col leading-none', className)} dir="ltr">
+    <span className={cn('inline-flex flex-col items-start leading-none', className)} dir="ltr">
       <span
         lang="en"
-        className="whitespace-nowrap"
+        className="inline-flex items-baseline whitespace-nowrap text-start"
         style={{ fontSize: `${size}rem`, lineHeight: 1.15 }}
       >
         <span
-          className={cn('font-sans font-medium', inverse ? 'text-white/85' : 'text-text-muted')}
+          className={cn(
+            'font-sans font-medium tracking-[-0.025em]',
+            inverse ? 'text-white/85' : 'text-text-muted',
+          )}
         >
+          {/* i18n-ignore: brand name, never translated */}
           Digital
         </span>
         <span
-          className={cn('font-heading', inverse ? 'text-white' : 'text-primary')}
-          style={{ fontWeight: 900 }}
+          className={cn(
+            'font-heading tracking-[-0.035em]',
+            inverse ? 'text-white' : 'text-primary',
+          )}
+          style={{ fontWeight: 900, lineHeight: 1 }}
         >
+          {/* i18n-ignore: brand name, never translated */}
           Adaalat
         </span>
       </span>
@@ -44,7 +52,10 @@ export function Wordmark({
         <span
           lang="ur"
           dir="rtl"
-          className={cn('urdu-wordmark self-start', inverse ? 'text-white/90' : 'text-text-muted')}
+          className={cn(
+            'urdu-wordmark self-start text-start',
+            inverse ? 'text-white/90' : 'text-text-muted',
+          )}
           style={{ fontSize: `${size * 0.62}rem` }}
         >
           ڈیجیٹل عدالت

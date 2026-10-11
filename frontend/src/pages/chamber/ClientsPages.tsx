@@ -35,15 +35,18 @@ import { CNIC_REGEX, MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { RetainerBadge } from './shared';
 import { balanceText, todayInput } from './helpers';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const CASE_TYPES = [
-  'Civil Suit',
-  'Criminal Appeal',
-  'Writ Petition',
-  'Bail Application',
-  'Family Law',
-  'Property Matter',
-  'Other',
+  msg('Civil Suit'),
+  msg('Criminal Appeal'),
+  msg('Writ Petition'),
+  msg('Bail Application'),
+  msg('Family Law'),
+  msg('Property Matter'),
+  msg('Other'),
 ];
 
 const required = z.string().trim().min(1, MESSAGES.fieldRequired);
@@ -58,6 +61,7 @@ type Values = z.infer<typeof schema>;
 
 /** "Register New Chamber Client Account" */
 export function NewClientPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
@@ -88,12 +92,12 @@ export function NewClientPage() {
   return (
     <>
       <PageHeader
-        title="Register New Chamber Client Account"
-        description="The client profile ID is generated for this chamber only."
+        title={t('Register New Chamber Client Account')}
+        description={t('The client profile ID is generated for this chamber only.')}
         crumbs={[
-          { label: 'Dashboard', to: '/lawyer' },
-          { label: 'Client Directory', to: '/lawyer/chamber/clients' },
-          { label: 'New client' },
+          { label: t('Dashboard'), to: '/lawyer' },
+          { label: t('Client Directory'), to: '/lawyer/chamber/clients' },
+          { label: t('New client') },
         ]}
       />
       <Card className="max-w-2xl">
@@ -112,12 +116,12 @@ export function NewClientPage() {
             {formError && <Alert variant="error">{formError}</Alert>}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Field label="Client Name" required error={errors.name?.message}>
+                <Field label={t('Client Name')} required error={errors.name?.message}>
                   {(p) => <Input maxLength={120} {...p} {...register('name')} />}
                 </Field>
               </div>
               <Field
-                label="CNIC Number"
+                label={t('CNIC Number')}
                 required
                 error={errors.cnic?.message}
                 hint="12345-1234567-1"
@@ -132,26 +136,30 @@ export function NewClientPage() {
                 )}
               </Field>
               <Field
-                label="Primary Phone"
+                label={t('Primary Phone')}
                 required
                 error={errors.phone?.message}
-                hint="+92 3XX XXXXXXX"
+                hint={t('+92 3XX XXXXXXX')}
               >
                 {(p) => <PhoneInput {...p} {...register('phone')} />}
               </Field>
-              <Field label="Case Type" required error={errors.caseType?.message}>
+              <Field label={t('Case Type')} required error={errors.caseType?.message}>
                 {(p) => (
                   <NativeSelect {...p} {...register('caseType')}>
-                    <option value="">Select a case type</option>
-                    {CASE_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                    <option value="">{t('Select a case type')}</option>
+                    {CASE_TYPES.map((ct) => (
+                      <option key={ct} value={ct}>
+                        {t(ct)}
                       </option>
                     ))}
                   </NativeSelect>
                 )}
               </Field>
-              <Field label="Initial Onboarding Date" required error={errors.onboardedOn?.message}>
+              <Field
+                label={t('Initial Onboarding Date')}
+                required
+                error={errors.onboardedOn?.message}
+              >
                 {(p) => (
                   <Controller
                     control={control}
@@ -164,7 +172,7 @@ export function NewClientPage() {
               </Field>
             </div>
             <Button type="submit" loading={create.isPending}>
-              <UserPlus aria-hidden="true" /> Create Client Internal File Record
+              <UserPlus aria-hidden="true" /> {t('Create Client Internal File Record')}
             </Button>
           </form>
         </CardContent>
@@ -175,6 +183,7 @@ export function NewClientPage() {
 
 /** Client Directory. The CNIC is masked here; the full number is only on the client page. */
 export function ClientsPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
@@ -187,13 +196,13 @@ export function ClientsPage() {
   return (
     <>
       <PageHeader
-        title="Client Directory"
-        description="Clients of your chamber. Other chambers never see these records."
-        crumbs={[{ label: 'Dashboard', to: '/lawyer' }, { label: 'Client Directory' }]}
+        title={t('Client Directory')}
+        description={t('Clients of your chamber. Other chambers never see these records.')}
+        crumbs={[{ label: t('Dashboard'), to: '/lawyer' }, { label: t('Client Directory') }]}
         actions={
           <Button asChild>
             <Link to="/lawyer/chamber/clients/new">
-              <UserPlus aria-hidden="true" /> New client
+              <UserPlus aria-hidden="true" /> {t('New client')}
             </Link>
           </Button>
         }
@@ -208,13 +217,13 @@ export function ClientsPage() {
         }}
       >
         <Input
-          aria-label="Search clients by name, client ID or phone"
-          placeholder="Search name, client ID or phone"
+          aria-label={t('Search clients by name, client ID or phone')}
+          placeholder={t('Search name, client ID or phone')}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
         <Button type="submit" variant="secondary">
-          <Search aria-hidden="true" /> Search
+          <Search aria-hidden="true" /> {t('Search')}
         </Button>
       </form>
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
@@ -224,22 +233,22 @@ export function ClientsPage() {
         <Card>
           <EmptyState
             icon={Users}
-            title="No clients found"
-            description="Register a client to start billing time and tracking retainers."
+            title={t('No clients found')}
+            description={t('Register a client to start billing time and tracking retainers.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Client directory">
+            <Table aria-label={t('Client directory')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Client ID</TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>{t('Client ID')}</TableHead>
+                  <TableHead>{t('Name')}</TableHead>
                   <TableHead>CNIC</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Case type</TableHead>
-                  <TableHead className="text-right">Retainer</TableHead>
+                  <TableHead>{t('Phone')}</TableHead>
+                  <TableHead>{t('Case type')}</TableHead>
+                  <TableHead className="text-end">{t('Retainer')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -254,8 +263,8 @@ export function ClientsPage() {
                     <TableCell className="whitespace-nowrap font-mono">{c.cnic ?? '—'}</TableCell>
                     <TableCell className="whitespace-nowrap">{c.phone ?? '—'}</TableCell>
                     <TableCell>{c.caseType ?? '—'}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="mr-2">{balanceText(c.balance)}</span>
+                    <TableCell className="text-end">
+                      <span className="me-2">{balanceText(c.balance)}</span>
                       <RetainerBadge status={c.status} />
                     </TableCell>
                   </TableRow>
@@ -277,6 +286,7 @@ export function ClientsPage() {
 
 /** Client detail: profile, retainer summary, billing ledger and linked cases. */
 export function ClientDetailPage() {
+  const { t } = useTranslation();
   const { clientId } = useParams();
   const { data, isPending, error } = useQuery({
     queryKey: ['chamber', 'client', clientId],
@@ -298,23 +308,23 @@ export function ClientDetailPage() {
     ...data.billable.map((b) => ({
       key: `b-${b.id}`,
       date: b.workedOn,
-      kind: 'Billable time',
+      kind: t('Billable time'),
       text: `${b.hours} h × ${formatPkr(b.hourlyRate)}${b.description ? ` · ${b.description}` : ''}`,
       amount: b.amount,
       sign: '',
     })),
-    ...data.transactions.map((t) => ({
-      key: `t-${t.id}`,
-      date: t.createdAt,
+    ...data.transactions.map((tx) => ({
+      key: `t-${tx.id}`,
+      date: tx.createdAt,
       kind:
-        t.type === 'DEPOSIT'
-          ? 'Retainer deposit'
-          : t.type === 'REFUND'
-            ? 'Refund'
-            : 'Deducted from retainer',
-      text: t.reference ?? t.note ?? '',
-      amount: t.amount,
-      sign: t.type === 'DEPOSIT' ? '+' : '-',
+        tx.type === 'DEPOSIT'
+          ? t('Retainer deposit')
+          : tx.type === 'REFUND'
+            ? t('Refund')
+            : t('Deducted from retainer'),
+      text: tx.reference ?? tx.note ?? '',
+      amount: tx.amount,
+      sign: tx.type === 'DEPOSIT' ? '+' : '-',
     })),
   ].sort((a, b) => (a.date < b.date ? 1 : -1));
 
@@ -323,26 +333,26 @@ export function ClientDetailPage() {
       <PageHeader
         title={data.name}
         crumbs={[
-          { label: 'Dashboard', to: '/lawyer' },
-          { label: 'Client Directory', to: '/lawyer/chamber/clients' },
+          { label: t('Dashboard'), to: '/lawyer' },
+          { label: t('Client Directory'), to: '/lawyer/chamber/clients' },
           { label: data.clientCode },
         ]}
         actions={
           <Button asChild variant="secondary">
-            <Link to="/lawyer/chamber/retainer">Retainer accounts</Link>
+            <Link to="/lawyer/chamber/retainer">{t('Retainer accounts')}</Link>
           </Button>
         }
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
+            <CardTitle>{t('Profile')}</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid gap-3 sm:grid-cols-2">
               {[
                 [
-                  'Client ID',
+                  t('Client ID'),
                   <span key="c" className="case-number">
                     {data.clientCode}
                   </span>,
@@ -353,10 +363,10 @@ export function ClientDetailPage() {
                     {data.cnic ?? '—'}
                   </span>,
                 ],
-                ['Primary phone', data.phone ?? '—'],
-                ['Case type', data.caseType ?? '—'],
-                ['Onboarded on', formatDate(data.onboardedOn)],
-                ['Email', data.email ?? '—'],
+                [t('Primary phone'), data.phone ?? '—'],
+                [t('Case type'), data.caseType ?? '—'],
+                [t('Onboarded on'), formatDate(data.onboardedOn)],
+                [t('Email'), data.email ?? '—'],
               ].map(([k, v]) => (
                 <div key={String(k)}>
                   <dt className="text-sm text-text-muted">{k}</dt>
@@ -368,30 +378,30 @@ export function ClientDetailPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Retainer summary</CardTitle>
+            <CardTitle>{t('Retainer summary')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="flex justify-between">
-              <span className="text-text-muted">Total deposits</span>
+              <span className="text-text-muted">{t('Total deposits')}</span>
               <span>{formatPkr(data.retainer.totalDeposits)}</span>
             </p>
             <p className="flex justify-between">
-              <span className="text-text-muted">Deducted billable costs</span>
+              <span className="text-text-muted">{t('Deducted billable costs')}</span>
               <span>{formatPkr(data.retainer.totalDeductions)}</span>
             </p>
             <p className="flex items-center justify-between border-t border-border pt-2 font-bold">
-              <span>Net remaining balance</span>
+              <span>{t('Net remaining balance')}</span>
               <span className="flex items-center gap-2">
                 {balanceText(data.retainer.balance)} <RetainerBadge status={data.retainer.status} />
               </span>
             </p>
             <p className="flex justify-between text-sm text-text-muted">
-              <span>Invoice total (all billable time)</span>
+              <span>{t('Invoice total (all billable time)')}</span>
               <span>{formatPkr(data.invoiceTotal)}</span>
             </p>
             {data.alerts.length > 0 && (
               <p className="text-sm text-text-muted">
-                Last low balance alert: {formatDate(data.alerts[0].sentAt)}
+                {t('Last low balance alert: {{date}}', { date: formatDate(data.alerts[0].sentAt) })}
               </p>
             )}
           </CardContent>
@@ -400,12 +410,12 @@ export function ClientDetailPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Linked cases</CardTitle>
+          <CardTitle>{t('Linked cases')}</CardTitle>
         </CardHeader>
         <CardContent>
           {data.linkedCases.length === 0 ? (
             <p className="text-text-muted">
-              No cases are linked yet. Link a case when you record billable time.
+              {t('No cases are linked yet. Link a case when you record billable time.')}
             </p>
           ) : (
             <ul className="divide-y divide-border">
@@ -424,19 +434,19 @@ export function ClientDetailPage() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Billing ledger</CardTitle>
+          <CardTitle>{t('Billing ledger')}</CardTitle>
         </CardHeader>
         <CardContent>
           {ledger.length === 0 ? (
-            <p className="text-text-muted">No billing activity yet.</p>
+            <p className="text-text-muted">{t('No billing activity yet.')}</p>
           ) : (
-            <Table aria-label="Billing ledger">
+            <Table aria-label={t('Billing ledger')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Entry</TableHead>
-                  <TableHead>Detail</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('Entry')}</TableHead>
+                  <TableHead>{t('Detail')}</TableHead>
+                  <TableHead className="text-end">{t('Amount')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -447,7 +457,7 @@ export function ClientDetailPage() {
                       <Badge variant="neutral">{l.kind}</Badge>
                     </TableCell>
                     <TableCell>{l.text}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">
+                    <TableCell className="whitespace-nowrap text-end">
                       {l.sign}
                       {formatPkr(l.amount)}
                     </TableCell>

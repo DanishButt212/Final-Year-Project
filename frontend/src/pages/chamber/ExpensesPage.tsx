@@ -30,6 +30,7 @@ import { formatDate, formatPkr } from '@/lib/format';
 import { MESSAGES, summaryFor } from '@/lib/schemas';
 import { StatCard } from './shared';
 import { todayInput } from './helpers';
+import { useTranslation } from 'react-i18next';
 
 const schema = z.object({
   spentOn: z.string().min(1, MESSAGES.fieldRequired),
@@ -44,6 +45,7 @@ type Values = z.infer<typeof schema>;
 
 /** Chamber expenses: date, category, amount and note, with totals. */
 export default function ExpensesPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [formError, setFormError] = useState<string | null>(null);
@@ -85,19 +87,19 @@ export default function ExpensesPage() {
   return (
     <>
       <PageHeader
-        title="Chamber Expenses"
-        description="Office and case expenses of your chamber."
-        crumbs={[{ label: 'Dashboard', to: '/lawyer' }, { label: 'Expenses' }]}
+        title={t('Chamber Expenses')}
+        description={t('Office and case expenses of your chamber.')}
+        crumbs={[{ label: t('Dashboard'), to: '/lawyer' }, { label: t('Expenses') }]}
       />
       {data && (
         <div className="mb-6 grid gap-4 sm:grid-cols-2">
           <StatCard
-            label="Expenses this month"
+            label={t('Expenses this month')}
             value={formatPkr(data.totals.thisMonth)}
             icon={Receipt}
           />
           <StatCard
-            label="All recorded expenses"
+            label={t('All recorded expenses')}
             value={formatPkr(data.totals.all)}
             icon={Receipt}
           />
@@ -105,7 +107,7 @@ export default function ExpensesPage() {
       )}
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Record an expense</CardTitle>
+          <CardTitle>{t('Record an expense')}</CardTitle>
         </CardHeader>
         <CardContent>
           <form
@@ -121,7 +123,7 @@ export default function ExpensesPage() {
           >
             {formError && <Alert variant="error">{formError}</Alert>}
             <div className="grid gap-4 md:grid-cols-3">
-              <Field label="Date" required error={errors.spentOn?.message}>
+              <Field label={t('Date')} required error={errors.spentOn?.message}>
                 {(p) => (
                   <Controller
                     control={control}
@@ -132,17 +134,17 @@ export default function ExpensesPage() {
                   />
                 )}
               </Field>
-              <Field label="Category" required error={errors.category?.message}>
+              <Field label={t('Category')} required error={errors.category?.message}>
                 {(p) => (
                   <Input
                     maxLength={60}
-                    placeholder="Travel, stationery..."
+                    placeholder={t('Travel, stationery...')}
                     {...p}
                     {...register('category')}
                   />
                 )}
               </Field>
-              <Field label="Amount (PKR)" required error={errors.amount?.message}>
+              <Field label={t('Amount (PKR)')} required error={errors.amount?.message}>
                 {(p) => (
                   <Input
                     type="number"
@@ -155,13 +157,13 @@ export default function ExpensesPage() {
                 )}
               </Field>
               <div className="md:col-span-3">
-                <Field label="Note" error={errors.note?.message}>
+                <Field label={t('Note')} error={errors.note?.message}>
                   {(p) => <Input maxLength={300} {...p} {...register('note')} />}
                 </Field>
               </div>
             </div>
             <Button type="submit" loading={create.isPending}>
-              <Save aria-hidden="true" /> Save expense
+              <Save aria-hidden="true" /> {t('Save expense')}
             </Button>
           </form>
         </CardContent>
@@ -174,20 +176,20 @@ export default function ExpensesPage() {
         <Card>
           <EmptyState
             icon={Receipt}
-            title="No expenses yet"
-            description="Recorded expenses appear here."
+            title={t('No expenses yet')}
+            description={t('Recorded expenses appear here.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Chamber expenses">
+            <Table aria-label={t('Chamber expenses')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Note</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('Category')}</TableHead>
+                  <TableHead>{t('Note')}</TableHead>
+                  <TableHead className="text-end">{t('Amount')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -196,7 +198,7 @@ export default function ExpensesPage() {
                     <TableCell className="whitespace-nowrap">{formatDate(e.spentOn)}</TableCell>
                     <TableCell>{e.category}</TableCell>
                     <TableCell>{e.note ?? '—'}</TableCell>
-                    <TableCell className="whitespace-nowrap text-right">
+                    <TableCell className="whitespace-nowrap text-end">
                       {formatPkr(e.amount)}
                     </TableCell>
                   </TableRow>

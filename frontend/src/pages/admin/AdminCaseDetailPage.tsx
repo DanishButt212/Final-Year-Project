@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useQuery } from '@tanstack/react-query';
 import { Download, FileText, ScrollText, Shuffle } from 'lucide-react';
 import { useState } from 'react';
@@ -27,6 +28,7 @@ import { formatDate, formatDateTime, formatFileSize } from '@/lib/format';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { DecisionBlock } from '@/pages/cases/DecisionBlock';
 import { AllocateDialog } from './AllocateDialog';
+import { useTranslation } from 'react-i18next';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -38,6 +40,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 }
 
 function Parties({ title, parties }: { title: string; parties: CaseDetail['parties'] }) {
+  const { t } = useTranslation();
   return (
     <div>
       <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-text-muted">{title}</h3>
@@ -47,9 +50,11 @@ function Parties({ title, parties }: { title: string; parties: CaseDetail['parti
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-text-muted">
               {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
-                'No further details given'}
+                t('No further details given')}
             </p>
-            {p.hasCounsel && <p className="text-sm text-text-muted">Represented by counsel</p>}
+            {p.hasCounsel && (
+              <p className="text-sm text-text-muted">{t('Represented by counsel')}</p>
+            )}
           </li>
         ))}
       </ul>
@@ -59,6 +64,7 @@ function Parties({ title, parties }: { title: string; parties: CaseDetail['parti
 
 /** Admin view of one case: overview, parties, documents (download) and lifecycle, with allocation. */
 export default function AdminCaseDetailPage() {
+  const { t } = useTranslation();
   const { caseId } = useParams();
   const [allocating, setAllocating] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -82,11 +88,11 @@ export default function AdminCaseDetailPage() {
 
   if (isPending) {
     return (
-      <div role="status" aria-label="Loading case" className="space-y-4">
+      <div role="status" aria-label={t('Loading case')} className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-48 w-full" />
-        <span className="sr-only">Loading…</span>
+        <span className="sr-only">{t('Loading…')}</span>
       </div>
     );
   }
@@ -107,8 +113,8 @@ export default function AdminCaseDetailPage() {
       <PageHeader
         title={data.title}
         crumbs={[
-          { label: 'Dashboard', to: '/admin' },
-          { label: 'Case Registry & Allocation', to: '/admin/cases' },
+          { label: t('Dashboard'), to: '/admin' },
+          { label: t('Case Registry & Allocation'), to: '/admin/cases' },
           { label: data.ucn },
         ]}
         actions={
@@ -116,14 +122,14 @@ export default function AdminCaseDetailPage() {
             {data.status !== 'PENDING_ASSIGNMENT' && data.status !== 'DRAFT' && (
               <Button variant="secondary" asChild>
                 <Link to={`/admin/summons?issue=${data.id}`}>
-                  <ScrollText aria-hidden="true" /> Issue summons
+                  <ScrollText aria-hidden="true" /> {t('Issue summons')}
                 </Link>
               </Button>
             )}
             {allocatable && (
               <Button onClick={() => setAllocating(true)}>
                 <Shuffle aria-hidden="true" />{' '}
-                {data.status === 'ALLOCATED' ? 'Re-allocate' : 'Allocate case'}
+                {data.status === 'ALLOCATED' ? 'Re-allocate' : t('Allocate case')}
               </Button>
             )}
           </>
@@ -140,32 +146,34 @@ export default function AdminCaseDetailPage() {
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue="overview">
-        <TabsList aria-label="Case sections">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="parties">Parties</TabsTrigger>
-          <TabsTrigger value="documents">Documents ({data.documents.length})</TabsTrigger>
-          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
+        <TabsList aria-label={t('Case sections')}>
+          <TabsTrigger value="overview">{t('Overview')}</TabsTrigger>
+          <TabsTrigger value="parties">{t('Parties')}</TabsTrigger>
+          <TabsTrigger value="documents">
+            {t('Documents ({{length}})', { length: data.documents.length })}
+          </TabsTrigger>
+          <TabsTrigger value="lifecycle">{t('Lifecycle')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <Card>
             <CardHeader>
-              <CardTitle>Case information</CardTitle>
+              <CardTitle>{t('Case information')}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid gap-4 sm:grid-cols-2">
-                <Detail label="Case type">{caseTypeLabel(data.caseType)}</Detail>
-                <Detail label="Filing date">{formatDate(data.filingDate)}</Detail>
-                <Detail label="Filed by">{data.filedBy}</Detail>
-                <Detail label="Allocated on">{formatDate(data.allocatedAt)}</Detail>
-                <Detail label="Court">
-                  {data.court ? `${data.court.name}, ${data.court.city}` : 'Not yet assigned'}
+                <Detail label={t('Case type')}>{caseTypeLabel(data.caseType)}</Detail>
+                <Detail label={t('Filing date')}>{formatDate(data.filingDate)}</Detail>
+                <Detail label={t('Filed by')}>{data.filedBy}</Detail>
+                <Detail label={t('Allocated on')}>{formatDate(data.allocatedAt)}</Detail>
+                <Detail label={t('Court')}>
+                  {data.court ? `${data.court.name}, ${data.court.city}` : t('Not yet assigned')}
                 </Detail>
-                <Detail label="Judge bench">
+                <Detail label={t('Judge bench')}>
                   {judgeBench({ judge: data.judge, courtroom: data.courtroom?.name ?? null })}
                 </Detail>
                 <div className="sm:col-span-2">
-                  <Detail label="Relief sought">
+                  <Detail label={t('Relief sought')}>
                     <span className="whitespace-pre-wrap font-normal">{data.reliefSought}</span>
                   </Detail>
                 </div>
@@ -176,25 +184,25 @@ export default function AdminCaseDetailPage() {
 
         <TabsContent value="parties">
           <div className="grid gap-6 md:grid-cols-2">
-            <Parties title="Petitioners" parties={petitioners} />
-            <Parties title="Opposing parties" parties={others} />
+            <Parties title={t('Petitioners')} parties={petitioners} />
+            <Parties title={t('Opposing parties')} parties={others} />
           </div>
         </TabsContent>
 
         <TabsContent value="documents">
           <Card>
             {data.documents.length === 0 ? (
-              <EmptyState icon={FileText} title="No documents attached" />
+              <EmptyState icon={FileText} title={t('No documents attached')} />
             ) : (
               <div className="p-5">
-                <Table aria-label="Documents">
+                <Table aria-label={t('Documents')}>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead>Uploaded</TableHead>
+                      <TableHead>{t('Name')}</TableHead>
+                      <TableHead>{t('Size')}</TableHead>
+                      <TableHead>{t('Uploaded')}</TableHead>
                       <TableHead>
-                        <span className="sr-only">Actions</span>
+                        <span className="sr-only">{t('Actions')}</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -209,15 +217,15 @@ export default function AdminCaseDetailPage() {
                           {formatDate(d.uploadedAt)}
                           <span className="block text-sm text-text-muted">{d.uploadedBy}</span>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-end">
                           <Button
                             variant="secondary"
                             size="sm"
                             loading={downloading === d.id}
                             onClick={() => download(d)}
-                            aria-label={`Download ${d.name}`}
+                            aria-label={t('Download {{name}}', { name: d.name })}
                           >
-                            <Download aria-hidden="true" /> Download
+                            <Download aria-hidden="true" /> {t('Download')}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -232,20 +240,20 @@ export default function AdminCaseDetailPage() {
         <TabsContent value="lifecycle">
           <Card>
             <CardHeader>
-              <CardTitle>Case lifecycle</CardTitle>
+              <CardTitle>{t('Case lifecycle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <ol
-                className="relative space-y-6 border-l-2 border-border pl-6"
-                aria-label="Lifecycle events"
+                className="relative space-y-6 border-s-2 border-border ps-6"
+                aria-label={t('Lifecycle events')}
               >
                 {data.events.map((e) => (
                   <li key={e.id} className="relative">
                     <span
                       aria-hidden="true"
-                      className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-primary bg-surface"
+                      className="absolute -start-[31px] top-1 size-3 rounded-full border-2 border-primary bg-surface"
                     />
-                    <p className="font-semibold">{e.description}</p>
+                    <p className="font-semibold">{translateText(e.description)}</p>
                     <p className="text-sm text-text-muted">
                       <time dateTime={e.createdAt}>{formatDateTime(e.createdAt)}</time>
                       {e.actor && ` · ${e.actor}`}

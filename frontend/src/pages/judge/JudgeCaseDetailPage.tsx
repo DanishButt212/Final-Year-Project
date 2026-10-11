@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Gavel } from 'lucide-react';
 import { useState } from 'react';
@@ -25,6 +26,7 @@ import SummonsPanel from '@/pages/cases/SummonsPanel';
 import { DecideDialog, OutcomeDialog } from './JudgeActions';
 import { vaultKey } from '@/lib/query-keys';
 import VaultPanel from '@/pages/cases/VaultPanel';
+import { useTranslation } from 'react-i18next';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -37,6 +39,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 
 /** Read-only case page for the allocated judge, with "Lock evidence by order of the bench". */
 export default function JudgeCaseDetailPage() {
+  const { t } = useTranslation();
   const { caseId } = useParams();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -100,8 +103,8 @@ export default function JudgeCaseDetailPage() {
       <PageHeader
         title={data.title}
         crumbs={[
-          { label: 'Dashboard', to: '/judge' },
-          { label: 'My Allocated Cases', to: '/judge/cases' },
+          { label: t('Dashboard'), to: '/judge' },
+          { label: t('My Allocated Cases'), to: '/judge/cases' },
           { label: data.ucn },
         ]}
       />
@@ -113,48 +116,48 @@ export default function JudgeCaseDetailPage() {
         <span className="text-text-muted">{caseTypeLabel(data.caseType)}</span>
         {!isDecided && (
           <Button
-            className="ml-auto"
+            className="ms-auto"
             onClick={() => setDeciding(true)}
             disabled={!hasHeldHearing}
-            title={hasHeldHearing ? undefined : 'Available after a hearing has taken place'}
+            title={hasHeldHearing ? undefined : t('Available after a hearing has taken place')}
           >
-            <Gavel aria-hidden="true" /> Decide case
+            <Gavel aria-hidden="true" /> {t('Decide case')}
           </Button>
         )}
       </div>
       {!isDecided && !hasHeldHearing && (
         <p className="-mt-3 mb-6 text-sm text-text-muted">
-          A case can be decided only after at least one hearing has taken place.
+          {t('A case can be decided only after at least one hearing has taken place.')}
         </p>
       )}
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue="overview">
-        <TabsList aria-label="Case sections">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="parties">Parties</TabsTrigger>
-          <TabsTrigger value="hearings">Hearings</TabsTrigger>
-          <TabsTrigger value="summons">Summons</TabsTrigger>
-          <TabsTrigger value="vault">Vault</TabsTrigger>
+        <TabsList aria-label={t('Case sections')}>
+          <TabsTrigger value="overview">{t('Overview')}</TabsTrigger>
+          <TabsTrigger value="parties">{t('Parties')}</TabsTrigger>
+          <TabsTrigger value="hearings">{t('Hearings')}</TabsTrigger>
+          <TabsTrigger value="summons">{t('Summons')}</TabsTrigger>
+          <TabsTrigger value="vault">{t('Vault')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
           <Card>
             <CardHeader>
-              <CardTitle>Case information</CardTitle>
+              <CardTitle>{t('Case information')}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid gap-4 sm:grid-cols-2">
-                <Detail label="Filing date">{formatDate(data.filingDate)}</Detail>
-                <Detail label="Filed by">{data.filedBy}</Detail>
-                <Detail label="Courtroom">{data.courtroom?.name ?? '—'}</Detail>
-                <Detail label="Next hearing">
+                <Detail label={t('Filing date')}>{formatDate(data.filingDate)}</Detail>
+                <Detail label={t('Filed by')}>{data.filedBy}</Detail>
+                <Detail label={t('Courtroom')}>{data.courtroom?.name ?? '—'}</Detail>
+                <Detail label={t('Next hearing')}>
                   {data.nextHearing
                     ? `${formatDate(data.nextHearing.date)} at ${data.nextHearing.startTime ?? ''}`
-                    : 'None scheduled'}
+                    : t('None scheduled')}
                 </Detail>
                 <div className="sm:col-span-2">
-                  <Detail label="Relief sought">
+                  <Detail label={t('Relief sought')}>
                     <span className="whitespace-pre-wrap font-normal">{data.reliefSought}</span>
                   </Detail>
                 </div>
@@ -172,10 +175,10 @@ export default function JudgeCaseDetailPage() {
                   <p className="mt-1 font-semibold">{p.name}</p>
                   <p className="text-sm text-text-muted">
                     {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
-                      'No further details'}
+                      t('No further details')}
                   </p>
                   {p.hasCounsel && (
-                    <p className="text-sm text-text-muted">Represented by counsel</p>
+                    <p className="text-sm text-text-muted">{t('Represented by counsel')}</p>
                   )}
                 </CardContent>
               </Card>
@@ -187,14 +190,18 @@ export default function JudgeCaseDetailPage() {
           <Card>
             <CardContent>
               {(data.hearings ?? []).length === 0 ? (
-                <p className="text-text-muted">No hearings yet.</p>
+                <p className="text-text-muted">{t('No hearings yet.')}</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {data.hearings?.map((h) => (
                     <li key={h.id} className="space-y-1 py-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span>
-                          {formatDate(h.date)} at {h.startTime} · {h.courtroom}
+                          {t('{{date}} at {{startTime}} · {{courtroom}}', {
+                            date: formatDate(h.date),
+                            startTime: h.startTime,
+                            courtroom: h.courtroom,
+                          })}
                         </span>
                         <span className="flex items-center gap-2">
                           <Badge
@@ -209,12 +216,12 @@ export default function JudgeCaseDetailPage() {
                             }
                           >
                             {h.status === 'HELD'
-                              ? 'Completed'
+                              ? t('Completed')
                               : h.status === 'ADJOURNED'
-                                ? 'Adjourned'
+                                ? t('Adjourned')
                                 : h.status === 'CANCELLED'
-                                  ? 'Cancelled'
-                                  : 'Scheduled'}
+                                  ? t('Cancelled')
+                                  : t('Scheduled')}
                           </Badge>
                           {!isDecided && h.status === 'SCHEDULED' && h.date <= todayIso && (
                             <Button
@@ -222,13 +229,15 @@ export default function JudgeCaseDetailPage() {
                               variant="secondary"
                               onClick={() => setOutcomeFor({ id: h.id, date: h.date })}
                             >
-                              Record outcome
+                              {t('Record outcome')}
                             </Button>
                           )}
                         </span>
                       </div>
                       {h.orderNotes && (
-                        <p className="text-sm text-text-muted">Order notes: {h.orderNotes}</p>
+                        <p className="text-sm text-text-muted">
+                          {t('Order notes: {{orderNotes}}', { orderNotes: h.orderNotes })}
+                        </p>
                       )}
                     </li>
                   ))}
@@ -236,8 +245,10 @@ export default function JudgeCaseDetailPage() {
               )}
               {data.events.length > 0 && (
                 <p className="mt-4 text-sm text-text-muted">
-                  Last event: {data.events[data.events.length - 1].description} (
-                  {formatDateTime(data.events[data.events.length - 1].createdAt)})
+                  {t('Last event: {{description}} ({{dateTime}})', {
+                    description: translateText(data.events[data.events.length - 1].description),
+                    dateTime: formatDateTime(data.events[data.events.length - 1].createdAt),
+                  })}
                 </p>
               )}
             </CardContent>
@@ -252,16 +263,21 @@ export default function JudgeCaseDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Gavel className="size-5 text-primary" aria-hidden="true" /> Lock evidence by order
-                of the bench
+                <Gavel className="size-5 text-primary" aria-hidden="true" />{' '}
+                {t('Lock evidence by order of the bench')}
               </CardTitle>
               <p className="text-sm text-text-muted">
-                Tick the exhibits to lock, or leave all unticked to lock every unlocked exhibit.
-                Locked exhibits can no longer be edited or deleted by the parties.
+                {t(
+                  'Tick the exhibits to lock, or leave all unticked to lock every unlocked exhibit. Locked exhibits can no longer be edited or deleted by the parties.',
+                )}
               </p>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Field label="Reason (order of the bench)" required error={reasonError ?? undefined}>
+              <Field
+                label={t('Reason (order of the bench)')}
+                required
+                error={reasonError ?? undefined}
+              >
                 {(p) => (
                   <Textarea
                     rows={2}
@@ -275,13 +291,16 @@ export default function JudgeCaseDetailPage() {
               <Button
                 onClick={() => {
                   if (!reason.trim())
-                    return setReasonError('Please enter the reason for the order.');
+                    return setReasonError(t('Please enter the reason for the order.'));
                   setReasonError(null);
                   setConfirm(true);
                 }}
               >
-                Lock {selected.size > 0 ? `${selected.size} selected` : 'all unlocked'} exhibit
-                {selected.size === 1 ? '' : 's'}
+                {selected.size === 0
+                  ? t('Lock all unlocked exhibits')
+                  : selected.size === 1
+                    ? t('Lock 1 selected exhibit')
+                    : t('Lock {{count}} selected exhibits', { count: selected.size })}
               </Button>
             </CardContent>
           </Card>
@@ -296,9 +315,11 @@ export default function JudgeCaseDetailPage() {
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title="Lock evidence by order of the bench?"
-        description="This cannot be undone from the portal. The filer and the lawyers on the case are notified."
-        confirmLabel="Lock evidence"
+        title={t('Lock evidence by order of the bench?')}
+        description={t(
+          'This cannot be undone from the portal. The filer and the lawyers on the case are notified.',
+        )}
+        confirmLabel={t('Lock evidence')}
         loading={lock.isPending}
         onConfirm={() => lock.mutate()}
       />

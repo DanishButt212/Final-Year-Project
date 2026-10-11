@@ -36,15 +36,18 @@ import {
 } from '@/lib/scheduling-api';
 import { cn } from '@/lib/utils';
 import { JoinRoomButton, VirtualBadge } from '@/pages/virtual/JoinRoomButton';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const STATUS: Record<
   HearingStatus,
   { variant: 'hearing' | 'pending' | 'decided' | 'rejected'; label: string }
 > = {
-  SCHEDULED: { variant: 'hearing', label: 'Scheduled' },
-  ADJOURNED: { variant: 'pending', label: 'Adjourned' },
-  HELD: { variant: 'decided', label: 'Completed' },
-  CANCELLED: { variant: 'rejected', label: 'Cancelled' },
+  SCHEDULED: { variant: 'hearing', label: msg('Scheduled') },
+  ADJOURNED: { variant: 'pending', label: msg('Adjourned') },
+  HELD: { variant: 'decided', label: msg('Completed') },
+  CANCELLED: { variant: 'rejected', label: msg('Cancelled') },
 };
 
 export function HearingStatusBadge({ status }: { status: HearingStatus }) {
@@ -56,6 +59,7 @@ const PAGE_SIZE = 10;
 
 /** UC-3.1 View Upcoming Hearing Schedule (litigants and lawyers). */
 export function HearingSchedulePage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [when, setWhen] = useState<'upcoming' | 'past'>('upcoming');
   const [page, setPage] = useState(1);
@@ -71,9 +75,12 @@ export function HearingSchedulePage() {
   return (
     <>
       <PageHeader
-        title="Hearing Schedule"
-        description="Hearing dates, courtrooms, timings and benches for your cases."
-        crumbs={[{ label: 'Dashboard', to: portalPath(portal, '') }, { label: 'Hearing Schedule' }]}
+        title={t('Hearing Schedule')}
+        description={t('Hearing dates, courtrooms, timings and benches for your cases.')}
+        crumbs={[
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('Hearing Schedule') },
+        ]}
       />
       <Tabs
         value={when}
@@ -82,9 +89,9 @@ export function HearingSchedulePage() {
           setPage(1);
         }}
       >
-        <TabsList aria-label="Hearings">
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">Past</TabsTrigger>
+        <TabsList aria-label={t('Hearings')}>
+          <TabsTrigger value="upcoming">{t('Upcoming')}</TabsTrigger>
+          <TabsTrigger value="past">{t('Past')}</TabsTrigger>
         </TabsList>
         {(['upcoming', 'past'] as const).map((tab) => (
           // Both panels exist (only the active one is shown), so each tab controls a real panel.
@@ -100,10 +107,12 @@ export function HearingSchedulePage() {
                       icon={CalendarX2}
                       title={
                         when === 'upcoming'
-                          ? 'No upcoming hearings have been scheduled for your cases yet.'
-                          : 'No past hearings.'
+                          ? t('No upcoming hearings have been scheduled for your cases yet.')
+                          : t('No past hearings.')
                       }
-                      description="You will be notified as soon as a hearing is fixed or changed."
+                      description={t(
+                        'You will be notified as soon as a hearing is fixed or changed.',
+                      )}
                     />
                   </Card>
                 ) : (
@@ -112,12 +121,12 @@ export function HearingSchedulePage() {
                       <Table aria-label={`${when} hearings`}>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Time</TableHead>
-                            <TableHead>Courtroom</TableHead>
-                            <TableHead>Bench</TableHead>
-                            <TableHead>Case</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead>{t('Date')}</TableHead>
+                            <TableHead>{t('Time')}</TableHead>
+                            <TableHead>{t('Courtroom')}</TableHead>
+                            <TableHead>{t('Bench')}</TableHead>
+                            <TableHead>{t('Case')}</TableHead>
+                            <TableHead>{t('Status')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -177,6 +186,7 @@ export function HearingSchedulePage() {
 
 /** UC-3.2 Access Daily Cause Lists (litigants, lawyers and judges). */
 export function CauseListsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [date, setDate] = useState(todayIso());
   const [courtroomId, setCourtroomId] = useState('');
@@ -194,15 +204,15 @@ export function CauseListsPage() {
   return (
     <>
       <PageHeader
-        title="Daily Cause Lists"
-        description="The published court rosters for a day. Your own cases are highlighted."
+        title={t('Daily Cause Lists')}
+        description={t('The published court rosters for a day. Your own cases are highlighted.')}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'Daily Cause Lists' },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('Daily Cause Lists') },
         ]}
       />
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
-        <Field label="Date">
+        <Field label={t('Date')}>
           {(p) => (
             <DatePicker
               value={date}
@@ -216,7 +226,7 @@ export function CauseListsPage() {
             />
           )}
         </Field>
-        <Field label="Courtroom">
+        <Field label={t('Courtroom')}>
           {(p) => (
             <NativeSelect
               value={courtroomId}
@@ -224,7 +234,7 @@ export function CauseListsPage() {
               disabled={rooms.length === 0}
               {...p}
             >
-              <option value="">All courtrooms</option>
+              <option value="">{t('All courtrooms')}</option>
               {rooms.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -241,8 +251,11 @@ export function CauseListsPage() {
         <Card>
           <EmptyState
             icon={ClipboardList}
-            title={data.message ?? 'Roster details not yet published. Check back later.'}
-            description={`No cause list is published for ${isoToDdMmYyyy(date)} (${weekdayName(date)}).`}
+            title={data.message ?? t('Roster details not yet published. Check back later.')}
+            description={t('No cause list is published for {{isoToDdMmYyyy}} ({{weekdayName}}).', {
+              isoToDdMmYyyy: isoToDdMmYyyy(date),
+              weekdayName: weekdayName(date),
+            })}
           />
         </Card>
       ) : (
@@ -259,17 +272,17 @@ export function CauseListsPage() {
                     </p>
                   </CardHeader>
                   {rows.length === 0 ? (
-                    <EmptyState icon={ClipboardList} title="No listings for this courtroom" />
+                    <EmptyState icon={ClipboardList} title={t('No listings for this courtroom')} />
                   ) : (
                     <div className="p-5">
-                      <Table aria-label={`Cause list, ${l.court}`}>
+                      <Table aria-label={t('Cause list, {{court}}', { court: l.court })}>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Serial</TableHead>
-                            <TableHead>Time</TableHead>
-                            <TableHead>Courtroom</TableHead>
-                            <TableHead>Case</TableHead>
-                            <TableHead>Judge</TableHead>
+                            <TableHead>{t('Serial')}</TableHead>
+                            <TableHead>{t('Time')}</TableHead>
+                            <TableHead>{t('Courtroom')}</TableHead>
+                            <TableHead>{t('Case')}</TableHead>
+                            <TableHead>{t('Judge')}</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -277,7 +290,7 @@ export function CauseListsPage() {
                             <TableRow
                               key={e.ucn}
                               className={cn(
-                                e.isMine && 'border-l-4 border-l-accent bg-accent-soft',
+                                e.isMine && 'border-s-4 border-l-accent bg-accent-soft',
                               )}
                             >
                               <TableCell className="font-mono">{e.serialNo}</TableCell>
@@ -287,7 +300,7 @@ export function CauseListsPage() {
                                 <span className="case-number block font-medium">{e.ucn}</span>
                                 {e.title}
                                 <span className="mt-1 flex flex-wrap gap-1">
-                                  {e.isMine && <Badge variant="accent">Your case</Badge>}
+                                  {e.isMine && <Badge variant="accent">{t('Your case')}</Badge>}
                                   {e.isVirtual && <VirtualBadge />}
                                 </span>
                                 {e.isMine && e.isVirtual && e.status === 'SCHEDULED' && (
@@ -315,6 +328,7 @@ export function CauseListsPage() {
 
 /** Judge "My Schedule": a week of hearings, day by day. */
 export function JudgeSchedulePage() {
+  const { t } = useTranslation();
   const [from, setFrom] = useState(mondayIso(todayIso()));
   const to = addDaysIso(from, 6);
   const { data, isPending, isError, error } = useQuery({
@@ -327,9 +341,9 @@ export function JudgeSchedulePage() {
   return (
     <>
       <PageHeader
-        title="My Schedule"
-        description="Your hearings for the week."
-        crumbs={[{ label: 'Dashboard', to: '/judge' }, { label: 'My Schedule' }]}
+        title={t('My Schedule')}
+        description={t('Your hearings for the week.')}
+        crumbs={[{ label: t('Dashboard'), to: '/judge' }, { label: t('My Schedule') }]}
       />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
@@ -337,24 +351,27 @@ export function JudgeSchedulePage() {
           onClick={() => setFrom(addDaysIso(from, -7))}
           className="min-h-10 rounded-md border border-primary px-3 text-sm font-semibold text-primary hover:bg-primary-soft"
         >
-          Previous week
+          {t('Previous week')}
         </button>
         <span className="font-semibold">
-          {isoToDdMmYyyy(from)} to {isoToDdMmYyyy(to)}
+          {t('{{isoToDdMmYyyy}} to {{isoToDdMmYyyy2}}', {
+            isoToDdMmYyyy: isoToDdMmYyyy(from),
+            isoToDdMmYyyy2: isoToDdMmYyyy(to),
+          })}
         </span>
         <button
           type="button"
           onClick={() => setFrom(addDaysIso(from, 7))}
           className="min-h-10 rounded-md border border-primary px-3 text-sm font-semibold text-primary hover:bg-primary-soft"
         >
-          Next week
+          {t('Next week')}
         </button>
         <button
           type="button"
           onClick={() => setFrom(mondayIso(todayIso()))}
           className="min-h-10 rounded-md px-3 text-sm font-semibold hover:bg-primary-soft"
         >
-          This week
+          {t('This week')}
         </button>
       </div>
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
@@ -365,7 +382,7 @@ export function JudgeSchedulePage() {
           <div className="space-y-4">
             {data.data.length === 0 && (
               <Card>
-                <EmptyState icon={CalendarX2} title="No hearings this week" />
+                <EmptyState icon={CalendarX2} title={t('No hearings this week')} />
               </Card>
             )}
             {days.map((d) => {
@@ -416,6 +433,7 @@ export function JudgeSchedulePage() {
 
 /** Dashboard card for litigants and lawyers: the next hearing across their cases. */
 export function NextHearingCard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data, isPending } = useQuery({
     queryKey: ['hearings', 'mine', 'upcoming', 1],
@@ -429,7 +447,7 @@ export function NextHearingCard() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CalendarClock className="size-5 text-primary" aria-hidden="true" /> Next hearing
+          <CalendarClock className="size-5 text-primary" aria-hidden="true" /> {t('Next hearing')}
         </CardTitle>
       </CardHeader>
       {isPending ? (
@@ -452,14 +470,14 @@ export function NextHearingCard() {
             to={portalPath(portal, 'hearings')}
             className="inline-block pt-1 text-sm font-semibold"
           >
-            Full hearing schedule
+            {t('Full hearing schedule')}
           </Link>
         </CardContent>
       ) : (
         <EmptyState
           icon={CalendarX2}
-          title="No upcoming hearings"
-          description="No upcoming hearings have been scheduled for your cases yet."
+          title={t('No upcoming hearings')}
+          description={t('No upcoming hearings have been scheduled for your cases yet.')}
         />
       )}
     </Card>

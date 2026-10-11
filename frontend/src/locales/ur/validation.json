@@ -1,1 +1,15 @@
-{}
+{
+  "Case form data captured successfully.": "مقدمے کا فارم کامیابی سے محفوظ ہو گیا۔",
+  "Enter an amount of 0 or more in PKR, for example 1850000.": "PKR میں 0 یا اس سے زیادہ رقم درج کریں، مثلاً 1850000۔",
+  "Incomplete case details.": "مقدمے کی تفصیل نامکمل ہے۔",
+  "Legal document attached successfully.": "قانونی دستاویز کامیابی سے منسلک ہو گئی۔",
+  "Logged into the system successfully.": "آپ کامیابی سے نظام میں لاگ اِن ہو گئے۔",
+  "No active or past legal cases found in your portfolio.": "آپ کے ریکارڈ میں کوئی جاری یا سابقہ مقدمہ نہیں ملا۔",
+  "Password updated successfully.": "پاس ورڈ کامیابی سے تبدیل ہو گیا۔",
+  "Profile details updated successfully.": "پروفائل کی تفصیل کامیابی سے تبدیل ہو گئی۔",
+  "Profile image must be a link starting with https://.": "پروفائل تصویر کا لنک https:// سے شروع ہو۔",
+  "This field is required.": "یہ خانہ لازمی ہے۔",
+  "Use 30 characters or fewer.": "30 یا اس سے کم حروف استعمال کریں۔",
+  "Use 500 characters or fewer.": "500 یا اس سے کم حروف استعمال کریں۔",
+  "Your registration request has been submitted successfully.": "آپ کی رجسٹریشن کی درخواست کامیابی سے جمع ہو گئی ہے۔"
+}

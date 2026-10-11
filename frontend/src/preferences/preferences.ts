@@ -32,6 +32,15 @@ export function usePreferences(): PreferencesState {
   return useContext(PreferencesContext) ?? standalone;
 }
 
+/** True when this browser holds an explicit text-size choice. */
+export function hasStoredFontScale(): boolean {
+  try {
+    return isFontScale(Number(localStorage.getItem(FONT_STORAGE_KEY)));
+  } catch {
+    return false;
+  }
+}
+
 export function readStoredFontScale(): FontScale {
   try {
     const v = Number(localStorage.getItem(FONT_STORAGE_KEY));

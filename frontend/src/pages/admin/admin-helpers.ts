@@ -1,10 +1,12 @@
 import type { UserStatus } from '@/lib/types';
 
+import { msg } from '@/i18n';
+
 export const USER_STATUS_LABEL: Record<UserStatus, string> = {
-  ACTIVE: 'Active',
-  SUSPENDED: 'Suspended',
-  BLOCKED: 'Access revoked',
-  DEACTIVATED: 'Deleted',
+  ACTIVE: msg('Active'),
+  SUSPENDED: msg('Suspended'),
+  BLOCKED: msg('Access revoked'),
+  DEACTIVATED: msg('Deleted'),
 };
 
 export const fullName = (p: { firstName: string; lastName: string }) =>

@@ -30,6 +30,9 @@ import {
   type OrderOutcome,
 } from '@/lib/phase5-api';
 import { isoToDdMmYyyy } from '@/lib/scheduling-api';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const PAGE_SIZE = 15;
 
@@ -46,10 +49,11 @@ export function OrderOutcomeBadge({ outcome }: { outcome: OrderOutcome }) {
 }
 
 const orderKindLabel = (o: JudgeOrder) =>
-  o.kind === 'DECISION' ? 'Final decision' : 'Hearing order';
+  o.kind === 'DECISION' ? msg('Final decision') : msg('Hearing order');
 
 /** Judge "Orders": hearing outcomes and final decisions recorded on the judge's own cases. */
 export default function JudgeOrdersPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -77,17 +81,17 @@ export default function JudgeOrdersPage() {
   return (
     <>
       <PageHeader
-        title="Orders"
-        description="Hearing orders and final decisions you have recorded, newest first."
-        crumbs={[{ label: 'Dashboard', to: '/judge' }, { label: 'Orders' }]}
+        title={t('Orders')}
+        description={t('Hearing orders and final decisions you have recorded, newest first.')}
+        crumbs={[{ label: t('Dashboard'), to: '/judge' }, { label: t('Orders') }]}
       />
       <form
         onSubmit={onSearch}
         role="search"
-        aria-label="Search orders"
+        aria-label={t('Search orders')}
         className="mb-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_14rem_auto] sm:items-end"
       >
-        <Field label="Search by case number, title or party">
+        <Field label={t('Search by case number, title or party')}>
           {(p) => (
             <Input
               type="search"
@@ -97,7 +101,7 @@ export default function JudgeOrdersPage() {
             />
           )}
         </Field>
-        <Field label="Outcome">
+        <Field label={t('Outcome')}>
           {(p) => (
             <NativeSelect
               value={outcome}
@@ -107,7 +111,7 @@ export default function JudgeOrdersPage() {
               }}
               {...p}
             >
-              <option value="">All outcomes</option>
+              <option value="">{t('All outcomes')}</option>
               {(Object.keys(ORDER_OUTCOME_LABEL) as OrderOutcome[]).map((o) => (
                 <option key={o} value={o}>
                   {ORDER_OUTCOME_LABEL[o]}
@@ -117,7 +121,7 @@ export default function JudgeOrdersPage() {
           )}
         </Field>
         <Button type="submit" variant="secondary">
-          <Search aria-hidden="true" /> Search
+          <Search aria-hidden="true" /> {t('Search')}
         </Button>
       </form>
 
@@ -128,26 +132,26 @@ export default function JudgeOrdersPage() {
         <Card>
           <EmptyState
             icon={Gavel}
-            title={filtered ? 'No orders match your filters' : 'No orders recorded yet'}
+            title={filtered ? t('No orders match your filters') : t('No orders recorded yet')}
             description={
               filtered
-                ? 'Try another case number, party name or outcome.'
-                : 'Outcomes you record on a hearing and final decisions appear here.'
+                ? t('Try another case number, party name or outcome.')
+                : t('Outcomes you record on a hearing and final decisions appear here.')
             }
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Recorded orders and decisions">
+            <Table aria-label={t('Recorded orders and decisions')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Case</TableHead>
-                  <TableHead>Parties</TableHead>
-                  <TableHead>Hearing date</TableHead>
-                  <TableHead>Outcome</TableHead>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Recorded</TableHead>
+                  <TableHead>{t('Case')}</TableHead>
+                  <TableHead>{t('Parties')}</TableHead>
+                  <TableHead>{t('Hearing date')}</TableHead>
+                  <TableHead>{t('Outcome')}</TableHead>
+                  <TableHead>{t('Order')}</TableHead>
+                  <TableHead>{t('Recorded')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

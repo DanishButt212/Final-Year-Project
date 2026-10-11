@@ -16,14 +16,18 @@ import { formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { feesApi } from '@/lib/phase4-api';
 import { NotFoundPage } from '@/pages/ErrorPages';
+import { useTranslation } from 'react-i18next';
 
-export const REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request details.';
+import { msg } from '@/i18n';
+
+// eslint-disable-next-line react-refresh/only-export-components -- message constant, translated where shown
+export const REJECTED_MESSAGE = msg('Payment Unsuccessful: Gateway rejected request details.');
 
 const TEST_CARDS = [
-  ['4242 4242 4242 4242', 'Approved'],
-  ['5555 5555 5555 4444', 'Approved'],
-  ['4000 0000 0000 0002', 'Declined: insufficient funds'],
-  ['Any other number', 'Declined'],
+  ['4242 4242 4242 4242', msg('Approved')],
+  ['5555 5555 5555 4444', msg('Approved')],
+  ['4000 0000 0000 0002', msg('Declined: insufficient funds')],
+  [msg('Any other number'), msg('Declined')],
 ];
 
 const formatCard = (v: string) =>
@@ -40,6 +44,7 @@ const formatExpiry = (v: string) => {
 
 /** UC-4.2: the simulated "Demo Payment Gateway". Card data is read from the form on submit and cleared at once. */
 export default function PayPage() {
+  const { t } = useTranslation();
   const { challanId } = useParams();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -65,7 +70,7 @@ export default function PayPage() {
     onSuccess: async (res) => {
       setFailure(null);
       setDone({ receiptNo: res.receiptNo, paymentId: res.paymentId, amount: res.amount });
-      toast.success('Payment successful.');
+      toast.success(t('Payment successful.'));
       await queryClient.invalidateQueries();
     },
     onError: (e) => {
@@ -90,7 +95,7 @@ export default function PayPage() {
     const expiry = String(data.get('expiry') ?? '');
     const cvv = String(data.get('cvv') ?? '');
     if (!cardholderName || !cardNumber || !expiry || !cvv) {
-      setFieldError('Please complete all card fields.');
+      setFieldError(t('Please complete all card fields.'));
       return;
     }
     setFieldError(null);
@@ -109,12 +114,12 @@ export default function PayPage() {
   return (
     <>
       <PageHeader
-        title="Demo Payment Gateway"
-        description="Pay your court fee. This is a simulated gateway for demonstration."
+        title={t('Demo Payment Gateway')}
+        description={t('Pay your court fee. This is a simulated gateway for demonstration.')}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'Payments & Receipts', to: portalPath(portal, 'payments') },
-          { label: 'Pay fee' },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('Payments & Receipts'), to: portalPath(portal, 'payments') },
+          { label: t('Pay fee') },
         ]}
       />
 
@@ -125,10 +130,11 @@ export default function PayPage() {
         >
           <ShieldAlert className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden="true" />
           <div className="space-y-2">
-            <p className="font-bold">Simulated gateway. Do not enter real card details.</p>
+            <p className="font-bold">{t('Simulated gateway. Do not enter real card details.')}</p>
             <p className="text-sm">
-              No real payment is made and nothing you type here is stored. Use one of these test
-              cards (any name, a future expiry such as 12/30, any 3 digit code):
+              {t(
+                'No real payment is made and nothing you type here is stored. Use one of these test cards (any name, a future expiry such as 12/30, any 3 digit code):',
+              )}
             </p>
             <ul className="text-sm">
               {TEST_CARDS.map(([n, r]) => (
@@ -146,12 +152,15 @@ export default function PayPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="size-8 text-primary" aria-hidden="true" />
                 <div>
-                  <h2 className="text-xl font-bold">Payment successful</h2>
-                  <p className="text-text-muted">{formatPkr(done.amount)} received.</p>
+                  <h2 className="text-xl font-bold">{t('Payment successful')}</h2>
+                  <p className="text-text-muted">
+                    {t('{{pkr}} received.', { pkr: formatPkr(done.amount) })}
+                  </p>
                 </div>
               </div>
               <p>
-                Receipt number: <span className="case-number font-semibold">{done.receiptNo}</span>
+                {t('Receipt number:')}{' '}
+                <span className="case-number font-semibold">{done.receiptNo}</span>
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button
@@ -161,10 +170,10 @@ export default function PayPage() {
                       .catch((e) => toast.error(parseApiError(e).message))
                   }
                 >
-                  <Download aria-hidden="true" /> Download Receipt Proof
+                  <Download aria-hidden="true" /> {t('Download Receipt Proof')}
                 </Button>
                 <Button variant="secondary" asChild>
-                  <Link to={portalPath(portal, 'payments')}>Payments & Receipts</Link>
+                  <Link to={portalPath(portal, 'payments')}>{t('Payments & Receipts')}</Link>
                 </Button>
               </div>
             </CardContent>
@@ -177,10 +186,10 @@ export default function PayPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <CreditCard className="size-5 text-primary" aria-hidden="true" /> Checkout
+                <CreditCard className="size-5 text-primary" aria-hidden="true" /> {t('Checkout')}
               </CardTitle>
               <p className="text-sm text-text-muted">
-                Challan <span className="case-number">{session.data.challanNo}</span> ·{' '}
+                {t('Challan')} <span className="case-number">{session.data.challanNo}</span> ·{' '}
                 <strong>{formatPkr(session.data.amount)}</strong>
               </p>
             </CardHeader>
@@ -189,7 +198,7 @@ export default function PayPage() {
                 <div className="space-y-4">
                   <Alert variant="error">{failure}</Alert>
                   <Button onClick={retry} loading={session.isFetching}>
-                    Try again
+                    {t('Try again')}
                   </Button>
                 </div>
               ) : (
@@ -201,12 +210,12 @@ export default function PayPage() {
                   className="space-y-4"
                 >
                   {fieldError && <Alert variant="error">{fieldError}</Alert>}
-                  <Field label="Cardholder name" required>
+                  <Field label={t('Cardholder name')} required>
                     {(p) => (
                       <Input name="cardholderName" autoComplete="off" maxLength={80} {...p} />
                     )}
                   </Field>
-                  <Field label="Card number" required>
+                  <Field label={t('Card number')} required>
                     {(p) => (
                       <Input
                         name="cardNumber"
@@ -222,7 +231,7 @@ export default function PayPage() {
                     )}
                   </Field>
                   <div className="grid grid-cols-2 gap-4">
-                    <Field label="Expiry (MM/YY)" required>
+                    <Field label={t('Expiry (MM/YY)')} required>
                       {(p) => (
                         <Input
                           name="expiry"
@@ -254,7 +263,7 @@ export default function PayPage() {
                     </Field>
                   </div>
                   <Button type="submit" size="lg" loading={pay.isPending} disabled={pay.isPending}>
-                    Pay {formatPkr(session.data.amount)}
+                    {t('Pay {{pkr}}', { pkr: formatPkr(session.data.amount) })}
                   </Button>
                 </form>
               )}

@@ -36,9 +36,12 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import type { VerificationStatus } from '@/lib/types';
 import { fullName } from './admin-helpers';
 import { UserStatusBadge, VerificationBadge } from './shared';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const PAGE_SIZE = 10;
-const REJECT_REASON_REQUIRED = 'Please enter a reason for rejection.';
+const REJECT_REASON_REQUIRED = msg('Please enter a reason for rejection.');
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -56,6 +59,7 @@ function LawyerPanel({
   lawyer: LawyerItem;
   onDone: (message: string) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [bar, setBar] = useState<BarCheckResult | null>(null);
   const [confirmVerify, setConfirmVerify] = useState(false);
@@ -117,59 +121,63 @@ function LawyerPanel({
       </CardHeader>
       <CardContent className="space-y-5">
         <dl className="grid gap-4 sm:grid-cols-2">
-          <Detail label="Bar number">
-            <span className="case-number">{lawyer.barNumber ?? 'Not submitted'}</span>
+          <Detail label={t('Bar number')}>
+            <span className="case-number">{lawyer.barNumber ?? t('Not submitted')}</span>
           </Detail>
-          <Detail label="Registered on">{formatDate(lawyer.registeredAt)}</Detail>
+          <Detail label={t('Registered on')}>{formatDate(lawyer.registeredAt)}</Detail>
           <Detail label="CNIC">
             <span className="font-mono text-sm">{lawyer.user.cnic}</span>
           </Detail>
-          <Detail label="Phone">{lawyer.user.phone}</Detail>
+          <Detail label={t('Phone')}>{lawyer.user.phone}</Detail>
           <div className="sm:col-span-2">
-            <Detail label="Email">{lawyer.user.email}</Detail>
+            <Detail label={t('Email')}>{lawyer.user.email}</Detail>
           </div>
           {lawyer.verificationStatus === 'VERIFIED' && (
-            <Detail label="Verified">
+            <Detail label={t('Verified')}>
               {formatDateTime(lawyer.verifiedAt)}
               {lawyer.verifiedBy && ` by ${lawyer.verifiedBy}`}
             </Detail>
           )}
           {lawyer.verificationStatus === 'REJECTED' && (
             <div className="sm:col-span-2">
-              <Detail label="Reason for rejection">{lawyer.rejectionReason}</Detail>
+              <Detail label={t('Reason for rejection')}>{lawyer.rejectionReason}</Detail>
             </div>
           )}
         </dl>
 
         {lawyer.verificationStatus === 'VERIFIED' ? (
-          <Alert variant="success" title="Credentials locked">
-            Verified credentials cannot be changed. Suspend the account from Account Management if
-            access must be withdrawn.
+          <Alert variant="success" title={t('Credentials locked')}>
+            {t(
+              'Verified credentials cannot be changed. Suspend the account from Account Management if access must be withdrawn.',
+            )}
           </Alert>
         ) : (
           <>
             <div className="space-y-3 rounded-md border border-border p-4">
-              <p className="font-semibold">Bar Council repository</p>
+              <p className="font-semibold">{t('Bar Council repository')}</p>
               <Button variant="secondary" onClick={() => check.mutate()} loading={check.isPending}>
-                <ShieldCheck aria-hidden="true" /> Cross-check with Bar Council
+                <ShieldCheck aria-hidden="true" /> {t('Cross-check with Bar Council')}
               </Button>
               {bar && (
                 <div aria-live="polite" className="space-y-1">
                   <Badge variant={bar.found ? 'decided' : 'rejected'}>
-                    {bar.found ? 'Found in repository' : 'Not found in repository'}
+                    {bar.found ? t('Found in repository') : t('Not found in repository')}
                   </Badge>
                   <p className="text-sm text-text-muted">
-                    {bar.reason} Checked {formatDateTime(bar.checkedAt)}.
+                    {t('{{reason}} Checked {{dateTime}}.', {
+                      reason: bar.reason,
+                      dateTime: formatDateTime(bar.checkedAt),
+                    })}
                   </p>
                 </div>
               )}
             </div>
             <div className="flex flex-wrap gap-3">
               <Button onClick={() => setConfirmVerify(true)} disabled={!editable}>
-                <BadgeCheck aria-hidden="true" /> Verify and Approve Account
+                <BadgeCheck aria-hidden="true" /> {t('Verify and Approve Account')}
               </Button>
               <Button variant="destructive" onClick={() => setRejecting(true)}>
-                <XCircle aria-hidden="true" /> Reject Request
+                <XCircle aria-hidden="true" /> {t('Reject Request')}
               </Button>
             </div>
           </>
@@ -179,9 +187,12 @@ function LawyerPanel({
       <ConfirmDialog
         open={confirmVerify}
         onOpenChange={setConfirmVerify}
-        title="Verify and approve this lawyer?"
-        description={`${fullName(lawyer.user)} will be able to file cases. Once verified, the credentials are locked.`}
-        confirmLabel="Verify and Approve Account"
+        title={t('Verify and approve this lawyer?')}
+        description={t(
+          '{{fullName}} will be able to file cases. Once verified, the credentials are locked.',
+          { fullName: fullName(lawyer.user) },
+        )}
+        confirmLabel={t('Verify and Approve Account')}
         loading={verify.isPending}
         onConfirm={() => verify.mutate()}
       />
@@ -197,13 +208,14 @@ function LawyerPanel({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject this request</DialogTitle>
+            <DialogTitle>{t('Reject this request')}</DialogTitle>
             <DialogDescription>
-              The account will be set to Rejected/Suspended and the lawyer will not be able to log
-              in.
+              {t(
+                'The account will be set to Rejected/Suspended and the lawyer will not be able to log in.',
+              )}
             </DialogDescription>
           </DialogHeader>
-          <Field label="Reason for rejection" required error={reasonError ?? undefined}>
+          <Field label={t('Reason for rejection')} required error={reasonError ?? undefined}>
             {(p) => (
               <Textarea
                 value={reason}
@@ -219,10 +231,10 @@ function LawyerPanel({
               onClick={() => setRejecting(false)}
               disabled={reject.isPending}
             >
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button variant="destructive" onClick={submitReject} loading={reject.isPending}>
-              Reject Request
+              {t('Reject Request')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -233,6 +245,7 @@ function LawyerPanel({
 
 /** UC-2.2: Pending Bar Affiliation Approvals. */
 export default function LawyerVerificationPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<VerificationStatus>('PENDING');
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -245,17 +258,17 @@ export default function LawyerVerificationPage() {
   });
   const selected = data?.data.find((l) => l.id === selectedId) ?? null;
   const titles: Record<VerificationStatus, string> = {
-    PENDING: 'Pending Bar Affiliation Approvals',
-    VERIFIED: 'Verified lawyers',
-    REJECTED: 'Rejected lawyers',
+    PENDING: t('Pending Bar Affiliation Approvals'),
+    VERIFIED: t('Verified lawyers'),
+    REJECTED: t('Rejected lawyers'),
   };
 
   return (
     <>
       <PageHeader
-        title="Pending Bar Affiliation Approvals"
-        description="Check each lawyer's bar credentials before they can file cases."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Lawyer Verification' }]}
+        title={t('Pending Bar Affiliation Approvals')}
+        description={t("Check each lawyer's bar credentials before they can file cases.")}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Lawyer Verification') }]}
       />
       {banner && (
         <Alert variant="success" className="mb-4">
@@ -270,10 +283,16 @@ export default function LawyerVerificationPage() {
           setSelectedId(null);
         }}
       >
-        <TabsList aria-label="Lawyer status">
-          <TabsTrigger value="PENDING">Pending ({data?.counts.PENDING ?? 0})</TabsTrigger>
-          <TabsTrigger value="VERIFIED">Verified ({data?.counts.VERIFIED ?? 0})</TabsTrigger>
-          <TabsTrigger value="REJECTED">Rejected ({data?.counts.REJECTED ?? 0})</TabsTrigger>
+        <TabsList aria-label={t('Lawyer status')}>
+          <TabsTrigger value="PENDING">
+            {t('Pending ({{value}})', { value: data?.counts.PENDING ?? 0 })}
+          </TabsTrigger>
+          <TabsTrigger value="VERIFIED">
+            {t('Verified ({{value}})', { value: data?.counts.VERIFIED ?? 0 })}
+          </TabsTrigger>
+          <TabsTrigger value="REJECTED">
+            {t('Rejected ({{value}})', { value: data?.counts.REJECTED ?? 0 })}
+          </TabsTrigger>
         </TabsList>
         {(['PENDING', 'VERIFIED', 'REJECTED'] as const).map((s) => (
           // One panel per tab (only the active one has content), so each tab controls a real panel.
@@ -296,13 +315,15 @@ export default function LawyerVerificationPage() {
                           icon={UserCheck}
                           title={
                             tab === 'PENDING'
-                              ? 'No approvals pending'
-                              : `No ${tab.toLowerCase()} lawyers`
+                              ? t('No approvals pending')
+                              : tab === 'VERIFIED'
+                                ? t('No verified lawyers')
+                                : t('No rejected lawyers')
                           }
                           description={
                             tab === 'PENDING'
-                              ? 'New lawyer registrations will appear here for review.'
-                              : 'Nothing to show in this list yet.'
+                              ? t('New lawyer registrations will appear here for review.')
+                              : t('Nothing to show in this list yet.')
                           }
                         />
                       </Card>
@@ -312,10 +333,10 @@ export default function LawyerVerificationPage() {
                           <Table aria-label={titles[tab]}>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Lawyer</TableHead>
-                                <TableHead>Bar number</TableHead>
-                                <TableHead>Registered</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>{t('Lawyer')}</TableHead>
+                                <TableHead>{t('Bar number')}</TableHead>
+                                <TableHead>{t('Registered')}</TableHead>
+                                <TableHead>{t('Status')}</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -329,7 +350,7 @@ export default function LawyerVerificationPage() {
                                       type="button"
                                       onClick={() => setSelectedId(l.id)}
                                       aria-pressed={selectedId === l.id}
-                                      className="text-left font-semibold text-primary underline-offset-4 hover:underline"
+                                      className="text-start font-semibold text-primary underline-offset-4 hover:underline"
                                     >
                                       {fullName(l.user)}
                                     </button>
@@ -373,8 +394,10 @@ export default function LawyerVerificationPage() {
                       <Card>
                         <EmptyState
                           icon={ShieldX}
-                          title="Select a lawyer"
-                          description="Choose a name from the list to see the submitted credentials."
+                          title={t('Select a lawyer')}
+                          description={t(
+                            'Choose a name from the list to see the submitted credentials.',
+                          )}
                         />
                       </Card>
                     )}

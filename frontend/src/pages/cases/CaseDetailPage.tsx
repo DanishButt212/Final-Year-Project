@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
@@ -17,6 +18,7 @@ import { PORTALS, portalPath } from '@/lib/navigation';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import FeesPanel from './FeesPanel';
 import VaultPanel from './VaultPanel';
+import { useTranslation } from 'react-i18next';
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -28,6 +30,7 @@ function Detail({ label, children }: { label: string; children: React.ReactNode 
 }
 
 function PartyList({ title, parties }: { title: string; parties: CaseDetail['parties'] }) {
+  const { t } = useTranslation();
   return (
     <div>
       <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-text-muted">{title}</h3>
@@ -37,9 +40,11 @@ function PartyList({ title, parties }: { title: string; parties: CaseDetail['par
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-text-muted">
               {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
-                'No further details given'}
+                t('No further details given')}
             </p>
-            {p.hasCounsel && <p className="text-sm text-text-muted">Represented by counsel</p>}
+            {p.hasCounsel && (
+              <p className="text-sm text-text-muted">{t('Represented by counsel')}</p>
+            )}
           </li>
         ))}
       </ul>
@@ -48,6 +53,7 @@ function PartyList({ title, parties }: { title: string; parties: CaseDetail['par
 }
 
 export default function CaseDetailPage() {
+  const { t } = useTranslation();
   const { caseId } = useParams();
   const [search] = useSearchParams();
   const requested = search.get('tab');
@@ -67,11 +73,11 @@ export default function CaseDetailPage() {
 
   if (isPending) {
     return (
-      <div role="status" aria-label="Loading case" className="space-y-4">
+      <div role="status" aria-label={t('Loading case')} className="space-y-4">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-48 w-full" />
-        <span className="sr-only">Loading…</span>
+        <span className="sr-only">{t('Loading…')}</span>
       </div>
     );
   }
@@ -91,8 +97,8 @@ export default function CaseDetailPage() {
       <PageHeader
         title={data.title}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'My Case Portfolio', to: portalPath(portal, 'cases') },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('My Case Portfolio'), to: portalPath(portal, 'cases') },
           { label: data.ucn },
         ]}
       />
@@ -110,43 +116,43 @@ export default function CaseDetailPage() {
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue={initialTab}>
-        <TabsList aria-label="Case sections">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="fees">Fees & Payment</TabsTrigger>
-          <TabsTrigger value="documents">Evidence Vault</TabsTrigger>
-          <TabsTrigger value="summons">Summons</TabsTrigger>
-          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
+        <TabsList aria-label={t('Case sections')}>
+          <TabsTrigger value="overview">{t('Overview')}</TabsTrigger>
+          <TabsTrigger value="fees">{t('Fees & Payment')}</TabsTrigger>
+          <TabsTrigger value="documents">{t('Evidence Vault')}</TabsTrigger>
+          <TabsTrigger value="summons">{t('Summons')}</TabsTrigger>
+          <TabsTrigger value="lifecycle">{t('Lifecycle')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Case information</CardTitle>
+              <CardTitle>{t('Case information')}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="grid gap-4 sm:grid-cols-2">
-                <Detail label="Case number">
+                <Detail label={t('Case number')}>
                   <span className="case-number">{data.ucn}</span>
                 </Detail>
-                <Detail label="Case type">{caseTypeLabel(data.caseType)}</Detail>
-                <Detail label="Filing date">{formatDate(data.filingDate)}</Detail>
-                <Detail label="Filed by">{data.filedBy}</Detail>
-                <Detail label="Court">
-                  {data.court ? `${data.court.name}, ${data.court.city}` : 'Not yet assigned'}
+                <Detail label={t('Case type')}>{caseTypeLabel(data.caseType)}</Detail>
+                <Detail label={t('Filing date')}>{formatDate(data.filingDate)}</Detail>
+                <Detail label={t('Filed by')}>{data.filedBy}</Detail>
+                <Detail label={t('Court')}>
+                  {data.court ? `${data.court.name}, ${data.court.city}` : t('Not yet assigned')}
                 </Detail>
                 {data.claimAmountPkr && (
-                  <Detail label="Claim value">{formatPkr(data.claimAmountPkr)}</Detail>
+                  <Detail label={t('Claim value')}>{formatPkr(data.claimAmountPkr)}</Detail>
                 )}
-                <Detail label="Next hearing">
+                <Detail label={t('Next hearing')}>
                   {data.nextHearing
                     ? `${formatDate(data.nextHearing.date)} at ${data.nextHearing.startTime ?? ''}, ${data.nextHearing.courtroom ?? ''}`
-                    : 'No hearing scheduled yet'}
+                    : t('No hearing scheduled yet')}
                 </Detail>
-                <Detail label="Judge bench">
+                <Detail label={t('Judge bench')}>
                   {judgeBench({ judge: data.judge, courtroom: data.courtroom?.name ?? null })}
                 </Detail>
                 <div className="sm:col-span-2">
-                  <Detail label="Relief sought">
+                  <Detail label={t('Relief sought')}>
                     <span className="whitespace-pre-wrap font-normal">{data.reliefSought}</span>
                   </Detail>
                 </div>
@@ -154,8 +160,8 @@ export default function CaseDetailPage() {
             </CardContent>
           </Card>
           <div className="grid gap-6 md:grid-cols-2">
-            <PartyList title="Petitioners" parties={petitioners} />
-            <PartyList title="Opposing parties" parties={others} />
+            <PartyList title={t('Petitioners')} parties={petitioners} />
+            <PartyList title={t('Opposing parties')} parties={others} />
           </div>
         </TabsContent>
 
@@ -177,23 +183,23 @@ export default function CaseDetailPage() {
         <TabsContent value="lifecycle">
           <Card>
             <CardHeader>
-              <CardTitle>Case lifecycle</CardTitle>
+              <CardTitle>{t('Case lifecycle')}</CardTitle>
             </CardHeader>
             <CardContent>
               {data.events.length === 0 ? (
-                <p className="text-text-muted">No events recorded yet.</p>
+                <p className="text-text-muted">{t('No events recorded yet.')}</p>
               ) : (
                 <ol
-                  className="relative space-y-6 border-l-2 border-border pl-6"
-                  aria-label="Lifecycle events"
+                  className="relative space-y-6 border-s-2 border-border ps-6"
+                  aria-label={t('Lifecycle events')}
                 >
                   {data.events.map((e) => (
                     <li key={e.id} className="relative">
                       <span
                         aria-hidden="true"
-                        className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-primary bg-surface"
+                        className="absolute -start-[31px] top-1 size-3 rounded-full border-2 border-primary bg-surface"
                       />
-                      <p className="font-semibold">{e.description}</p>
+                      <p className="font-semibold">{translateText(e.description)}</p>
                       <p className="text-sm text-text-muted">
                         <time dateTime={e.createdAt}>{formatDateTime(e.createdAt)}</time>
                         {e.actor && ` · ${e.actor}`}

@@ -1,6 +1,7 @@
 import { api } from './api';
 import { downloadBlob } from './phase4-api';
 import type { Paginated } from './types';
+import { msg } from '@/i18n';
 
 export type SummonsStatus =
   'PENDING_ASSIGNMENT' | 'ASSIGNED' | 'ATTEMPT_IN_PROGRESS' | 'EXECUTED' | 'CANCELLED';
@@ -9,15 +10,16 @@ export type NoticeType = 'SUMMONS' | 'NOTICE';
 export type ServiceMode = 'PERSONAL_DELIVERY' | 'REFUSED_AFFIXED';
 
 export const STATUS_LABEL: Record<SummonsStatus, string> = {
-  PENDING_ASSIGNMENT: 'Waiting for assignment',
-  ASSIGNED: 'Assigned',
-  ATTEMPT_IN_PROGRESS: 'Attempt in progress',
-  EXECUTED: 'Executed',
-  CANCELLED: 'Cancelled',
+  PENDING_ASSIGNMENT: msg('Waiting for assignment'),
+  ASSIGNED: msg('Assigned'),
+  ATTEMPT_IN_PROGRESS: msg('Attempt in progress'),
+  EXECUTED: msg('Executed'),
+  CANCELLED: msg('Cancelled'),
 };
 
-export const TELEMETRY_ERROR =
-  'Telemetry Error: High-accuracy GPS coordinates required to commit log entries.';
+export const TELEMETRY_ERROR = msg(
+  'Telemetry Error: High-accuracy GPS coordinates required to commit log entries.',
+);
 
 export interface Msg {
   message: string;
@@ -178,8 +180,9 @@ export interface CaseSummons {
 
 export const caseSummonsApi = {
   list: async (caseId: string) => (await api.get<CaseSummons[]>(`/cases/${caseId}/summons`)).data,
+  // i18n-ignore (file name)
   downloadProof: (id: string, ucn: string) =>
-    downloadBlob(`/summons/${id}/proof.pdf`, `proof-of-service-${ucn}.pdf`),
+    downloadBlob(`/summons/${id}/proof.pdf`, `proof-of-service-${ucn}.pdf`), // i18n-ignore
   async proofImage(id: string, kind: 'photo' | 'signature') {
     const res = await api.get<Blob>(`/summons/${id}/proof/${kind}`, { responseType: 'blob' });
     return URL.createObjectURL(res.data);

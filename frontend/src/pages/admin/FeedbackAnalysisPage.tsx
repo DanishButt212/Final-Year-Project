@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MessageSquareText, Search, Star } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -39,20 +40,25 @@ import {
   type FeedbackItem,
   type FeedbackStatus,
 } from '@/lib/phase4-api';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const PAGE_SIZE = 10;
 const STATUS: Record<
   FeedbackStatus,
   { label: string; variant: 'pending' | 'decided' | 'neutral' }
 > = {
-  NEW: { label: 'New', variant: 'pending' },
-  PROCESSED: { label: 'Processed', variant: 'decided' },
-  ARCHIVED: { label: 'Archived', variant: 'neutral' },
+  NEW: { label: msg('New'), variant: 'pending' },
+  PROCESSED: { label: msg('Processed'), variant: 'decided' },
+  ARCHIVED: { label: msg('Archived'), variant: 'neutral' },
 };
+/** The feedback category in the current language. */
 const categoryLabel = (c: FeedbackCategory) =>
-  FEEDBACK_CATEGORIES.find((x) => x.value === c)?.label ?? c;
+  i18n.t(FEEDBACK_CATEGORIES.find((x) => x.value === c)?.label ?? c);
 
 function FeedbackDetail({ item, onClose }: { item: FeedbackItem; onClose: () => void }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<FeedbackStatus>(item.status);
   const [forward, setForward] = useState(item.forwardToMaintenance);
@@ -72,10 +78,12 @@ function FeedbackDetail({ item, onClose }: { item: FeedbackItem; onClose: () => 
     <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
       <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{categoryLabel(item.category)} feedback</DialogTitle>
+          <DialogTitle>
+            {t('{{categoryLabel}} feedback', { categoryLabel: categoryLabel(item.category) })}
+          </DialogTitle>
           <DialogDescription>
-            {item.user ? `${item.user.name} (${ROLE_LABEL[item.user.role]})` : 'Unknown user'} ·{' '}
-            {formatDate(item.createdAt)}
+            {item.user ? `${item.user.name} (${t(ROLE_LABEL[item.user.role])})` : t('Unknown user')}{' '}
+            · {formatDate(item.createdAt)}
             {item.rating !== null && ` · ${item.rating}/5`}
           </DialogDescription>
         </DialogHeader>
@@ -95,34 +103,38 @@ function FeedbackDetail({ item, onClose }: { item: FeedbackItem; onClose: () => 
               checked={forward}
               onChange={(e) => setForward(e.target.checked)}
             />
-            Forward to maintenance
+            {t('Forward to maintenance')}
           </label>
-          <Field label="Status">
+          <Field label={t('Status')}>
             {(p) => (
               <NativeSelect
                 value={status}
                 onChange={(e) => setStatus(e.target.value as FeedbackStatus)}
                 {...p}
               >
-                <option value="NEW">New</option>
-                <option value="PROCESSED">Processed</option>
-                <option value="ARCHIVED">Archived</option>
+                <option value="NEW">{t('New')}</option>
+                <option value="PROCESSED">{t('Processed')}</option>
+                <option value="ARCHIVED">{t('Archived')}</option>
               </NativeSelect>
             )}
           </Field>
           {item.reviewedAt && (
             <p className="text-sm text-text-muted">
-              Last reviewed {formatDate(item.reviewedAt)}
-              {item.reviewedBy && ` by ${item.reviewedBy}`}.
+              {item.reviewedBy
+                ? t('Last reviewed {{date}} by {{name}}.', {
+                    date: formatDate(item.reviewedAt),
+                    name: item.reviewedBy,
+                  })
+                : t('Last reviewed {{date}}.', { date: formatDate(item.reviewedAt) })}
             </p>
           )}
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={save.isPending}>
-            Close
+            {t('Close')}
           </Button>
           <Button onClick={() => save.mutate()} loading={save.isPending}>
-            Save changes
+            {t('Save changes')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -132,6 +144,7 @@ function FeedbackDetail({ item, onClose }: { item: FeedbackItem; onClose: () => 
 
 /** Admin: "User Feedback Analysis & Quality Control". */
 export default function FeedbackAnalysisPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<FeedbackStatus | ''>('');
   const [category, setCategory] = useState<FeedbackCategory | ''>('');
@@ -162,9 +175,11 @@ export default function FeedbackAnalysisPage() {
   return (
     <>
       <PageHeader
-        title="User Feedback Analysis & Quality Control"
-        description="Read feedback, tag items for the software maintenance team and mark them processed or archived."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'User Feedback' }]}
+        title={t('User Feedback Analysis & Quality Control')}
+        description={t(
+          'Read feedback, tag items for the software maintenance team and mark them processed or archived.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('User Feedback') }]}
       />
 
       {data && (
@@ -172,7 +187,7 @@ export default function FeedbackAnalysisPage() {
           <Card>
             <CardContent>
               <p className="text-3xl font-bold">{data.meta.total}</p>
-              <p className="text-sm text-text-muted">Matching feedback</p>
+              <p className="text-sm text-text-muted">{t('Matching feedback')}</p>
             </CardContent>
           </Card>
           <Card>
@@ -182,23 +197,25 @@ export default function FeedbackAnalysisPage() {
                 <Star className="size-6 text-accent" aria-hidden="true" />
               </p>
               <p className="text-sm text-text-muted">
-                Average rating ({data.summary.ratedCount} rated)
+                {t('Average rating ({{ratedCount}} rated)', {
+                  ratedCount: data.summary.ratedCount,
+                })}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent>
               <p className="text-3xl font-bold">{data.summary.byStatus.NEW ?? 0}</p>
-              <p className="text-sm text-text-muted">New, awaiting review</p>
+              <p className="text-sm text-text-muted">{t('New, awaiting review')}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent>
-              <p className="mb-1 text-sm font-semibold">By category</p>
+              <p className="mb-1 text-sm font-semibold">{t('By category')}</p>
               <ul className="text-sm">
                 {FEEDBACK_CATEGORIES.map((c) => (
                   <li key={c.value} className="flex justify-between">
-                    <span>{c.label}</span>
+                    <span>{t(c.label)}</span>
                     <span className="font-semibold">{data.summary.byCategory[c.value] ?? 0}</span>
                   </li>
                 ))}
@@ -211,15 +228,15 @@ export default function FeedbackAnalysisPage() {
       <form
         onSubmit={onSearch}
         role="search"
-        aria-label="Search and filter feedback"
+        aria-label={t('Search and filter feedback')}
         className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end"
       >
         <div className="flex-1">
-          <Field label="Search">
+          <Field label={t('Search')}>
             {(p) => (
               <Input
                 type="search"
-                placeholder="Words in the feedback"
+                placeholder={t('Words in the feedback')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 {...p}
@@ -228,7 +245,7 @@ export default function FeedbackAnalysisPage() {
           </Field>
         </div>
         <div className="lg:w-48">
-          <Field label="Status">
+          <Field label={t('Status')}>
             {(p) => (
               <NativeSelect
                 value={status}
@@ -238,16 +255,16 @@ export default function FeedbackAnalysisPage() {
                 }}
                 {...p}
               >
-                <option value="">All statuses</option>
-                <option value="NEW">New</option>
-                <option value="PROCESSED">Processed</option>
-                <option value="ARCHIVED">Archived</option>
+                <option value="">{t('All statuses')}</option>
+                <option value="NEW">{t('New')}</option>
+                <option value="PROCESSED">{t('Processed')}</option>
+                <option value="ARCHIVED">{t('Archived')}</option>
               </NativeSelect>
             )}
           </Field>
         </div>
         <div className="lg:w-52">
-          <Field label="Category">
+          <Field label={t('Category')}>
             {(p) => (
               <NativeSelect
                 value={category}
@@ -257,10 +274,10 @@ export default function FeedbackAnalysisPage() {
                 }}
                 {...p}
               >
-                <option value="">All categories</option>
+                <option value="">{t('All categories')}</option>
                 {FEEDBACK_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
-                    {c.label}
+                    {t(c.label)}
                   </option>
                 ))}
               </NativeSelect>
@@ -268,7 +285,7 @@ export default function FeedbackAnalysisPage() {
           </Field>
         </div>
         <Button type="submit" variant="secondary">
-          <Search aria-hidden="true" /> Search
+          <Search aria-hidden="true" /> {t('Search')}
         </Button>
       </form>
 
@@ -279,23 +296,23 @@ export default function FeedbackAnalysisPage() {
         <Card>
           <EmptyState
             icon={MessageSquareText}
-            title="No feedback found"
-            description="Try different filters."
+            title={t('No feedback found')}
+            description={t('Try different filters.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Feedback">
+            <Table aria-label={t('Feedback')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>From</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('Date')}</TableHead>
+                  <TableHead>{t('From')}</TableHead>
+                  <TableHead>{t('Category')}</TableHead>
+                  <TableHead>{t('Message')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Actions</span>
+                    <span className="sr-only">{t('Actions')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -314,21 +331,23 @@ export default function FeedbackAnalysisPage() {
                       <span className="line-clamp-2">{f.message}</span>
                       {f.forwardToMaintenance && (
                         <Badge variant="hearing" className="mt-1">
-                          Forwarded to maintenance
+                          {t('Forwarded to maintenance')}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={STATUS[f.status].variant}>{STATUS[f.status].label}</Badge>
+                      <Badge variant={STATUS[f.status].variant}>{t(STATUS[f.status].label)}</Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() => setOpen(f.id)}
-                        aria-label={`Review feedback from ${f.user?.name ?? 'user'}`}
+                        aria-label={t('Review feedback from {{name}}', {
+                          name: f.user?.name ?? t('a user'),
+                        })}
                       >
-                        Review
+                        {t('Review')}
                       </Button>
                     </TableCell>
                   </TableRow>

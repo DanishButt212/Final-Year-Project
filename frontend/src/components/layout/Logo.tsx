@@ -23,6 +23,7 @@ export function Logo({
   urdu = false,
   sealRef,
   sealHidden = false,
+  wordmarkClassName,
 }: {
   to?: string;
   className?: string;
@@ -31,6 +32,8 @@ export function Logo({
   urdu?: boolean;
   sealRef?: Ref<HTMLSpanElement>;
   sealHidden?: boolean;
+  /** For example "hidden sm:inline-flex" where the header is tight on phones. */
+  wordmarkClassName?: string;
 }) {
   const { t } = useTranslation();
   return (
@@ -50,7 +53,7 @@ export function Logo({
       >
         <SealLogo size={sealSize} title="" />
       </span>
-      <Wordmark tone={tone} urdu={urdu} />
+      <Wordmark tone={tone} urdu={urdu} className={wordmarkClassName} />
     </Link>
   );
 }

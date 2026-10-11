@@ -2,6 +2,7 @@ import * as React from 'react';
 import { inputClasses } from '@/components/ui/input';
 import { toLocalPhone, toStoredPhone } from '@/lib/phone';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type Props = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -20,6 +21,7 @@ const nativeValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 
  */
 export const PhoneInput = React.forwardRef<HTMLInputElement, Props>(
   ({ className, name, onChange, onBlur, value, disabled, ...props }, ref) => {
+    const { t } = useTranslation();
     const [local, setLocal] = React.useState(() => toLocalPhone(value ?? ''));
     const visible = React.useRef<HTMLInputElement | null>(null);
 
@@ -49,7 +51,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, Props>(
     );
 
     return (
-      <div className={cn('flex', className)}>
+      <div className={cn('flex', className)} dir="ltr">
         <span
           aria-hidden="true"
           className="inline-flex min-h-10 items-center rounded-l-md border border-r-0 border-border bg-background px-3 font-mono text-base text-text-muted"
@@ -61,7 +63,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, Props>(
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
-          placeholder="3XX XXXXXXX"
+          placeholder={t('3XX XXXXXXX')}
           disabled={disabled}
           value={local}
           className={cn(inputClasses, 'rounded-l-none font-mono')}

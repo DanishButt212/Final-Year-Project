@@ -19,6 +19,7 @@ import { parseApiError } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { caseSummonsApi } from '@/lib/summons-api';
 import { OverdueBadge, SummonsStatusBadge } from '@/pages/server/badges';
+import { useTranslation } from 'react-i18next';
 
 function JudgeImage({
   id,
@@ -68,6 +69,7 @@ export default function SummonsPanel({
   ucn: string;
   judge?: boolean;
 }) {
+  const { t } = useTranslation();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['case-summons', caseId],
     queryFn: () => caseSummonsApi.list(caseId),
@@ -80,24 +82,26 @@ export default function SummonsPanel({
       <Card>
         <EmptyState
           icon={ScrollText}
-          title="No summons or notices"
-          description="Summons and notices issued by the court registry for this case appear here."
+          title={t('No summons or notices')}
+          description={t(
+            'Summons and notices issued by the court registry for this case appear here.',
+          )}
         />
       </Card>
     );
   }
   return (
     <div className="space-y-4">
-      <Table aria-label="Summons and notices">
+      <Table aria-label={t('Summons and notices')}>
         <TableHeader>
           <TableRow>
-            <TableHead>Recipient</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Attempts</TableHead>
-            <TableHead>Last attempt</TableHead>
-            <TableHead>Executed</TableHead>
-            <TableHead>Proof</TableHead>
+            <TableHead>{t('Recipient')}</TableHead>
+            <TableHead>{t('Type')}</TableHead>
+            <TableHead>{t('Status')}</TableHead>
+            <TableHead className="text-end">{t('Attempts')}</TableHead>
+            <TableHead>{t('Last attempt')}</TableHead>
+            <TableHead>{t('Executed')}</TableHead>
+            <TableHead>{t('Proof')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -118,14 +122,14 @@ export default function SummonsPanel({
                   <p className="mt-1 text-sm text-text-muted">{s.serviceAddress}</p>
                 )}
               </TableCell>
-              <TableCell>{s.noticeType === 'NOTICE' ? 'Notice' : 'Summons'}</TableCell>
+              <TableCell>{s.noticeType === 'NOTICE' ? t('Notice') : t('Summons')}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
                   <SummonsStatusBadge status={s.status} />
                   <OverdueBadge overdue={s.overdue} />
                 </div>
               </TableCell>
-              <TableCell className="text-right">{s.attemptCount}</TableCell>
+              <TableCell className="text-end">{s.attemptCount}</TableCell>
               <TableCell className="whitespace-nowrap">{formatDate(s.lastAttemptAt)}</TableCell>
               <TableCell className="whitespace-nowrap">{formatDate(s.executedAt)}</TableCell>
               <TableCell>
@@ -140,7 +144,7 @@ export default function SummonsPanel({
                           .catch((e) => toast.error(parseApiError(e).message))
                       }
                     >
-                      <Download aria-hidden="true" /> Download Proof of Service
+                      <Download aria-hidden="true" /> {t('Download Proof of Service')}
                     </Button>
                     {judge && s.proof && (
                       <>
@@ -150,9 +154,11 @@ export default function SummonsPanel({
                           {Math.round(Number(s.proof.accuracyM))} m)
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {s.proof.hasPhoto && <JudgeImage id={s.id} kind="photo" label="Photo" />}
+                          {s.proof.hasPhoto && (
+                            <JudgeImage id={s.id} kind="photo" label={t('Photo')} />
+                          )}
                           {s.proof.hasSignature && (
-                            <JudgeImage id={s.id} kind="signature" label="Signature" />
+                            <JudgeImage id={s.id} kind="signature" label={t('Signature')} />
                           )}
                         </div>
                       </>

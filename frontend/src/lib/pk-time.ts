@@ -13,7 +13,13 @@ const formatter = new Intl.DateTimeFormat('en-GB', {
 export function pkParts(d: Date = new Date()) {
   const parts = formatter.formatToParts(d);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '00';
-  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') };
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour'),
+    minute: get('minute'),
+  };
 }
 
 /** YYYY-MM-DD in Pakistan. */

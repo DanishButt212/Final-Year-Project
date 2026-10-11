@@ -1,3 +1,4 @@
+import { translateNotice } from '@/lib/server-messages';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, CheckCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -18,11 +19,13 @@ import { notificationLink } from '@/lib/scheduling-api';
 import { Link } from 'react-router';
 import { cn } from '@/lib/utils';
 import { humanizeCodes } from '@/lib/labels';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 15;
 
 /** Full list of the signed-in user's in-app notifications. */
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -41,9 +44,9 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader
-        title="Notifications"
-        description="Updates about your cases and account."
-        crumbs={[{ label: 'Dashboard', to: roleHome(user.role) }, { label: 'Notifications' }]}
+        title={t('Notifications')}
+        description={t('Updates about your cases and account.')}
+        crumbs={[{ label: t('Dashboard'), to: roleHome(user.role) }, { label: t('Notifications') }]}
         actions={
           <Button
             variant="secondary"
@@ -51,23 +54,23 @@ export default function NotificationsPage() {
             disabled={!data || data.unreadCount === 0}
             loading={markAll.isPending}
           >
-            <CheckCheck aria-hidden="true" /> Mark all as read
+            <CheckCheck aria-hidden="true" /> {t('Mark all as read')}
           </Button>
         }
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
-        <div role="status" aria-label="Loading notifications" className="space-y-3">
+        <div role="status" aria-label={t('Loading notifications')} className="space-y-3">
           <Skeleton className="h-16" />
           <Skeleton className="h-16" />
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only">{t('Loading…')}</span>
         </div>
       ) : data && data.data.length === 0 ? (
         <Card>
           <EmptyState
             icon={Bell}
-            title="No notifications yet"
-            description="When something happens in your cases, it will show here."
+            title={t('No notifications yet')}
+            description={t('When something happens in your cases, it will show here.')}
           />
         </Card>
       ) : (
@@ -88,15 +91,17 @@ export default function NotificationsPage() {
                         {!n.readAt && (
                           <>
                             <span
-                              className="mr-2 inline-block size-2 rounded-full bg-primary align-middle"
+                              className="me-2 inline-block size-2 rounded-full bg-primary align-middle"
                               aria-hidden="true"
                             />
-                            <span className="sr-only">Unread: </span>
+                            <span className="sr-only">{t('Unread:')} </span>
                           </>
                         )}
-                        {humanizeCodes(n.title)}
+                        {humanizeCodes(translateNotice(n.title, n.titleKey, n.params))}
                       </p>
-                      <p className="break-words text-text-muted">{humanizeCodes(n.body)}</p>
+                      <p className="break-words text-text-muted">
+                        {humanizeCodes(translateNotice(n.body, n.bodyKey, n.params))}
+                      </p>
                       <p className="mt-1 text-sm text-text-muted">{formatDateTime(n.createdAt)}</p>
                       {notificationLink(n.type, user.role) && (
                         <Link
@@ -104,8 +109,8 @@ export default function NotificationsPage() {
                           className="mt-1 inline-block text-sm font-semibold"
                         >
                           {n.type === 'CAUSE_LIST_PUBLISHED'
-                            ? 'Open cause lists'
-                            : 'Open hearing schedule'}
+                            ? t('Open cause lists')
+                            : t('Open hearing schedule')}
                         </Link>
                       )}
                     </div>
@@ -114,9 +119,11 @@ export default function NotificationsPage() {
                         variant="secondary"
                         size="sm"
                         onClick={() => markRead.mutate(n.id)}
-                        aria-label={`Mark "${n.title}" as read`}
+                        aria-label={t('Mark "{{title}}" as read', {
+                          title: translateNotice(n.title, n.titleKey, n.params),
+                        })}
                       >
-                        Mark as read
+                        {t('Mark as read')}
                       </Button>
                     )}
                   </li>

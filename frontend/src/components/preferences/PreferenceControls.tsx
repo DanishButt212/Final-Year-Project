@@ -24,6 +24,7 @@ const itemClass = (tone: Tone, active: boolean) =>
   );
 
 const OPTIONS: { lng: Language; label: string }[] = [
+  // i18n-ignore
   { lng: 'en', label: 'English' },
   { lng: 'ur', label: 'اردو' },
 ];

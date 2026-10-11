@@ -19,6 +19,7 @@ import { parseApiError } from '@/lib/api';
 import { DECISION_LABEL, type DecisionType } from '@/lib/cases-api';
 import { judgeApi } from '@/lib/phase4e-api';
 import { formatDate } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 
 const refresh = (qc: ReturnType<typeof useQueryClient>) =>
   Promise.all([
@@ -34,6 +35,7 @@ export function OutcomeDialog({
   hearing: { id: string; date: string };
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [status, setStatus] = useState<'COMPLETED' | 'ADJOURNED'>('COMPLETED');
   const [notes, setNotes] = useState('');
@@ -58,8 +60,8 @@ export function OutcomeDialog({
     e.preventDefault();
     const len = notes.trim().length;
     if (len < 10 || len > 2000) {
-      setError('Order notes must be between 10 and 2000 characters.');
-      return setFormError('Please correct the highlighted fields.');
+      setError(t('Order notes must be between 10 and 2000 characters.'));
+      return setFormError(t('Please correct the highlighted fields.'));
     }
     setError(null);
     setFormError(null);
@@ -71,8 +73,10 @@ export function OutcomeDialog({
       <DialogContent>
         <form noValidate onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Record outcome</DialogTitle>
-            <DialogDescription>Hearing of {formatDate(hearing.date)}.</DialogDescription>
+            <DialogTitle>{t('Record outcome')}</DialogTitle>
+            <DialogDescription>
+              {t('Hearing of {{date}}.', { date: formatDate(hearing.date) })}
+            </DialogDescription>
           </DialogHeader>
           {formError && (
             <Alert variant="error" className="mb-3">
@@ -80,23 +84,23 @@ export function OutcomeDialog({
             </Alert>
           )}
           <div className="space-y-4">
-            <Field label="Outcome" required>
+            <Field label={t('Outcome')} required>
               {(p) => (
                 <NativeSelect
                   {...p}
                   value={status}
                   onChange={(e) => setStatus(e.target.value as typeof status)}
                 >
-                  <option value="COMPLETED">Completed</option>
-                  <option value="ADJOURNED">Adjourned (a new date is needed)</option>
+                  <option value="COMPLETED">{t('Completed')}</option>
+                  <option value="ADJOURNED">{t('Adjourned (a new date is needed)')}</option>
                 </NativeSelect>
               )}
             </Field>
             <Field
-              label="Order notes"
+              label={t('Order notes')}
               required
               error={error ?? undefined}
-              hint="10 to 2000 characters. Visible to the parties on the hearing record."
+              hint={t('10 to 2000 characters. Visible to the parties on the hearing record.')}
             >
               {(p) => (
                 <Textarea
@@ -111,10 +115,10 @@ export function OutcomeDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={onClose} disabled={save.isPending}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" loading={save.isPending}>
-              Save outcome
+              {t('Save outcome')}
             </Button>
           </DialogFooter>
         </form>
@@ -133,6 +137,7 @@ export function DecideDialog({
   ucn: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [type, setType] = useState<DecisionType>('JUDGMENT');
   const [text, setText] = useState('');
@@ -159,8 +164,8 @@ export function DecideDialog({
     e.preventDefault();
     const len = text.trim().length;
     if (len < 20 || len > 5000) {
-      setError('The order must be between 20 and 5000 characters.');
-      return setFormError('Please correct the highlighted fields.');
+      setError(t('The order must be between 20 and 5000 characters.'));
+      return setFormError(t('Please correct the highlighted fields.'));
     }
     setError(null);
     setFormError(null);
@@ -174,14 +179,14 @@ export function DecideDialog({
           <>
             <DialogHeader>
               <DialogTitle>
-                Decide {ucn} as {DECISION_LABEL[type]}?
+                {t('Decide {{ucn}} as {{item}}?', { ucn, item: DECISION_LABEL[type] })}
               </DialogTitle>
-              <DialogDescription>This decision is final.</DialogDescription>
+              <DialogDescription>{t('This decision is final.')}</DialogDescription>
             </DialogHeader>
             <Alert variant="error">
-              Once recorded, the case is closed and cannot be changed, re-allocated or reopened. All
-              future hearings are cancelled and their slots released, every exhibit is locked, and
-              the filer and the lawyers are notified.
+              {t(
+                'Once recorded, the case is closed and cannot be changed, re-allocated or reopened. All future hearings are cancelled and their slots released, every exhibit is locked, and the filer and the lawyers are notified.',
+              )}
             </Alert>
             <DialogFooter>
               <Button
@@ -189,23 +194,26 @@ export function DecideDialog({
                 onClick={() => setConfirming(false)}
                 disabled={decide.isPending}
               >
-                Go back
+                {t('Go back')}
               </Button>
               <Button
                 variant="destructive"
                 loading={decide.isPending}
                 onClick={() => decide.mutate()}
               >
-                <Gavel aria-hidden="true" /> Record final decision
+                <Gavel aria-hidden="true" /> {t('Record final decision')}
               </Button>
             </DialogFooter>
           </>
         ) : (
           <form noValidate onSubmit={review}>
             <DialogHeader>
-              <DialogTitle>Decide case</DialogTitle>
+              <DialogTitle>{t('Decide case')}</DialogTitle>
               <DialogDescription>
-                {ucn}. You can decide a case only after at least one hearing has taken place.
+                {t(
+                  '{{ucn}}. You can decide a case only after at least one hearing has taken place.',
+                  { ucn },
+                )}
               </DialogDescription>
             </DialogHeader>
             {formError && (
@@ -214,24 +222,24 @@ export function DecideDialog({
               </Alert>
             )}
             <div className="space-y-4">
-              <Field label="Decision type" required>
+              <Field label={t('Decision type')} required>
                 {(p) => (
                   <NativeSelect
                     {...p}
                     value={type}
                     onChange={(e) => setType(e.target.value as DecisionType)}
                   >
-                    <option value="JUDGMENT">Judgment</option>
-                    <option value="DISMISSED">Dismissed</option>
-                    <option value="DISPOSED">Disposed</option>
+                    <option value="JUDGMENT">{t('Judgment')}</option>
+                    <option value="DISMISSED">{t('Dismissed')}</option>
+                    <option value="DISPOSED">{t('Disposed')}</option>
                   </NativeSelect>
                 )}
               </Field>
               <Field
-                label="Order"
+                label={t('Order')}
                 required
                 error={error ?? undefined}
-                hint="20 to 5000 characters."
+                hint={t('20 to 5000 characters.')}
               >
                 {(p) => (
                   <Textarea
@@ -246,9 +254,9 @@ export function DecideDialog({
             </div>
             <DialogFooter>
               <Button type="button" variant="secondary" onClick={onClose}>
-                Cancel
+                {t('Cancel')}
               </Button>
-              <Button type="submit">Review decision</Button>
+              <Button type="submit">{t('Review decision')}</Button>
             </DialogFooter>
           </form>
         )}

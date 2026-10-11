@@ -1,11 +1,13 @@
+import i18n, { msg } from '@/i18n';
 /** Default until /settings/public answers; the administrator can change it (UC-2.3). */
 export const DEFAULT_MAX_MB = 25;
 export const MAX_PDF_BYTES = DEFAULT_MAX_MB * 1024 * 1024;
 export const MAX_FILES = 10;
+/** "Only PDF format files under 25MB are allowed." in the current language (the exact report text in English). */
 export const invalidFileMessage = (maxMb: number) =>
-  `Only PDF format files under ${maxMb}MB are allowed.`;
+  i18n.t('Only PDF format files under {{maxMb}}MB are allowed.', { maxMb });
 export const INVALID_FILE_MESSAGE = invalidFileMessage(DEFAULT_MAX_MB);
-export const TOO_MANY_FILES_MESSAGE = 'You can attach at most 10 files at a time.';
+export const TOO_MANY_FILES_MESSAGE = msg('You can attach at most 10 files at a time.');
 
 export interface FileCheck {
   accepted: File[];

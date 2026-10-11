@@ -69,6 +69,10 @@ export const settingsApi = {
 // ---------------------------------------------------------------- notifications
 
 export interface AppNotification {
+  /** English templates and their values (UX upgrade); null on notifications created before it. */
+  titleKey?: string | null;
+  bodyKey?: string | null;
+  params?: Record<string, string | number> | null;
   id: string;
   type: string;
   title: string;

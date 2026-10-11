@@ -34,6 +34,7 @@ import { formatDate } from '@/lib/format';
 import { ROLE_LABEL } from '@/lib/navigation';
 import type { Role } from '@/lib/types';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const AXIS = { fontSize: 12, fill: 'var(--color-text-muted)' };
 const dayLabel = (iso: string) => `${iso.slice(8, 10)}-${iso.slice(5, 7)}`;
@@ -130,19 +131,26 @@ function uptime(seconds: number) {
 }
 
 function HealthCard({ health }: { health: DashboardStats['health'] }) {
+  const { t } = useTranslation();
   const rows: [string, string][] = [
-    ['Server uptime', uptime(health.uptimeSeconds)],
-    ['Database', health.database === 'up' ? 'Connected' : 'Unreachable'],
-    ['Database ping', `${health.databaseLatencyMs} ms`],
-    ['Server memory (RSS)', `${health.memory.rssMb} MB`],
-    ['Heap in use', `${health.memory.heapUsedMb} of ${health.memory.heapTotalMb} MB`],
-    ['Host memory in use', `${health.memory.systemUsedPercent}%`],
+    [t('Server uptime'), uptime(health.uptimeSeconds)],
+    [t('Database'), health.database === 'up' ? t('Connected') : t('Unreachable')],
+    [t('Database ping'), `${health.databaseLatencyMs} ms`],
+    [t('Server memory (RSS)'), `${health.memory.rssMb} MB`],
+    [
+      t('Heap in use'),
+      t('{{heapUsedMb}} of {{heapTotalMb}} MB', {
+        heapUsedMb: health.memory.heapUsedMb,
+        heapTotalMb: health.memory.heapTotalMb,
+      }),
+    ],
+    [t('Host memory in use'), `${health.memory.systemUsedPercent}%`],
   ];
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Activity className="size-5 text-primary" aria-hidden="true" /> System health
+          <Activity className="size-5 text-primary" aria-hidden="true" /> {t('System health')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -161,6 +169,7 @@ function HealthCard({ health }: { health: DashboardStats['health'] }) {
 
 /** UC-1.3: Centralized Operations & Analytics Board. */
 export default function AnalyticsBoard() {
+  const { t } = useTranslation();
   const [courtId, setCourtId] = useState('');
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['admin', 'stats', courtId],
@@ -172,25 +181,25 @@ export default function AnalyticsBoard() {
   const statusData = data
     ? (Object.keys(data.cases.byStatus) as CaseStatus[])
         .filter((s) => data.cases.byStatus[s] > 0)
-        .map((s) => ({ status: STATUS_BADGES[s].label, count: data.cases.byStatus[s] }))
+        .map((s) => ({ status: t(STATUS_BADGES[s].label), count: data.cases.byStatus[s] }))
     : [];
   const filedTotal = data?.cases.filedPerDay.reduce((a, d) => a + d.count, 0) ?? 0;
   const decidedTotal = data?.cases.decidedPerDay.reduce((a, d) => a + d.count, 0) ?? 0;
 
   return (
-    <section aria-label="Operations and analytics" className="space-y-6">
+    <section aria-label={t('Operations and analytics')} className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold">Centralized Operations & Analytics Board</h2>
+          <h2 className="text-xl font-bold">{t('Centralized Operations & Analytics Board')}</h2>
           <p className="text-text-muted">
-            Live metrics. The court filter applies to case and document figures.
+            {t('Live metrics. The court filter applies to case and document figures.')}
           </p>
         </div>
         <div className="w-full sm:w-72">
-          <Field label="Court precinct">
+          <Field label={t('Court precinct')}>
             {(p) => (
               <NativeSelect value={courtId} onChange={(e) => setCourtId(e.target.value)} {...p}>
-                <option value="">All courts</option>
+                <option value="">{t('All courts')}</option>
                 {data?.courts.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -205,7 +214,7 @@ export default function AnalyticsBoard() {
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
 
       {isPending ? (
-        <div role="status" aria-label="Loading analytics" className="space-y-6">
+        <div role="status" aria-label={t('Loading analytics')} className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[0, 1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-24" />
@@ -215,35 +224,44 @@ export default function AnalyticsBoard() {
             <Skeleton className="h-80" />
             <Skeleton className="h-80" />
           </div>
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only">{t('Loading…')}</span>
         </div>
       ) : (
         data && (
           <>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <Stat icon={Scale} label="Total cases" value={data.cases.total} />
+              <Stat icon={Scale} label={t('Total cases')} value={data.cases.total} />
               <Stat
                 icon={Hourglass}
-                label="Pending assignment"
+                label={t('Pending assignment')}
                 value={data.cases.pendingAssignment}
               />
-              <Stat icon={Activity} label="Active (allocated) cases" value={data.cases.active} />
+              <Stat
+                icon={Activity}
+                label={t('Active (allocated) cases')}
+                value={data.cases.active}
+              />
               <Stat
                 icon={FileStack}
-                label="Documents"
+                label={t('Documents')}
                 value={data.documents.total}
-                hint={`${data.documents.attachedLast7Days} attached in the last 7 days`}
+                hint={t('{{attachedLast7Days}} attached in the last 7 days', {
+                  attachedLast7Days: data.documents.attachedLast7Days,
+                })}
               />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-2">
               <ChartCard
-                title="Cases by status"
-                description="Number of cases in each stage."
-                summary={`Cases by status: ${statusData.map((d) => `${d.status} ${d.count}`).join(', ') || 'no cases'}`}
+                title={t('Cases by status')}
+                description={t('Number of cases in each stage.')}
+                summary={t('Cases by status: {{value}}', {
+                  value:
+                    statusData.map((d) => `${d.status} ${d.count}`).join(', ') || t('no cases'),
+                })}
               >
                 {statusData.length === 0 ? (
-                  <EmptyState icon={Inbox} title="No cases yet" />
+                  <EmptyState icon={Inbox} title={t('No cases yet')} />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
@@ -267,7 +285,10 @@ export default function AnalyticsBoard() {
                       />
                       <Tooltip
                         cursor={{ fill: 'var(--color-primary-soft)' }}
-                        contentStyle={{ borderRadius: 6, border: '1px solid var(--color-border)' }}
+                        contentStyle={{
+                          borderRadius: 6,
+                          border: '1px solid var(--color-border)',
+                        }}
                       />
                       <Bar
                         dataKey="count"
@@ -281,44 +302,49 @@ export default function AnalyticsBoard() {
               </ChartCard>
 
               <ChartCard
-                title="Cases filed per day"
-                description="Last 30 days."
-                summary={`Cases filed per day over the last 30 days: ${filedTotal} in total`}
+                title={t('Cases filed per day')}
+                description={t('Last 30 days.')}
+                summary={t('Cases filed per day over the last 30 days: {{filedTotal}} in total', {
+                  filedTotal,
+                })}
               >
                 <DailyLine
                   data={data.cases.filedPerDay}
-                  color="var(--color-chart-2)"
-                  label="Filed"
+                  color={'var(--color-chart-2)'}
+                  label={t('Filed')}
                 />
               </ChartCard>
 
               <ChartCard
-                title="Cases decided per day (clearing rate)"
-                description="Last 30 days."
-                summary={`Cases decided per day over the last 30 days: ${decidedTotal} in total`}
+                title={t('Cases decided per day (clearing rate)')}
+                description={t('Last 30 days.')}
+                summary={t(
+                  'Cases decided per day over the last 30 days: {{decidedTotal}} in total',
+                  { decidedTotal },
+                )}
               >
                 <DailyLine
                   data={data.cases.decidedPerDay}
-                  color="var(--color-chart-1)"
-                  label="Decided"
+                  color={'var(--color-chart-1)'}
+                  label={t('Decided')}
                 />
               </ChartCard>
 
               <Card>
                 <CardHeader className="flex-row items-center justify-between">
-                  <CardTitle>Pending allocation</CardTitle>
+                  <CardTitle>{t('Pending allocation')}</CardTitle>
                   <Link
                     to="/admin/cases?status=PENDING_ASSIGNMENT"
                     className="text-sm font-semibold"
                   >
-                    Open Case Registry
+                    {t('Open Case Registry')}
                   </Link>
                 </CardHeader>
                 {data.pendingAssignmentList.length === 0 ? (
                   <EmptyState
                     icon={Inbox}
-                    title="Nothing waiting"
-                    description="Every registered case has been allocated to a judge."
+                    title={t('Nothing waiting')}
+                    description={t('Every registered case has been allocated to a judge.')}
                   />
                 ) : (
                   <ul className="divide-y divide-border">
@@ -334,10 +360,16 @@ export default function AnalyticsBoard() {
                             </span>
                             <span className="block break-words font-semibold">{c.title}</span>
                             <span className="block text-sm text-text-muted">
-                              {caseTypeLabel(c.caseType)} · Filed {formatDate(c.filingDate)}
+                              {t('{{caseTypeLabel}} · Filed {{date}}', {
+                                caseTypeLabel: caseTypeLabel(c.caseType),
+                                date: formatDate(c.filingDate),
+                              })}
                             </span>
                           </span>
-                          <ArrowRight className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                          <ArrowRight
+                            className="size-4 shrink-0 text-primary rtl:-scale-x-100"
+                            aria-hidden="true"
+                          />
                         </Link>
                       </li>
                     ))}
@@ -351,14 +383,14 @@ export default function AnalyticsBoard() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="size-5 text-primary" aria-hidden="true" /> Accounts
+                    <Users className="size-5 text-primary" aria-hidden="true" /> {t('Accounts')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
                     {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
                       <div key={r}>
-                        <dt className="text-sm text-text-muted">{ROLE_LABEL[r]}</dt>
+                        <dt className="text-sm text-text-muted">{t(ROLE_LABEL[r])}</dt>
                         <dd className="font-semibold">{data.users.byRole[r] ?? 0}</dd>
                       </div>
                     ))}
@@ -368,8 +400,11 @@ export default function AnalyticsBoard() {
                     className="flex items-center gap-2 rounded-md border border-border p-3 font-semibold text-text no-underline hover:bg-primary-soft"
                   >
                     <UserCheck className="size-5 text-primary" aria-hidden="true" />
-                    {data.pendingLawyerApprovals} lawyer{' '}
-                    {data.pendingLawyerApprovals === 1 ? 'approval' : 'approvals'} pending
+                    {data.pendingLawyerApprovals === 1
+                      ? t('1 lawyer approval pending')
+                      : t('{{count}} lawyer approvals pending', {
+                          count: data.pendingLawyerApprovals,
+                        })}
                   </Link>
                 </CardContent>
               </Card>

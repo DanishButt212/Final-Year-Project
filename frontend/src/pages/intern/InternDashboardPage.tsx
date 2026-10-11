@@ -11,9 +11,11 @@ import { internApi } from '@/lib/chamber-api';
 import { formatDate } from '@/lib/format';
 import { LogStatusBadge } from '@/pages/chamber/InternsPages';
 import { StatCard } from '@/pages/chamber/shared';
+import { useTranslation } from 'react-i18next';
 
 /** Intern dashboard: attendance days, entries, pending reviews and the latest review results. */
 export default function InternDashboardPage() {
+  const { t } = useTranslation();
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['intern', 'summary'],
     queryFn: internApi.summary,
@@ -22,16 +24,16 @@ export default function InternDashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
+        title={t('Dashboard')}
         description={
           data?.chamberName
-            ? `Your internship at ${data.chamberName}.`
-            : 'Your diary, attendance and progress.'
+            ? t('Your internship at {{chamberName}}.', { chamberName: data.chamberName })
+            : t('Your diary, attendance and progress.')
         }
         actions={
           <Button asChild>
             <Link to="/intern/attendance">
-              <MapPin aria-hidden="true" /> Attendance
+              <MapPin aria-hidden="true" /> {t('Attendance')}
             </Link>
           </Button>
         }
@@ -44,29 +46,31 @@ export default function InternDashboardPage() {
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
-                label="Days attended this month"
+                label={t('Days attended this month')}
                 value={data.daysThisMonth}
                 icon={CalendarCheck}
-                hint={data.checkedInToday ? 'Checked in today' : 'Not checked in today'}
+                hint={data.checkedInToday ? t('Checked in today') : t('Not checked in today')}
               />
-              <StatCard label="Research logs" value={data.entries} icon={NotebookPen} />
-              <StatCard label="Awaiting review" value={data.pendingReviews} icon={Hourglass} />
-              <StatCard label="Approved logs" value={data.approved} icon={NotebookPen} />
+              <StatCard label={t('Research logs')} value={data.entries} icon={NotebookPen} />
+              <StatCard label={t('Awaiting review')} value={data.pendingReviews} icon={Hourglass} />
+              <StatCard label={t('Approved logs')} value={data.approved} icon={NotebookPen} />
             </div>
             <Card>
               <CardHeader>
-                <CardTitle>Recent reviews</CardTitle>
+                <CardTitle>{t('Recent reviews')}</CardTitle>
               </CardHeader>
               <CardContent>
                 {data.recentReviews.length === 0 ? (
-                  <p className="text-text-muted">Your supervisor has not reviewed any log yet.</p>
+                  <p className="text-text-muted">
+                    {t('Your supervisor has not reviewed any log yet.')}
+                  </p>
                 ) : (
                   <ul className="divide-y divide-border">
                     {data.recentReviews.map((l) => (
                       <li key={l.id} className="space-y-1 py-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <span>
-                            <span className="case-number font-medium">{l.ucn ?? 'No case'}</span>{' '}
+                            <span className="case-number font-medium">{l.ucn ?? t('No case')}</span>{' '}
                             <span className="text-text-muted">{formatDate(l.reviewedAt)}</span>
                           </span>
                           <LogStatusBadge status={l.status} />
@@ -80,7 +84,7 @@ export default function InternDashboardPage() {
                   </ul>
                 )}
                 <Button asChild variant="secondary" className="mt-4">
-                  <Link to="/intern/research-logs">Open research logs</Link>
+                  <Link to="/intern/research-logs">{t('Open research logs')}</Link>
                 </Button>
               </CardContent>
             </Card>

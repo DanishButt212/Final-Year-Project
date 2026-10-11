@@ -29,11 +29,13 @@ import { caseTypeLabel, judgeBench, STATUS_BADGES, type CaseStatus } from '@/lib
 import { formatDate } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { MESSAGES } from '@/lib/schemas';
+import { useTranslation } from 'react-i18next';
 
 const PAGE_SIZE = 10;
 
 /** UC-2.3: the caller's case portfolio. */
 export default function PortfolioPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const gate = useFilingGate();
@@ -69,22 +71,24 @@ export default function PortfolioPage() {
   return (
     <>
       <PageHeader
-        title="My Case Portfolio"
-        description="Every case you filed or appear in, with its current judge bench and status."
+        title={t('My Case Portfolio')}
+        description={t(
+          'Every case you filed or appear in, with its current judge bench and status.',
+        )}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'My Case Portfolio' },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('My Case Portfolio') },
         ]}
         actions={
           gate.canFile ? (
             <Button asChild>
               <Link to={portalPath(portal, 'new-case')}>
-                <FilePlus2 aria-hidden="true" /> New Case Submission
+                <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
               </Link>
             </Button>
           ) : (
             <Button disabled title={gate.reason ?? undefined}>
-              <FilePlus2 aria-hidden="true" /> New Case Submission
+              <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
             </Button>
           )
         }
@@ -93,15 +97,15 @@ export default function PortfolioPage() {
       <form
         onSubmit={onSearch}
         role="search"
-        aria-label="Search cases"
+        aria-label={t('Search cases')}
         className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end"
       >
         <div className="flex-1">
-          <Field label="Search by case number or title">
+          <Field label={t('Search by case number or title')}>
             {(p) => (
               <Input
                 type="search"
-                placeholder="For example DA-2026-CIV or Muhammad Ali"
+                placeholder={t('For example DA-2026-CIV or Muhammad Ali')}
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 {...p}
@@ -110,7 +114,7 @@ export default function PortfolioPage() {
           </Field>
         </div>
         <div className="sm:w-56">
-          <Field label="Status">
+          <Field label={t('Status')}>
             {(p) => (
               <NativeSelect
                 value={status}
@@ -120,10 +124,10 @@ export default function PortfolioPage() {
                 }}
                 {...p}
               >
-                <option value="">All statuses</option>
+                <option value="">{t('All statuses')}</option>
                 {(Object.keys(STATUS_BADGES) as CaseStatus[]).map((s) => (
                   <option key={s} value={s}>
-                    {STATUS_BADGES[s].label}
+                    {t(STATUS_BADGES[s].label)}
                   </option>
                 ))}
               </NativeSelect>
@@ -131,7 +135,7 @@ export default function PortfolioPage() {
           </Field>
         </div>
         <Button type="submit" variant="secondary">
-          <Search aria-hidden="true" /> Search
+          <Search aria-hidden="true" /> {t('Search')}
         </Button>
       </form>
 
@@ -143,16 +147,16 @@ export default function PortfolioPage() {
         <Card>
           <EmptyState
             icon={Briefcase}
-            title={filtering ? 'No cases match your search' : MESSAGES.emptyPortfolio}
+            title={filtering ? t('No cases match your search') : MESSAGES.emptyPortfolio}
             description={
               filtering
-                ? 'Try a different case number, title or status.'
-                : 'Cases you file will appear here, together with their full history.'
+                ? t('Try a different case number, title or status.')
+                : t('Cases you file will appear here, together with their full history.')
             }
             action={
               !filtering && (
                 <Button asChild>
-                  <Link to={portalPath(portal, 'new-case')}>New Case Submission</Link>
+                  <Link to={portalPath(portal, 'new-case')}>{t('New Case Submission')}</Link>
                 </Button>
               )
             }
@@ -161,15 +165,15 @@ export default function PortfolioPage() {
       ) : (
         data && (
           <>
-            <Table aria-label="Case portfolio">
+            <Table aria-label={t('Case portfolio')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Case number</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Case type</TableHead>
-                  <TableHead>Judge bench</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Filing date</TableHead>
+                  <TableHead>{t('Case number')}</TableHead>
+                  <TableHead>{t('Title')}</TableHead>
+                  <TableHead>{t('Case type')}</TableHead>
+                  <TableHead>{t('Judge bench')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
+                  <TableHead>{t('Filing date')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, ShieldCheck, ShieldAlert, Download, History } from 'lucide-react';
 import { useState } from 'react';
@@ -42,8 +43,24 @@ import {
   type ReportVerification,
 } from '@/lib/phase4e-api';
 import { ExportMenu } from './ExportMenu';
+import { useTranslation } from 'react-i18next';
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+import { msg } from '@/i18n';
+
+const MONTHS = [
+  msg('Jan'),
+  msg('Feb'),
+  msg('Mar'),
+  msg('Apr'),
+  msg('May'),
+  msg('Jun'),
+  msg('Jul'),
+  msg('Aug'),
+  msg('Sep'),
+  msg('Oct'),
+  msg('Nov'),
+  msg('Dec'),
+];
 const AXIS = { fontSize: 12, fill: 'var(--color-text-muted)' };
 const pct = (n: number | null) => (n === null ? 'n/a' : `${n}%`);
 const num = (n: number | null) => (n === null ? 'n/a' : String(n));
@@ -61,32 +78,33 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 function BucketTable({ title, first, rows }: { title: string; first: string; rows: Bucket[] }) {
+  const { t } = useTranslation();
   return (
     <section aria-label={title} className="space-y-2">
       <h3 className="font-heading text-base font-bold">{title}</h3>
       {rows.length === 0 ? (
-        <p className="text-sm text-text-muted">No cases in this period.</p>
+        <p className="text-sm text-text-muted">{t('No cases in this period.')}</p>
       ) : (
         <Table aria-label={title}>
           <TableHeader>
             <TableRow>
               <TableHead>{first}</TableHead>
-              <TableHead className="text-right">Filed</TableHead>
-              <TableHead className="text-right">Decided</TableHead>
-              <TableHead className="text-right">Pending</TableHead>
-              <TableHead className="text-right">Disposal rate</TableHead>
-              <TableHead className="text-right">Avg trial days</TableHead>
+              <TableHead className="text-end">{t('Filed')}</TableHead>
+              <TableHead className="text-end">{t('Decided')}</TableHead>
+              <TableHead className="text-end">{t('Pending')}</TableHead>
+              <TableHead className="text-end">{t('Disposal rate')}</TableHead>
+              <TableHead className="text-end">{t('Avg trial days')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((b) => (
               <TableRow key={b.key}>
-                <TableCell className="font-medium">{b.label}</TableCell>
-                <TableCell className="text-right">{b.filed}</TableCell>
-                <TableCell className="text-right">{b.decided}</TableCell>
-                <TableCell className="text-right">{b.pending}</TableCell>
-                <TableCell className="text-right">{pct(b.disposalRatePercent)}</TableCell>
-                <TableCell className="text-right">{num(b.avgTrialDays)}</TableCell>
+                <TableCell className="font-medium">{translateText(b.label)}</TableCell>
+                <TableCell className="text-end">{b.filed}</TableCell>
+                <TableCell className="text-end">{b.decided}</TableCell>
+                <TableCell className="text-end">{b.pending}</TableCell>
+                <TableCell className="text-end">{pct(b.disposalRatePercent)}</TableCell>
+                <TableCell className="text-end">{num(b.avgTrialDays)}</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -97,45 +115,46 @@ function BucketTable({ title, first, rows }: { title: string; first: string; row
 }
 
 function Results({ report }: { report: PerformanceReport }) {
+  const { t } = useTranslation();
   const s = report.summary;
   const empty = s.filed === 0 && s.decided === 0 && s.pending === 0;
   return (
     <div className="space-y-6" aria-live="polite">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Stat label="Cases filed" value={String(s.filed)} hint={report.params.periodLabel} />
-        <Stat label="Cases decided" value={String(s.decided)} />
-        <Stat label="Pending at the end of the period" value={String(s.pending)} />
+        <Stat label={t('Cases filed')} value={String(s.filed)} hint={report.params.periodLabel} />
+        <Stat label={t('Cases decided')} value={String(s.decided)} />
+        <Stat label={t('Pending at the end of the period')} value={String(s.pending)} />
         <Stat
-          label="Disposal rate"
+          label={t('Disposal rate')}
           value={pct(s.disposalRatePercent)}
-          hint="Decided divided by filed"
+          hint={t('Decided divided by filed')}
         />
         <Stat
-          label="Average trial duration"
+          label={t('Average trial duration')}
           value={s.avgTrialDays === null ? 'n/a' : `${s.avgTrialDays} days`}
-          hint="Filing date to decision"
+          hint={t('Filing date to decision')}
         />
-        <Stat label="Hearings per decided case" value={num(s.avgHearingsPerDecided)} />
+        <Stat label={t('Hearings per decided case')} value={num(s.avgHearingsPerDecided)} />
       </div>
       {empty ? (
         <Card>
           <EmptyState
             icon={BarChart3}
-            title="No cases match these filters"
-            description="Widen the month range or clear the judge and court filters."
+            title={t('No cases match these filters')}
+            description={t('Widen the month range or clear the judge and court filters.')}
           />
         </Card>
       ) : (
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Filed and decided, month by month</CardTitle>
+              <CardTitle>{t('Filed and decided, month by month')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div
                 className="h-72"
                 role="img"
-                aria-label="Bar chart of cases filed and decided per month"
+                aria-label={t('Bar chart of cases filed and decided per month')}
               >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -165,21 +184,23 @@ function Results({ report }: { report: PerformanceReport }) {
                 </ResponsiveContainer>
               </div>
               <details className="mt-3 text-sm">
-                <summary className="cursor-pointer font-medium">Show the chart as a table</summary>
-                <Table aria-label="Monthly figures" className="mt-2">
+                <summary className="cursor-pointer font-medium">
+                  {t('Show the chart as a table')}
+                </summary>
+                <Table aria-label={t('Monthly figures')} className="mt-2">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Month</TableHead>
-                      <TableHead className="text-right">Filed</TableHead>
-                      <TableHead className="text-right">Decided</TableHead>
+                      <TableHead>{t('Month')}</TableHead>
+                      <TableHead className="text-end">{t('Filed')}</TableHead>
+                      <TableHead className="text-end">{t('Decided')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {report.monthly.map((m) => (
                       <TableRow key={m.month}>
-                        <TableCell>{m.label}</TableCell>
-                        <TableCell className="text-right">{m.filed}</TableCell>
-                        <TableCell className="text-right">{m.decided}</TableCell>
+                        <TableCell>{translateText(m.label)}</TableCell>
+                        <TableCell className="text-end">{m.filed}</TableCell>
+                        <TableCell className="text-end">{m.decided}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -187,9 +208,13 @@ function Results({ report }: { report: PerformanceReport }) {
               </details>
             </CardContent>
           </Card>
-          <BucketTable title="By case category" first="Category" rows={report.byCaseType} />
-          <BucketTable title="By judge bench" first="Judge" rows={report.byJudge} />
-          <BucketTable title="By court" first="Court" rows={report.byCourt} />
+          <BucketTable
+            title={t('By case category')}
+            first={t('Category')}
+            rows={report.byCaseType}
+          />
+          <BucketTable title={t('By judge bench')} first={t('Judge')} rows={report.byJudge} />
+          <BucketTable title={t('By court')} first={t('Court')} rows={report.byCourt} />
         </>
       )}
     </div>
@@ -197,6 +222,7 @@ function Results({ report }: { report: PerformanceReport }) {
 }
 
 function HistorySection() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [verdicts, setVerdicts] = useState<Record<string, ReportVerification>>({});
@@ -220,7 +246,7 @@ function HistorySection() {
   return (
     <section aria-labelledby="history-title" className="space-y-3">
       <h2 id="history-title" className="flex items-center gap-2 font-heading text-xl font-bold">
-        <History className="size-5 text-primary" aria-hidden="true" /> Report history
+        <History className="size-5 text-primary" aria-hidden="true" /> {t('Report history')}
       </h2>
       {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
@@ -229,22 +255,22 @@ function HistorySection() {
         <Card>
           <EmptyState
             icon={History}
-            title="No exports yet"
-            description="Exported reports appear here with a verification code."
+            title={t('No exports yet')}
+            description={t('Exported reports appear here with a verification code.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Report history">
+            <Table aria-label={t('Report history')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Report</TableHead>
-                  <TableHead>Format</TableHead>
-                  <TableHead>Generated</TableHead>
-                  <TableHead>By</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>{t('Code')}</TableHead>
+                  <TableHead>{t('Report')}</TableHead>
+                  <TableHead>{t('Format')}</TableHead>
+                  <TableHead>{t('Generated')}</TableHead>
+                  <TableHead>{t('By')}</TableHead>
+                  <TableHead>{t('Actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -256,9 +282,9 @@ function HistorySection() {
                         {r.code}
                       </TableCell>
                       <TableCell>
-                        {r.kind === 'PERFORMANCE' ? 'Performance' : 'Audit trail'}
+                        {r.kind === 'PERFORMANCE' ? t('Performance') : t('Audit trail')}
                       </TableCell>
-                      <TableCell>{r.format === 'PDF' ? 'PDF' : 'Excel'}</TableCell>
+                      <TableCell>{r.format === 'PDF' ? 'PDF' : t('Excel')}</TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatDateTime(r.createdAt)}
                       </TableCell>
@@ -266,7 +292,7 @@ function HistorySection() {
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button size="sm" variant="secondary" onClick={() => download.mutate(r)}>
-                            <Download aria-hidden="true" /> Download
+                            <Download aria-hidden="true" /> {t('Download')}
                           </Button>
                           <Button
                             size="sm"
@@ -274,11 +300,11 @@ function HistorySection() {
                             loading={verify.isPending && verify.variables === r.id}
                             onClick={() => verify.mutate(r.id)}
                           >
-                            <ShieldCheck aria-hidden="true" /> Verify
+                            <ShieldCheck aria-hidden="true" /> {t('Verify')}
                           </Button>
                           {v && (
                             <Badge variant={v.status === 'valid' ? 'decided' : 'rejected'}>
-                              {v.status === 'valid' ? 'Valid' : 'Tampered'}
+                              {v.status === 'valid' ? t('Valid') : t('Tampered')}
                             </Badge>
                           )}
                         </div>
@@ -314,6 +340,7 @@ function HistorySection() {
 
 /** "Judicial Performance & Statistical Engine" */
 export default function PerformancePage() {
+  const { t } = useTranslation();
   const thisYear = new Date().getFullYear();
   const [form, setForm] = useState({
     year: String(thisYear),
@@ -342,7 +369,7 @@ export default function PerformancePage() {
   function compile(e: React.FormEvent) {
     e.preventDefault();
     if (Number(form.monthFrom) > Number(form.monthTo)) {
-      return setFormError('The last month must not be before the first month.');
+      return setFormError(t('The last month must not be before the first month.'));
     }
     setFormError(null);
     setCompiled({
@@ -370,9 +397,11 @@ export default function PerformancePage() {
   return (
     <>
       <PageHeader
-        title="Judicial Performance & Statistical Engine"
-        description="Case resolution ratios and average trial cycle lengths for a chosen period, judge bench and court."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Reports' }]}
+        title={t('Judicial Performance & Statistical Engine')}
+        description={t(
+          'Case resolution ratios and average trial cycle lengths for a chosen period, judge bench and court.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Reports') }]}
       />
       <Card className="mb-6">
         <CardContent>
@@ -382,7 +411,7 @@ export default function PerformancePage() {
                 <Alert variant="error">{formError}</Alert>
               </div>
             )}
-            <Field label="Target Year" required>
+            <Field label={t('Target Year')} required>
               {(p) => (
                 <NativeSelect {...p} value={form.year} onChange={set('year')}>
                   {years.map((y) => (
@@ -393,7 +422,7 @@ export default function PerformancePage() {
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Month range: from" required>
+            <Field label={t('Month range: from')} required>
               {(p) => (
                 <NativeSelect {...p} value={form.monthFrom} onChange={set('monthFrom')}>
                   {MONTHS.map((m, i) => (
@@ -404,7 +433,7 @@ export default function PerformancePage() {
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Month range: to" required>
+            <Field label={t('Month range: to')} required>
               {(p) => (
                 <NativeSelect {...p} value={form.monthTo} onChange={set('monthTo')}>
                   {MONTHS.map((m, i) => (
@@ -415,22 +444,22 @@ export default function PerformancePage() {
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Case Category">
+            <Field label={t('Case Category')}>
               {(p) => (
                 <NativeSelect {...p} value={form.caseType} onChange={set('caseType')}>
-                  <option value="">All categories</option>
-                  {options.data?.caseTypes.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
+                  <option value="">{t('All categories')}</option>
+                  {options.data?.caseTypes.map((ct) => (
+                    <option key={ct.value} value={ct.value}>
+                      {t(ct.label)}
                     </option>
                   ))}
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Specific Judge Bench Identifier">
+            <Field label={t('Specific Judge Bench Identifier')}>
               {(p) => (
                 <NativeSelect {...p} value={form.judgeId} onChange={set('judgeId')}>
-                  <option value="">All judge benches</option>
+                  <option value="">{t('All judge benches')}</option>
                   {options.data?.judges.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.name}
@@ -439,10 +468,10 @@ export default function PerformancePage() {
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Court">
+            <Field label={t('Court')}>
               {(p) => (
                 <NativeSelect {...p} value={form.courtId} onChange={set('courtId')}>
-                  <option value="">All courts</option>
+                  <option value="">{t('All courts')}</option>
                   {options.data?.courts.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -453,7 +482,7 @@ export default function PerformancePage() {
             </Field>
             <div className="sm:col-span-2 lg:col-span-3">
               <Button type="submit" loading={report.isFetching}>
-                <BarChart3 aria-hidden="true" /> Compile Report Profile Data Layout
+                <BarChart3 aria-hidden="true" /> {t('Compile Report Profile Data Layout')}
               </Button>
             </div>
           </form>
@@ -472,8 +501,8 @@ export default function PerformancePage() {
         <Card className="mb-8">
           <EmptyState
             icon={BarChart3}
-            title="Choose the period and compile"
-            description="The overview sheets, monthly chart and breakdown tables appear here."
+            title={t('Choose the period and compile')}
+            description={t('The overview sheets, monthly chart and breakdown tables appear here.')}
           />
         </Card>
       )}

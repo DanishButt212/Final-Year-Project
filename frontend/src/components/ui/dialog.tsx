@@ -2,6 +2,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
@@ -11,6 +12,7 @@ export const DialogClose = DialogPrimitive.Close;
 function findOpener(): HTMLElement | null {
   const active = document.activeElement as HTMLElement | null;
   if (!active || active === document.body) return null;
+  // i18n-ignore
   const menu = active.closest<HTMLElement>('[role="menu"]');
   if (menu?.id)
     return document.querySelector<HTMLElement>(`[aria-controls="${CSS.escape(menu.id)}"]`) ?? null;
@@ -25,6 +27,7 @@ export const DialogContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, onOpenAutoFocus, onCloseAutoFocus, ...props }, ref) => {
+  const { t } = useTranslation();
   // Captured each time the dialog opens, just before Radix moves focus inside (this wrapper itself may stay
   // mounted while the dialog is closed, so a value from its first render could be stale).
   const opener = React.useRef<HTMLElement | null>(null);
@@ -52,8 +55,8 @@ export const DialogContent = React.forwardRef<
       >
         {children}
         <DialogPrimitive.Close
-          className="absolute right-3 top-3 flex size-10 items-center justify-center rounded-md text-text-muted hover:bg-primary-soft hover:text-primary"
-          aria-label="Close dialog"
+          className="absolute end-3 top-3 flex size-10 items-center justify-center rounded-md text-text-muted hover:bg-primary-soft hover:text-primary"
+          aria-label={t('Close dialog')}
         >
           <X className="size-4" aria-hidden="true" />
         </DialogPrimitive.Close>
@@ -64,7 +67,7 @@ export const DialogContent = React.forwardRef<
 DialogContent.displayName = 'DialogContent';
 
 export const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('mb-4 space-y-1 pr-8', className)} {...props} />
+  <div className={cn('mb-4 space-y-1 pe-8', className)} {...props} />
 );
 
 export const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

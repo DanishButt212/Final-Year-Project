@@ -22,8 +22,11 @@ import { formatDate } from '@/lib/format';
 import { MESSAGES } from '@/lib/schemas';
 import { ChipInput } from '@/pages/chamber/shared';
 import { LogStatusBadge } from '@/pages/chamber/InternsPages';
+import { useTranslation } from 'react-i18next';
 
-const NOTES_MESSAGE = 'Relevant law notes must be 50 to 5000 characters.';
+import { msg } from '@/i18n';
+
+const NOTES_MESSAGE = msg('Relevant law notes must be 50 to 5000 characters.');
 const schema = z.object({
   caseNumber: z.string().min(1, MESSAGES.fieldRequired),
   keywords: z.array(z.string()).min(1, 'Add at least one keyword.'),
@@ -40,6 +43,7 @@ const EMPTY: Values = { caseNumber: '', keywords: [], citation: '', notes: '' };
 
 /** "Apprentice Diary / Research Logs" */
 export default function ResearchLogsPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const formRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
@@ -99,16 +103,18 @@ export default function ResearchLogsPage() {
   return (
     <>
       <PageHeader
-        title="Apprentice Diary / Research Logs"
-        description="Record the legal research you did. Each log is linked to your chamber's private repository and reviewed by your supervisor."
-        crumbs={[{ label: 'Dashboard', to: '/intern' }, { label: 'Research Logs' }]}
+        title={t('Apprentice Diary / Research Logs')}
+        description={t(
+          "Record the legal research you did. Each log is linked to your chamber's private repository and reviewed by your supervisor.",
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/intern' }, { label: t('Research Logs') }]}
       />
       <div ref={formRef}>
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <NotebookPen className="size-5 text-primary" aria-hidden="true" />
-              {editing ? 'Edit research log' : 'New research log'}
+              {editing ? t('Edit research log') : t('New research log')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -137,14 +143,14 @@ export default function ResearchLogsPage() {
               {formError && <Alert variant="error">{formError}</Alert>}
               <div className="grid gap-4 md:grid-cols-2">
                 <Field
-                  label="Target Case Number"
+                  label={t('Target Case Number')}
                   required
                   error={errors.caseNumber?.message}
-                  hint="Cases your supervising lawyer appears in."
+                  hint={t('Cases your supervising lawyer appears in.')}
                 >
                   {(p) => (
                     <NativeSelect {...p} {...register('caseNumber')}>
-                      <option value="">Select a case</option>
+                      <option value="">{t('Select a case')}</option>
                       {cases.data?.map((c) => (
                         <option key={c.id} value={c.ucn}>
                           {c.ucn} · {c.title}
@@ -153,11 +159,11 @@ export default function ResearchLogsPage() {
                     </NativeSelect>
                   )}
                 </Field>
-                <Field label="Citation Reference" required error={errors.citation?.message}>
+                <Field label={t('Citation Reference')} required error={errors.citation?.message}>
                   {(p) => (
                     <Input
                       maxLength={300}
-                      placeholder="PLD 2022 SC 100"
+                      placeholder={t('PLD 2022 SC 100')}
                       {...p}
                       {...register('citation')}
                     />
@@ -165,10 +171,10 @@ export default function ResearchLogsPage() {
                 </Field>
                 <div className="md:col-span-2">
                   <Field
-                    label="Keywords"
+                    label={t('Keywords')}
                     required
                     error={errors.keywords?.message}
-                    hint="Press Enter or Add after each keyword."
+                    hint={t('Press Enter or Add after each keyword.')}
                   >
                     {(p) => (
                       <Controller
@@ -176,7 +182,7 @@ export default function ResearchLogsPage() {
                         name="keywords"
                         render={({ field }) => (
                           <ChipInput
-                            label="Keywords"
+                            label={t('Keywords')}
                             values={field.value}
                             onChange={field.onChange}
                             max={15}
@@ -191,7 +197,7 @@ export default function ResearchLogsPage() {
                 </div>
                 <div className="md:col-span-2">
                   <Field
-                    label="Relevant Law Notes"
+                    label={t('Relevant Law Notes')}
                     required
                     error={errors.notes?.message}
                     hint={`${notes.trim().length}/5000 characters (at least 50)`}
@@ -203,7 +209,7 @@ export default function ResearchLogsPage() {
               <div className="flex flex-wrap gap-3">
                 <Button type="submit" loading={save.isPending}>
                   <Save aria-hidden="true" />{' '}
-                  {editing ? 'Resubmit Research Record Log' : 'Submit Research Record Log'}
+                  {editing ? t('Resubmit Research Record Log') : t('Submit Research Record Log')}
                 </Button>
                 {editing && (
                   <Button
@@ -215,7 +221,7 @@ export default function ResearchLogsPage() {
                       reset(EMPTY);
                     }}
                   >
-                    Cancel editing
+                    {t('Cancel editing')}
                   </Button>
                 )}
               </div>
@@ -224,7 +230,7 @@ export default function ResearchLogsPage() {
         </Card>
       </div>
 
-      <h2 className="mb-3 text-xl font-bold">My research logs</h2>
+      <h2 className="mb-3 text-xl font-bold">{t('My research logs')}</h2>
       {list.isError && <Alert variant="error">{parseApiError(list.error).message}</Alert>}
       {list.isPending ? (
         <TableSkeleton rows={3} cols={4} />
@@ -232,8 +238,8 @@ export default function ResearchLogsPage() {
         <Card>
           <EmptyState
             icon={NotebookPen}
-            title="No research logs yet"
-            description="Submit your first research record above."
+            title={t('No research logs yet')}
+            description={t('Submit your first research record above.')}
           />
         </Card>
       ) : (
@@ -246,14 +252,14 @@ export default function ResearchLogsPage() {
                     <CardContent className="space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p>
-                          <span className="case-number font-semibold">{l.ucn ?? 'No case'}</span>{' '}
+                          <span className="case-number font-semibold">{l.ucn ?? t('No case')}</span>{' '}
                           <span className="text-text-muted">{formatDate(l.entryDate)}</span>
                         </p>
                         <div className="flex items-center gap-2">
                           <LogStatusBadge status={l.status} />
                           {l.status !== 'APPROVED' && (
                             <Button size="sm" variant="secondary" onClick={() => startEdit(l)}>
-                              <Pencil aria-hidden="true" /> Edit
+                              <Pencil aria-hidden="true" /> {t('Edit')}
                             </Button>
                           )}
                         </div>
@@ -263,7 +269,7 @@ export default function ResearchLogsPage() {
                       <p className="line-clamp-3 whitespace-pre-wrap text-sm">{l.notes}</p>
                       {l.reviewComment && (
                         <p className="rounded-md border border-border bg-primary-soft p-2 text-sm">
-                          <strong>Supervisor comment:</strong> {l.reviewComment}
+                          <strong>{t('Supervisor comment:')}</strong> {l.reviewComment}
                         </p>
                       )}
                     </CardContent>

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
+import { useTranslation } from 'react-i18next';
 
 export function Pagination({
   page,
@@ -12,13 +13,16 @@ export function Pagination({
   total: number;
   onPageChange: (page: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={t('Pagination')}
       className="flex flex-wrap items-center justify-between gap-3 pt-3 text-sm"
     >
       <p className="text-text-muted" aria-live="polite">
-        Page {page} of {totalPages} ({total} {total === 1 ? 'record' : 'records'})
+        {total === 1
+          ? t('Page {{page}} of {{totalPages}} ({{total}} record)', { page, totalPages, total })
+          : t('Page {{page}} of {{totalPages}} ({{total}} records)', { page, totalPages, total })}
       </p>
       <div className="flex gap-2">
         <Button
@@ -27,7 +31,7 @@ export function Pagination({
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
-          <ChevronLeft aria-hidden="true" /> Previous
+          <ChevronLeft className="rtl:-scale-x-100" aria-hidden="true" /> {t('Previous')}
         </Button>
         <Button
           variant="secondary"
@@ -35,7 +39,7 @@ export function Pagination({
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >
-          Next <ChevronRight aria-hidden="true" />
+          {t('Next')} <ChevronRight className="rtl:-scale-x-100" aria-hidden="true" />
         </Button>
       </div>
     </nav>

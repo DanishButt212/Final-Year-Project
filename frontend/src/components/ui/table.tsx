@@ -12,17 +12,19 @@ export const Table = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     role="region"
+    // i18n-ignore
     aria-label={props['aria-label'] ?? 'Table'}
     tabIndex={0}
     className="relative w-full overflow-x-auto rounded-lg border border-border bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
   >
     <table
       ref={ref}
-      className={cn('w-full border-collapse text-left text-sm', className)}
+      className={cn('w-full border-collapse text-start text-sm', className)}
       {...props}
     />
   </div>
 ));
+// i18n-ignore
 Table.displayName = 'Table';
 
 export const TableHeader = (props: React.HTMLAttributes<HTMLTableSectionElement>) => (

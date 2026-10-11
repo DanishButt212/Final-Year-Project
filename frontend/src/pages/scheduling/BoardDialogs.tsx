@@ -29,8 +29,14 @@ import {
   type HearingView,
 } from '@/lib/scheduling-api';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
-export const CLEAR_MESSAGE = 'Anti-clash verification successful: No schedule conflicts detected.';
+import { msg } from '@/i18n';
+
+// eslint-disable-next-line react-refresh/only-export-components -- message constant, translated where shown
+export const CLEAR_MESSAGE = msg(
+  'Anti-clash verification successful: No schedule conflicts detected.',
+);
 
 /** Conflicts returned with a 409 (details) or a 400 (field message). */
 function errorConflicts(error: unknown): { text: string; conflicts: Conflict[] } {
@@ -41,12 +47,13 @@ function errorConflicts(error: unknown): { text: string; conflicts: Conflict[] }
 }
 
 function ConflictList({ conflicts, text }: { conflicts: Conflict[]; text: string }) {
+  const { t } = useTranslation();
   return (
-    <Alert variant="error" title={conflicts.length ? 'Scheduling conflict' : undefined}>
+    <Alert variant="error" title={conflicts.length ? t('Scheduling conflict') : undefined}>
       {conflicts.length === 0 ? (
         text
       ) : (
-        <ul className="list-disc space-y-1 pl-5">
+        <ul className="list-disc space-y-1 ps-5">
           {conflicts.map((c, i) => (
             <li key={i}>{c.message}</li>
           ))}
@@ -72,6 +79,7 @@ export function ScheduleHearingDialog({
   initial: { courtroomId?: string; date: string; slot?: number };
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const invalidate = useInvalidateSchedule();
   const [search, setSearch] = useState('');
   const [caseId, setCaseId] = useState('');
@@ -131,24 +139,27 @@ export function ScheduleHearingDialog({
     <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
       <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Schedule hearing</DialogTitle>
+          <DialogTitle>{t('Schedule hearing')}</DialogTitle>
           <DialogDescription>
-            {board.court.name}. The anti-clash check runs as you choose.
+            {t('{{name}}. The anti-clash check runs as you choose.', { name: board.court.name })}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <Field label="Find a case" hint="Cases without an upcoming hearing are listed first.">
+          <Field
+            label={t('Find a case')}
+            hint={t('Cases without an upcoming hearing are listed first.')}
+          >
             {(p) => (
               <Input
                 type="search"
-                placeholder="Case number or title"
+                placeholder={t('Case number or title')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 {...p}
               />
             )}
           </Field>
-          <Field label="Case" required>
+          <Field label={t('Case')} required>
             {(p) => (
               <NativeSelect
                 value={caseId}
@@ -160,21 +171,24 @@ export function ScheduleHearingDialog({
                 }}
                 {...p}
               >
-                <option value="">Choose a case</option>
+                <option value="">{t('Choose a case')}</option>
                 {cases.data?.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.ucn} · {c.title}
-                    {c.hasUpcomingHearing ? ' (has hearing)' : ''}
+                    {c.hasUpcomingHearing ? t(' (has hearing)') : ''}
                   </option>
                 ))}
               </NativeSelect>
             )}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Judge" hint={chosen?.judge ? `Case judge: ${chosen.judge}` : undefined}>
+            <Field
+              label={t('Judge')}
+              hint={chosen?.judge ? t('Case judge: {{judge}}', { judge: chosen.judge }) : undefined}
+            >
               {(p) => (
                 <NativeSelect value={judgeId} onChange={(e) => setJudgeId(e.target.value)} {...p}>
-                  <option value="">Case judge</option>
+                  <option value="">{t('Case judge')}</option>
                   {judges.map((j) => (
                     <option key={j.id} value={j.id}>
                       {j.name}
@@ -183,7 +197,7 @@ export function ScheduleHearingDialog({
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Courtroom" required>
+            <Field label={t('Courtroom')} required>
               {(p) => (
                 <NativeSelect
                   value={courtroomId}
@@ -198,7 +212,7 @@ export function ScheduleHearingDialog({
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Date" required>
+            <Field label={t('Date')} required>
               {(p) => (
                 <DatePicker
                   min={todayIso()}
@@ -208,7 +222,7 @@ export function ScheduleHearingDialog({
                 />
               )}
             </Field>
-            <Field label="Time slot" required>
+            <Field label={t('Time slot')} required>
               {(p) => (
                 <NativeSelect value={slot} onChange={(e) => setSlot(Number(e.target.value))} {...p}>
                   {board.slots
@@ -222,7 +236,7 @@ export function ScheduleHearingDialog({
               )}
             </Field>
           </div>
-          <Field label="Purpose (optional)">
+          <Field label={t('Purpose (optional)')}>
             {(p) => (
               <Input
                 maxLength={200}
@@ -240,20 +254,21 @@ export function ScheduleHearingDialog({
               onChange={(e) => setIsVirtual(e.target.checked)}
             />
             <span>
-              <span className="font-semibold">Virtual hearing</span>
+              <span className="font-semibold">{t('Virtual hearing')}</span>
               <span className="block text-text-muted">
-                Held in the virtual courtroom. The parties get a join link once the Admin Bench
-                opens the session.
+                {t(
+                  'Held in the virtual courtroom. The parties get a join link once the Admin Bench opens the session.',
+                )}
               </span>
             </span>
           </label>
 
           <div aria-live="polite" className="space-y-2">
             {ready && check.isPending && (
-              <p className="text-sm text-text-muted">Checking availability…</p>
+              <p className="text-sm text-text-muted">{t('Checking availability…')}</p>
             )}
             {check.data?.valid && (
-              <Alert variant="success" title="Clear/Valid">
+              <Alert variant="success" title={t('Clear/Valid')}>
                 {check.data.message}
               </Alert>
             )}
@@ -268,7 +283,7 @@ export function ScheduleHearingDialog({
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={save.isPending}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             onClick={() => {
@@ -278,7 +293,7 @@ export function ScheduleHearingDialog({
             loading={save.isPending}
             disabled={!ready || !check.data?.valid}
           >
-            <CalendarClock aria-hidden="true" /> Schedule hearing
+            <CalendarClock aria-hidden="true" /> {t('Schedule hearing')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -297,6 +312,7 @@ export function RescheduleDialog({
   hearing: HearingView;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const invalidate = useInvalidateSchedule();
   const flagged = hearing.conflicts.length > 0;
   const [date, setDate] = useState(hearing.date);
@@ -359,10 +375,14 @@ export function RescheduleDialog({
     <Dialog open onOpenChange={(o) => !o && !save.isPending && onClose()}>
       <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{flagged ? 'Resolve conflict' : 'Reschedule hearing'}</DialogTitle>
+          <DialogTitle>{flagged ? t('Resolve conflict') : t('Reschedule hearing')}</DialogTitle>
           <DialogDescription>
-            <span className="case-number">{hearing.ucn}</span> · {hearing.title}. Currently{' '}
-            {isoToDdMmYyyy(hearing.date)} at {hearing.startTime} in {hearing.courtroom?.name}.
+            <span className="case-number">{hearing.ucn}</span> · {hearing.title}.{' '}
+            {t('Currently on {{date}} at {{time}} in {{courtroom}}.', {
+              date: isoToDdMmYyyy(hearing.date),
+              time: hearing.startTime,
+              courtroom: hearing.courtroom?.name ?? '—',
+            })}
           </DialogDescription>
         </DialogHeader>
         {flagged && (
@@ -374,12 +394,12 @@ export function RescheduleDialog({
         <div className="space-y-4">
           <div>
             <p className="mb-2 text-sm font-medium">
-              Open slots (judge, courtroom and lawyers all free)
+              {t('Open slots (judge, courtroom and lawyers all free)')}
             </p>
             {vacancy.isPending ? (
-              <p className="text-sm text-text-muted">Looking for open slots…</p>
+              <p className="text-sm text-text-muted">{t('Looking for open slots…')}</p>
             ) : vacancy.data && vacancy.data.days.length === 0 ? (
-              <p className="text-sm text-text-muted">No open slots in the next 14 days.</p>
+              <p className="text-sm text-text-muted">{t('No open slots in the next 14 days.')}</p>
             ) : (
               <div className="max-h-52 space-y-3 overflow-y-auto rounded-md border border-border p-3">
                 {vacancy.data?.days.map((d) => (
@@ -423,7 +443,7 @@ export function RescheduleDialog({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Date">
+            <Field label={t('Date')}>
               {(p) => (
                 <DatePicker
                   min={todayIso()}
@@ -433,7 +453,7 @@ export function RescheduleDialog({
                 />
               )}
             </Field>
-            <Field label="Time slot">
+            <Field label={t('Time slot')}>
               {(p) => (
                 <NativeSelect value={slot} onChange={(e) => setSlot(Number(e.target.value))} {...p}>
                   {board.slots
@@ -446,7 +466,7 @@ export function RescheduleDialog({
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Courtroom">
+            <Field label={t('Courtroom')}>
               {(p) => (
                 <NativeSelect
                   value={courtroomId}
@@ -465,7 +485,7 @@ export function RescheduleDialog({
 
           <div aria-live="polite" className="space-y-2">
             {check.data?.valid && (
-              <Alert variant="success" title="Clear/Valid">
+              <Alert variant="success" title={t('Clear/Valid')}>
                 {check.data.message}
               </Alert>
             )}
@@ -478,7 +498,7 @@ export function RescheduleDialog({
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={save.isPending}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             onClick={() => {
@@ -488,7 +508,7 @@ export function RescheduleDialog({
             loading={save.isPending}
             disabled={!check.data?.valid}
           >
-            {flagged ? 'Save and clear flag' : 'Reschedule'}
+            {flagged ? t('Save and clear flag') : t('Reschedule')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -505,6 +525,7 @@ export function CancelHearingDialog({
   hearing: HearingView;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const invalidate = useInvalidateSchedule();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -524,13 +545,16 @@ export function CancelHearingDialog({
     <Dialog open onOpenChange={(o) => !o && !cancel.isPending && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Cancel hearing</DialogTitle>
+          <DialogTitle>{t('Cancel hearing')}</DialogTitle>
           <DialogDescription>
-            <span className="case-number">{hearing.ucn}</span> on {isoToDdMmYyyy(hearing.date)} at{' '}
-            {hearing.startTime}. The slot is released and everyone on the case is notified.
+            <span className="case-number">{hearing.ucn}</span>{' '}
+            {t(
+              'on {{date}} at {{time}}. The slot is released and everyone on the case is notified.',
+              { date: isoToDdMmYyyy(hearing.date), time: hearing.startTime },
+            )}
           </DialogDescription>
         </DialogHeader>
-        <Field label="Reason for cancelling" required error={error ?? undefined}>
+        <Field label={t('Reason for cancelling')} required error={error ?? undefined}>
           {(p) => (
             <Textarea
               maxLength={500}
@@ -542,18 +566,18 @@ export function CancelHearingDialog({
         </Field>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={cancel.isPending}>
-            Keep hearing
+            {t('Keep hearing')}
           </Button>
           <Button
             variant="destructive"
             loading={cancel.isPending}
             onClick={() => {
-              if (!reason.trim()) return setError('Please enter a reason for cancelling.');
+              if (!reason.trim()) return setError(t('Please enter a reason for cancelling.'));
               setError(null);
               cancel.mutate();
             }}
           >
-            Cancel hearing
+            {t('Cancel hearing')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -564,6 +588,7 @@ export function CancelHearingDialog({
 // ---------------------------------------------------------------- auto-generate
 
 export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: () => void }) {
+  const { t } = useTranslation();
   const invalidate = useInvalidateSchedule();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const cases = useQuery({
@@ -600,11 +625,12 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
     <Dialog open onOpenChange={(o) => !o && !run.isPending && onClose()}>
       <DialogContent className="max-h-[calc(100vh-2rem)] max-w-xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Auto-generate schedule</DialogTitle>
+          <DialogTitle>{t('Auto-generate schedule')}</DialogTitle>
           <DialogDescription>
-            Places the chosen cases in the first free slots of {board.weekday}{' '}
-            {isoToDdMmYyyy(board.date)}, using each case’s judge and a courtroom of this court.
-            Clashing slots are skipped.
+            {t(
+              'Places the chosen cases in the first free slots of {{weekday}} {{isoToDdMmYyyy}}, using each case’s judge and a courtroom of this court. Clashing slots are skipped.',
+              { weekday: board.weekday, isoToDdMmYyyy: isoToDdMmYyyy(board.date) },
+            )}
           </DialogDescription>
         </DialogHeader>
         {error && (
@@ -617,7 +643,7 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
             <Alert variant="success" title={result.message} />
             {result.placed.length > 0 && (
               <div>
-                <p className="mb-1 font-semibold">Placed</p>
+                <p className="mb-1 font-semibold">{t('Placed')}</p>
                 <ul className="space-y-1 text-sm">
                   {result.placed.map((h) => (
                     <li key={h.id}>
@@ -630,7 +656,7 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
             )}
             {result.unplaced.length > 0 && (
               <div>
-                <p className="mb-1 font-semibold">Not placed</p>
+                <p className="mb-1 font-semibold">{t('Not placed')}</p>
                 <ul className="space-y-1 text-sm">
                   {result.unplaced.map((u) => (
                     <li key={u.caseId}>
@@ -641,20 +667,20 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
               </div>
             )}
             <DialogFooter>
-              <Button onClick={onClose}>Done</Button>
+              <Button onClick={onClose}>{t('Done')}</Button>
             </DialogFooter>
           </div>
         ) : (
           <>
             {cases.isPending ? (
-              <p className="text-text-muted">Loading cases…</p>
+              <p className="text-text-muted">{t('Loading cases…')}</p>
             ) : unscheduled.length === 0 ? (
               <Alert variant="info">
-                Every allocated case in this court already has a hearing.
+                {t('Every allocated case in this court already has a hearing.')}
               </Alert>
             ) : (
               <fieldset className="space-y-2">
-                <legend className="sr-only">Cases to schedule</legend>
+                <legend className="sr-only">{t('Cases to schedule')}</legend>
                 <label className="flex min-h-10 items-center gap-2 font-semibold">
                   <input
                     type="checkbox"
@@ -666,7 +692,7 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
                       )
                     }
                   />
-                  Select all ({unscheduled.length})
+                  {t('Select all ({{length}})', { length: unscheduled.length })}
                 </label>
                 <ul className="max-h-64 divide-y divide-border overflow-y-auto rounded-md border border-border">
                   {unscheduled.map((c) => (
@@ -696,7 +722,7 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
             )}
             <DialogFooter>
               <Button variant="secondary" onClick={onClose} disabled={run.isPending}>
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button
                 onClick={() => {
@@ -706,7 +732,7 @@ export function AutoGenerateDialog({ board, onClose }: { board: Board; onClose: 
                 loading={run.isPending}
                 disabled={selected.size === 0 || !board.isWorkingDay}
               >
-                <Wand2 aria-hidden="true" /> Generate schedule
+                <Wand2 aria-hidden="true" /> {t('Generate schedule')}
               </Button>
             </DialogFooter>
           </>
@@ -725,9 +751,10 @@ export function RunCheckPanel({
   result: Awaited<ReturnType<typeof schedulingApi.runCheck>>;
   onResolve: (h: HearingView) => void;
 }) {
+  const { t } = useTranslation();
   if (result.valid) {
     return (
-      <Alert variant="success" title="Clear/Valid">
+      <Alert variant="success" title={t('Clear/Valid')}>
         <span className="inline-flex items-center gap-1.5">
           <CheckCircle2 className="size-4" aria-hidden="true" /> {result.message}
         </span>
@@ -738,7 +765,11 @@ export function RunCheckPanel({
   return (
     <Alert
       variant="error"
-      title={`${list.length} hearing${list.length === 1 ? '' : 's'} in conflict`}
+      title={
+        list.length === 1
+          ? t('1 hearing in conflict')
+          : t('{{count}} hearings in conflict', { count: list.length })
+      }
     >
       <ul className="mt-2 space-y-3">
         {list.map((h) => (
@@ -753,7 +784,7 @@ export function RunCheckPanel({
               ))}
             </span>
             <Button size="sm" variant="secondary" onClick={() => onResolve(h)}>
-              Resolve
+              {t('Resolve')}
             </Button>
           </li>
         ))}

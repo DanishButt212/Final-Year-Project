@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { chamberApi, type RetainerStatus } from '@/lib/chamber-api';
+import { msg } from '@/i18n';
 
 export const RETAINER_LABEL: Record<RetainerStatus, string> = {
-  OK: 'Healthy',
-  LOW: 'Low balance',
-  OVERDRAWN: 'Overdrawn',
+  OK: msg('Healthy'),
+  LOW: msg('Low balance'),
+  OVERDRAWN: msg('Overdrawn'),
 };
 
 /** Negative balances read "Overdrawn" with the amount; the sign is always shown. */

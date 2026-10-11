@@ -5,6 +5,7 @@ import { FOCUS_KEY } from '@/lib/heading-focus';
 import { useAuth } from '@/auth/useAuth';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { useTranslation } from 'react-i18next';
 
 /**
  * After login, waits (up to 5 s) for the page heading to render and focuses it. The request flag is cleared only
@@ -51,6 +52,7 @@ function useHeadingFocus() {
 
 /** Layout for signed-in pages: header on top, role-based sidebar on the left, content on the right. */
 export function AppShell() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
@@ -62,9 +64,9 @@ export function AppShell() {
     <div className="flex min-h-screen flex-col">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:font-semibold focus:text-primary"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-surface focus:px-3 focus:py-2 focus:font-semibold focus:text-primary"
       >
-        Skip to main content
+        {t('Skip to main content')}
       </a>
       <Header onMenuClick={() => setMenuOpen((o) => !o)} menuOpen={menuOpen} />
       <div className="flex flex-1">

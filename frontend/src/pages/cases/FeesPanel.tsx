@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calculator, CreditCard, Download, FileText, Printer, Receipt } from 'lucide-react';
 import { useState } from 'react';
@@ -23,28 +24,31 @@ import { formatDate, formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { feesApi, type Challan } from '@/lib/phase4-api';
 import { cn } from '@/lib/utils';
+import { Trans, useTranslation } from 'react-i18next';
 
 const challanKey = (caseId: string) => ['fees', 'challan', caseId];
 
 export function ChallanStatusBadge({ challan }: { challan: Pick<Challan, 'status' | 'overdue'> }) {
-  if (challan.status === 'PAID') return <Badge variant="decided">Paid</Badge>;
-  return <Badge variant={challan.overdue ? 'overdue' : 'pending'}>Unpaid</Badge>;
+  const { t } = useTranslation();
+  if (challan.status === 'PAID') return <Badge variant="decided">{t('Paid')}</Badge>;
+  return <Badge variant={challan.overdue ? 'overdue' : 'pending'}>{t('Unpaid')}</Badge>;
 }
 
 export function LedgerTable({ challan }: { challan: Challan }) {
+  const { t } = useTranslation();
   return (
-    <Table aria-label="Cost ledger">
+    <Table aria-label={t('Cost ledger')}>
       <TableHeader>
         <TableRow>
-          <TableHead>Item</TableHead>
-          <TableHead className="text-right">Amount (PKR)</TableHead>
+          <TableHead>{t('Item')}</TableHead>
+          <TableHead className="text-end">{t('Amount (PKR)')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {challan.ledger.map((line) => (
           <TableRow key={line.code} className={cn(line.code === 'TOTAL' && 'font-bold')}>
-            <TableCell>{line.label}</TableCell>
-            <TableCell className="whitespace-nowrap text-right">{formatPkr(line.amount)}</TableCell>
+            <TableCell>{translateText(line.label)}</TableCell>
+            <TableCell className="whitespace-nowrap text-end">{formatPkr(line.amount)}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -54,6 +58,7 @@ export function LedgerTable({ challan }: { challan: Challan }) {
 
 /** UC-4.1: "Fees & Payment" tab of the case detail page. */
 export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: string | null }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -108,15 +113,15 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
         <Card>
           <EmptyState
             icon={Calculator}
-            title="Court fee not calculated yet"
+            title={t('Court fee not calculated yet')}
             description={
               claim
-                ? 'The fee is worked out from the case type and your claim value.'
-                : 'The fee is worked out from the case type.'
+                ? t('The fee is worked out from the case type and your claim value.')
+                : t('The fee is worked out from the case type.')
             }
             action={
               <Button onClick={() => calculate.mutate()} loading={calculate.isPending}>
-                <Calculator aria-hidden="true" /> Calculate Costs and Fees
+                <Calculator aria-hidden="true" /> {t('Calculate Costs and Fees')}
               </Button>
             }
           />
@@ -126,11 +131,18 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>
-                Challan <span className="case-number">{challan.challanNo}</span>
+                {t('Challan')} <span className="case-number">{challan.challanNo}</span>
               </CardTitle>
               <p className="text-sm text-text-muted">
-                Issued {formatDate(challan.issuedAt)} · Due {formatDate(challan.dueDate)}
-                {challan.overdue && ' (overdue)'}
+                {challan.overdue
+                  ? t('Issued {{issued}} · Due {{due}} (overdue)', {
+                      issued: formatDate(challan.issuedAt),
+                      due: formatDate(challan.dueDate),
+                    })
+                  : t('Issued {{issued}} · Due {{due}}', {
+                      issued: formatDate(challan.issuedAt),
+                      due: formatDate(challan.dueDate),
+                    })}
               </p>
             </div>
             <ChallanStatusBadge challan={challan} />
@@ -141,24 +153,24 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
               {challan.status === 'UNPAID' && (
                 <>
                   <Button onClick={() => navigate(portalPath(portal, `pay/${challan.id}`))}>
-                    <CreditCard aria-hidden="true" /> Pay Fee Online
+                    <CreditCard aria-hidden="true" /> {t('Pay Fee Online')}
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={() => calculate.mutate()}
                     loading={calculate.isPending}
                   >
-                    <Calculator aria-hidden="true" /> Recalculate
+                    <Calculator aria-hidden="true" /> {t('Recalculate')}
                   </Button>
                 </>
               )}
               <Button variant="secondary" asChild>
                 <Link to={portalPath(portal, `cases/${caseId}/challan`)}>
-                  <Printer aria-hidden="true" /> Print Challan
+                  <Printer aria-hidden="true" /> {t('Print Challan')}
                 </Link>
               </Button>
               <Button variant="secondary" onClick={pdf} loading={downloading}>
-                <Download aria-hidden="true" /> Download Challan PDF
+                <Download aria-hidden="true" /> {t('Download Challan PDF')}
               </Button>
               {challan.status === 'PAID' && challan.payment?.receiptNo && (
                 <Button
@@ -169,23 +181,26 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
                       .catch((e) => toast.error(parseApiError(e).message))
                   }
                 >
-                  <Receipt aria-hidden="true" /> Download Receipt Proof
+                  <Receipt aria-hidden="true" /> {t('Download Receipt Proof')}
                 </Button>
               )}
             </div>
             {challan.status === 'PAID' && (
-              <Alert variant="success" title="Fee paid">
-                Receipt {challan.payment?.receiptNo}. See all payments under{' '}
-                <Link to={portalPath(portal, 'payments')} className="font-semibold">
-                  Payments & Receipts
-                </Link>
-                .
+              <Alert variant="success" title={t('Fee paid')}>
+                <Trans
+                  i18nKey="Receipt {{receiptNo}}. See all payments under <link>Payments & Receipts</link>."
+                  defaults="Receipt {{receiptNo}}. See all payments under <link>Payments & Receipts</link>."
+                  values={{ receiptNo: challan.payment?.receiptNo ?? '' }}
+                  components={{
+                    link: <Link to={portalPath(portal, 'payments')} className="font-semibold" />,
+                  }}
+                />
               </Alert>
             )}
             {challan.status === 'UNPAID' && (
               <p className="flex items-center gap-1.5 text-sm text-text-muted">
-                <FileText className="size-4" aria-hidden="true" /> A case enters the allocation
-                queue once its fee is paid.
+                <FileText className="size-4" aria-hidden="true" />{' '}
+                {t('A case enters the allocation queue once its fee is paid.')}
               </p>
             )}
           </CardContent>

@@ -39,8 +39,11 @@ import {
   type CaseValues,
   type PartyValues,
 } from '@/lib/schemas';
+import { useTranslation } from 'react-i18next';
 
-const STEPS = ['Case details', 'Parties', 'Documents', 'Review & submit'];
+import { msg } from '@/i18n';
+
+const STEPS = [msg('Case details'), msg('Parties'), msg('Documents'), msg('Review & submit')];
 const MAX_PARTIES = 10;
 const emptyParty = (): PartyValues => ({ name: '', cnic: '', address: '', phone: '' });
 
@@ -76,6 +79,7 @@ function PartyRows({
   register: UseFormRegister<CaseValues>;
   errors: FieldErrors<CaseValues>;
 }) {
+  const { t } = useTranslation();
   const { fields, append, remove } = useFieldArray({ control, name });
   const listError = errors[name]?.root?.message ?? errors[name]?.message;
 
@@ -94,7 +98,9 @@ function PartyRows({
           <Card key={item.id}>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle as="h3" className="text-base">
-                {label.replace(/s$/, '')} {index + 1}
+                {name === 'petitioners'
+                  ? t('Petitioner {{number}}', { number: index + 1 })
+                  : t('Opposing party {{number}}', { number: index + 1 })}
               </CardTitle>
               <Button
                 type="button"
@@ -102,20 +108,24 @@ function PartyRows({
                 size="sm"
                 disabled={fields.length === 1}
                 onClick={() => remove(index)}
-                aria-label={`Remove ${label.replace(/s$/, '').toLowerCase()} ${index + 1}`}
+                aria-label={
+                  name === 'petitioners'
+                    ? t('Remove petitioner {{number}}', { number: index + 1 })
+                    : t('Remove opposing party {{number}}', { number: index + 1 })
+                }
               >
-                <Trash2 aria-hidden="true" /> Remove
+                <Trash2 aria-hidden="true" /> {t('Remove')}
               </Button>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Field label="Full name" error={e?.name?.message} required>
+                <Field label={t('Full name')} error={e?.name?.message} required>
                   {(p) => <Input autoComplete="off" {...p} {...register(field('name'))} />}
                 </Field>
               </div>
               <Field
-                label="CNIC (optional)"
-                hint="Format: 12345-1234567-1"
+                label={t('CNIC (optional)')}
+                hint={t('Format: 12345-1234567-1')}
                 error={e?.cnic?.message}
               >
                 {(p) => (
@@ -128,14 +138,14 @@ function PartyRows({
                 )}
               </Field>
               <Field
-                label="Mobile number (optional)"
-                hint="Format: +92 3XX XXXXXXX"
+                label={t('Mobile number (optional)')}
+                hint={t('Format: +92 3XX XXXXXXX')}
                 error={e?.phone?.message}
               >
                 {(p) => <PhoneInput {...p} {...register(field('phone'))} />}
               </Field>
               <div className="sm:col-span-2">
-                <Field label="Address (optional)" error={e?.address?.message}>
+                <Field label={t('Address (optional)')} error={e?.address?.message}>
                   {(p) => <Input {...p} {...register(field('address'))} />}
                 </Field>
               </div>
@@ -149,7 +159,8 @@ function PartyRows({
         disabled={fields.length >= MAX_PARTIES}
         onClick={() => append(emptyParty())}
       >
-        <Plus aria-hidden="true" /> Add {label.replace(/s$/, '').toLowerCase()}
+        <Plus aria-hidden="true" />{' '}
+        {name === 'petitioners' ? t('Add petitioner') : t('Add opposing party')}
       </Button>
     </fieldset>
   );
@@ -177,6 +188,7 @@ function ReviewParties({ title, parties }: { title: string; parties: PartyValues
 }
 
 function NewCaseWizard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
@@ -316,10 +328,10 @@ function NewCaseWizard() {
     return (
       <>
         <PageHeader
-          title="New Case Submission"
+          title={t('New Case Submission')}
           crumbs={[
-            { label: 'Dashboard', to: portalPath(portal, '') },
-            { label: 'New Case Submission' },
+            { label: t('Dashboard'), to: portalPath(portal, '') },
+            { label: t('New Case Submission') },
           ]}
         />
         <Card className="max-w-2xl">
@@ -328,13 +340,14 @@ function NewCaseWizard() {
             <div role="status">
               <h2 className="text-xl font-bold">{result.message}</h2>
               <p className="mt-1 text-text-muted">
-                Your case is registered and is pending assignment to a judge. Keep this number for
-                all future reference.
+                {t(
+                  'Your case is registered and is pending assignment to a judge. Keep this number for all future reference.',
+                )}
               </p>
             </div>
             <div className="rounded-lg border-2 border-primary bg-primary-soft px-4 py-5">
               <p className="text-sm font-semibold uppercase tracking-wide text-text-muted">
-                Unique Case Number
+                {t('Unique Case Number')}
               </p>
               <p
                 className="case-number mt-1 break-all text-2xl font-medium text-primary sm:text-3xl"
@@ -345,10 +358,10 @@ function NewCaseWizard() {
             </div>
             <div className="flex flex-wrap justify-center gap-3">
               <Button asChild>
-                <Link to={`${portfolioPath}/${result.id}`}>Open case</Link>
+                <Link to={`${portfolioPath}/${result.id}`}>{t('Open case')}</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link to={portfolioPath}>Go to My Case Portfolio</Link>
+                <Link to={portfolioPath}>{t('Go to My Case Portfolio')}</Link>
               </Button>
             </div>
           </CardContent>
@@ -365,11 +378,13 @@ function NewCaseWizard() {
   return (
     <>
       <PageHeader
-        title="New Case Submission"
-        description="Fill in the four steps below. Nothing is saved until you submit on the last step."
+        title={t('New Case Submission')}
+        description={t(
+          'Fill in the four steps below. Nothing is saved until you submit on the last step.',
+        )}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'New Case Submission' },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('New Case Submission') },
         ]}
       />
       {leaveDialog}
@@ -383,33 +398,33 @@ function NewCaseWizard() {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Case details</CardTitle>
+              <CardTitle>{t('Case details')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Field label="Case type" error={errors.caseType?.message} required>
+              <Field label={t('Case type')} error={errors.caseType?.message} required>
                 {(p) => (
                   <NativeSelect defaultValue="" {...p} {...register('caseType')}>
                     <option value="" disabled>
-                      Select a case type
+                      {t('Select a case type')}
                     </option>
-                    {CASE_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
+                    {CASE_TYPES.map((ct) => (
+                      <option key={ct.value} value={ct.value}>
+                        {t(ct.label)}
                       </option>
                     ))}
                   </NativeSelect>
                 )}
               </Field>
               <Field
-                label="Case title (optional)"
-                hint="Leave empty and we will use “Petitioner vs. Respondent”."
+                label={t('Case title (optional)')}
+                hint={t('Leave empty and we will use “Petitioner vs. Respondent”.')}
                 error={errors.title?.message}
               >
                 {(p) => <Input {...p} {...register('title')} />}
               </Field>
               <Field
-                label="Relief sought"
-                hint="Explain what you are asking the court to decide. At least 20 characters."
+                label={t('Relief sought')}
+                hint={t('Explain what you are asking the court to decide. At least 20 characters.')}
                 error={errors.reliefSought?.message}
                 required
               >
@@ -417,11 +432,15 @@ function NewCaseWizard() {
               </Field>
               {caseTypeValue === 'CIVIL_SUIT' && (
                 <Field
-                  label="Claim value (PKR, optional)"
+                  label={t('Claim value (PKR, optional)')}
                   hint={
                     claimValue && /^\d{1,12}(\.\d{1,2})?$/.test(claimValue)
-                      ? `${formatPkr(claimValue)}. Used to calculate the claim value part of the court fee.`
-                      : 'The value of your claim. Used to calculate the claim value part of the court fee.'
+                      ? t('{{pkr}}. Used to calculate the claim value part of the court fee.', {
+                          pkr: formatPkr(claimValue),
+                        })
+                      : t(
+                          'The value of your claim. Used to calculate the claim value part of the court fee.',
+                        )
                   }
                   error={errors.claimAmountPkr?.message}
                 >
@@ -443,14 +462,14 @@ function NewCaseWizard() {
           <div className="space-y-8">
             <PartyRows
               name="petitioners"
-              label="Petitioners"
+              label={t('Petitioners')}
               control={control}
               register={register}
               errors={errors}
             />
             <PartyRows
               name="respondents"
-              label="Opposing parties"
+              label={t('Opposing parties')}
               control={control}
               register={register}
               errors={errors}
@@ -461,11 +480,11 @@ function NewCaseWizard() {
         {step === 3 && (
           <Card>
             <CardHeader>
-              <CardTitle>Documents</CardTitle>
+              <CardTitle>{t('Documents')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Attach petitions, statements and affidavits as PDF. Once the case is submitted,
-                documents are locked to the case number and cannot be changed or deleted. This step
-                is optional; you can add documents later.
+                {t(
+                  'Attach petitions, statements and affidavits as PDF. Once the case is submitted, documents are locked to the case number and cannot be changed or deleted. This step is optional; you can add documents later.',
+                )}
               </p>
             </CardHeader>
             <CardContent>
@@ -484,45 +503,45 @@ function NewCaseWizard() {
         {step === 4 && (
           <Card>
             <CardHeader>
-              <CardTitle>Review and submit</CardTitle>
+              <CardTitle>{t('Review and submit')}</CardTitle>
               <p className="text-sm text-text-muted">
-                Check everything carefully. You can go back to change any step.
+                {t('Check everything carefully. You can go back to change any step.')}
               </p>
             </CardHeader>
             <CardContent className="space-y-5">
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-sm text-text-muted">Case type</dt>
+                  <dt className="text-sm text-text-muted">{t('Case type')}</dt>
                   <dd className="font-medium">
                     {values.caseType ? caseTypeLabel(values.caseType) : '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-sm text-text-muted">Case title</dt>
+                  <dt className="text-sm text-text-muted">{t('Case title')}</dt>
                   <dd className="font-medium">
                     {values.title.trim() ||
                       `${values.petitioners[0]?.name || '…'}${values.petitioners.length > 1 ? ' & others' : ''} vs. ${values.respondents[0]?.name || '…'}${values.respondents.length > 1 ? ' & others' : ''}`}
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="text-sm text-text-muted">Relief sought</dt>
+                  <dt className="text-sm text-text-muted">{t('Relief sought')}</dt>
                   <dd className="whitespace-pre-wrap break-words">{values.reliefSought}</dd>
                 </div>
                 {values.caseType === 'CIVIL_SUIT' && values.claimAmountPkr?.trim() && (
                   <div>
-                    <dt className="text-sm text-text-muted">Claim value</dt>
+                    <dt className="text-sm text-text-muted">{t('Claim value')}</dt>
                     <dd>{formatPkr(values.claimAmountPkr)}</dd>
                   </div>
                 )}
               </dl>
-              <ReviewParties title="Petitioners" parties={values.petitioners} />
-              <ReviewParties title="Opposing parties" parties={values.respondents} />
+              <ReviewParties title={t('Petitioners')} parties={values.petitioners} />
+              <ReviewParties title={t('Opposing parties')} parties={values.respondents} />
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-wide text-text-muted">
-                  Documents
+                  {t('Documents')}
                 </h3>
                 {files.length === 0 ? (
-                  <p className="text-text-muted">No documents attached.</p>
+                  <p className="text-text-muted">{t('No documents attached.')}</p>
                 ) : (
                   <ul className="mt-1 space-y-1">
                     {files.map((f) => (
@@ -534,7 +553,9 @@ function NewCaseWizard() {
                   </ul>
                 )}
               </div>
-              {progress !== null && <ProgressBar value={progress} label="Uploading your case" />}
+              {progress !== null && (
+                <ProgressBar value={progress} label={t('Uploading your case')} />
+              )}
             </CardContent>
           </Card>
         )}
@@ -546,17 +567,17 @@ function NewCaseWizard() {
             onClick={goBack}
             disabled={step === 1 || submitting}
           >
-            <ArrowLeft aria-hidden="true" /> Back
+            <ArrowLeft className="rtl:-scale-x-100" aria-hidden="true" /> {t('Back')}
           </Button>
           {step < 4 ? (
             // Different keys: React must not turn the Next element into the submit button during the click
             // that moves to step 4 (that re-used element would submit the form).
             <Button key="next" type="button" onClick={goNext}>
-              Next <ArrowRight aria-hidden="true" />
+              {t('Next')} <ArrowRight className="rtl:-scale-x-100" aria-hidden="true" />
             </Button>
           ) : (
             <Button key="submit" type="submit" loading={submitting} disabled={submitting}>
-              <Send aria-hidden="true" /> Submit case
+              <Send aria-hidden="true" /> {t('Submit case')}
             </Button>
           )}
         </div>
@@ -567,6 +588,7 @@ function NewCaseWizard() {
 
 /** Shows why filing is unavailable (unverified lawyer, registration closed) instead of the wizard. */
 export default function NewCasePage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const gate = useFilingGate();
   if (!user || gate.canFile) return <NewCaseWizard />;
@@ -574,13 +596,13 @@ export default function NewCasePage() {
   return (
     <>
       <PageHeader
-        title="New Case Submission"
+        title={t('New Case Submission')}
         crumbs={[
-          { label: 'Dashboard', to: portalPath(portal, '') },
-          { label: 'New Case Submission' },
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('New Case Submission') },
         ]}
       />
-      <Alert variant="info" title="New filing unavailable">
+      <Alert variant="info" title={t('New filing unavailable')}>
         {gate.reason}
       </Alert>
     </>

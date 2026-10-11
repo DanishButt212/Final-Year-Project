@@ -13,7 +13,7 @@ export const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-left text-base text-text aria-[invalid=true]:border-destructive aria-[invalid=true]:border-2 data-[placeholder]:text-text-muted',
+      'flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-border bg-surface px-3 py-2 text-start text-base text-text aria-[invalid=true]:border-destructive aria-[invalid=true]:border-2 data-[placeholder]:text-text-muted',
       className,
     )}
     {...props}
@@ -54,12 +54,12 @@ export const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex min-h-10 w-full select-none items-center rounded-sm py-2 pl-8 pr-3 text-sm outline-none data-[highlighted]:bg-primary-soft data-[disabled]:opacity-50',
+      'relative flex min-h-10 w-full select-none items-center rounded-sm py-2 ps-8 pe-3 text-sm outline-none data-[highlighted]:bg-primary-soft data-[disabled]:opacity-50',
       className,
     )}
     {...props}
   >
-    <span className="absolute left-2 flex size-4 items-center justify-center">
+    <span className="absolute start-2 flex size-4 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
         <Check className="size-4 text-primary" aria-hidden="true" />
       </SelectPrimitive.ItemIndicator>

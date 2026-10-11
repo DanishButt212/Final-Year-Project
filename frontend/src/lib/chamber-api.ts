@@ -1,5 +1,6 @@
 import { api } from './api';
 import type { Paginated } from './types';
+import { msg } from '@/i18n';
 
 // ---------------------------------------------------------------- chamber (lawyer)
 
@@ -351,7 +352,7 @@ export interface GeoPoint {
   accuracy: number;
 }
 
-export const LOCATION_DENIED = 'Location access is required to log attendance.';
+export const LOCATION_DENIED = msg('Location access is required to log attendance.');
 
 /** Asks the browser for the device location. Rejects with a user-facing message. */
 export function getPosition(): Promise<GeoPoint> {
@@ -376,6 +377,6 @@ export function getPosition(): Promise<GeoPoint> {
 // ---------------------------------------------------------------- messages from the requirement document
 
 export const MSG = {
-  chamberDuplicate: 'Duplicate profile entry detected for this client ID.',
-  incompleteLog: 'Incomplete log parameters. Please ensure citation fields are filled.',
+  chamberDuplicate: msg('Duplicate profile entry detected for this client ID.'),
+  incompleteLog: msg('Incomplete log parameters. Please ensure citation fields are filled.'),
 };

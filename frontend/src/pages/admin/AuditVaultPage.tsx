@@ -28,15 +28,17 @@ import { formatDateTime } from '@/lib/format';
 import { codeLabel, roleLabel } from '@/lib/labels';
 import { auditApi, type AuditFilters, type AuditVerification } from '@/lib/phase4e-api';
 import { ExportMenu } from './ExportMenu';
-
+import { useTranslation } from 'react-i18next';
 
 function IntegrityBadge({ state }: { state: 'valid' | 'mismatch' | 'legacy' }) {
-  if (state === 'valid') return <Badge variant="decided">Hash matches</Badge>;
-  if (state === 'mismatch') return <Badge variant="rejected">Hash mismatch</Badge>;
-  return <Badge variant="neutral">Legacy entry (no hash)</Badge>;
+  const { t } = useTranslation();
+  if (state === 'valid') return <Badge variant="decided">{t('Hash matches')}</Badge>;
+  if (state === 'mismatch') return <Badge variant="rejected">{t('Hash mismatch')}</Badge>;
+  return <Badge variant="neutral">{t('Legacy entry (no hash)')}</Badge>;
 }
 
 function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const { t } = useTranslation();
   const { data, isPending, error } = useQuery({
     queryKey: ['admin', 'audit', 'detail', id],
     queryFn: () => auditApi.detail(id),
@@ -45,68 +47,68 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
     <Drawer
       open
       onOpenChange={(o) => !o && onClose()}
-      title={data ? data.eventId : 'Audit event'}
-      description="Read-only. This entry can never be edited or deleted."
+      title={data ? data.eventId : t('Audit event')}
+      description={t('Read-only. This entry can never be edited or deleted.')}
     >
       {error && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
-        <p>Loading...</p>
+        <p>{t('Loading...')}</p>
       ) : (
         data && (
           <div className="space-y-4 text-sm">
             <div className="flex flex-wrap gap-2">
               <IntegrityBadge state={data.integrity} />
               <Badge variant={data.success ? 'decided' : 'rejected'}>
-                {data.success ? 'Succeeded' : 'Failed'}
+                {data.success ? t('Succeeded') : t('Failed')}
               </Badge>
             </div>
             <dl className="grid gap-3">
               <div>
-                <dt className="text-text-muted">Time</dt>
+                <dt className="text-text-muted">{t('Time')}</dt>
                 <dd className="font-medium">{formatDateTime(data.createdAt)}</dd>
               </div>
               <div>
-                <dt className="text-text-muted">Event type</dt>
+                <dt className="text-text-muted">{t('Event type')}</dt>
                 <dd>
                   {codeLabel(data.action)}
                   <span className="block font-mono text-xs text-text-muted">{data.action}</span>
                 </dd>
               </div>
               <div>
-                <dt className="text-text-muted">Account</dt>
+                <dt className="text-text-muted">{t('Account')}</dt>
                 <dd className="font-medium">
-                  {data.actor ? `${data.actor.name} (${data.actor.email})` : 'System'}
+                  {data.actor ? `${data.actor.name} (${data.actor.email})` : t('System')}
                   {data.actorRole ? ` · ${roleLabel(data.actorRole)}` : ''}
                 </dd>
               </div>
               <div>
-                <dt className="text-text-muted">User hash</dt>
+                <dt className="text-text-muted">{t('User hash')}</dt>
                 <dd className="font-mono">{data.userHash}</dd>
               </div>
               <div>
-                <dt className="text-text-muted">Target</dt>
+                <dt className="text-text-muted">{t('Target')}</dt>
                 <dd className="break-all font-mono">
                   {data.entity ?? '—'} {data.entityId ?? ''}
                 </dd>
               </div>
               <div>
-                <dt className="text-text-muted">Address and device</dt>
+                <dt className="text-text-muted">{t('Address and device')}</dt>
                 <dd className="break-words">
                   {data.ipAddress ?? '—'}
                   {data.userAgent ? ` · ${data.userAgent}` : ''}
                 </dd>
               </div>
               <div>
-                <dt className="text-text-muted">Event hash (SHA-256)</dt>
+                <dt className="text-text-muted">{t('Event hash (SHA-256)')}</dt>
                 <dd className="break-all font-mono text-xs">
-                  {data.eventHash ?? 'none (legacy entry)'}
+                  {data.eventHash ?? t('none (legacy entry)')}
                 </dd>
               </div>
             </dl>
             <section>
-              <h3 className="mb-1 font-bold">Metadata</h3>
+              <h3 className="mb-1 font-bold">{t('Metadata')}</h3>
               <pre className="max-h-72 overflow-auto rounded-md border border-border bg-background p-3 text-xs">
-                {data.metadata ? JSON.stringify(data.metadata, null, 2) : 'No metadata'}
+                {data.metadata ? JSON.stringify(data.metadata, null, 2) : t('No metadata')}
               </pre>
             </section>
           </div>
@@ -118,6 +120,7 @@ function DetailDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
 /** "Master Audit Logs & Events Immutable History Vault" */
 export default function AuditVaultPage() {
+  const { t } = useTranslation();
   const blank = { q: '', action: '', entity: '', actor: '', from: '', to: '' };
   const [form, setForm] = useState(blank);
   const [filters, setFilters] = useState<AuditFilters>({});
@@ -147,7 +150,7 @@ export default function AuditVaultPage() {
   function apply(e: React.FormEvent) {
     e.preventDefault();
     if (form.from && form.to && form.from > form.to) {
-      return setFormError('The start date must not be after the end date.');
+      return setFormError(t('The start date must not be after the end date.'));
     }
     setFormError(null);
     setVerdict(null);
@@ -167,14 +170,17 @@ export default function AuditVaultPage() {
   return (
     <>
       <PageHeader
-        title="Master Audit Logs & Events Immutable History Vault"
-        description="Tamper-proof record of case status changes, data mutations and master account actions, newest first."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Audit Logs' }]}
+        title={t('Master Audit Logs & Events Immutable History Vault')}
+        description={t(
+          'Tamper-proof record of case status changes, data mutations and master account actions, newest first.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Audit Logs') }]}
       />
       <Alert variant="info" className="mb-4">
-        <Lock className="mr-1 inline size-4" aria-hidden="true" />
-        This vault is read-only. Entries cannot be edited or deleted, even by an administrator: the
-        database itself rejects any change.
+        <Lock className="me-1 inline size-4" aria-hidden="true" />
+        {t(
+          'This vault is read-only. Entries cannot be edited or deleted, even by an administrator: the database itself rejects any change.',
+        )}
       </Alert>
 
       <Card className="mb-4">
@@ -185,13 +191,13 @@ export default function AuditVaultPage() {
                 <Alert variant="error">{formError}</Alert>
               </div>
             )}
-            <Field label="Search" hint="Event ID, event type, target or account email">
+            <Field label={t('Search')} hint={t('Event ID, event type, target or account email')}>
               {(p) => <Input {...p} value={form.q} onChange={set('q')} maxLength={100} />}
             </Field>
-            <Field label="Event type">
+            <Field label={t('Event type')}>
               {(p) => (
                 <NativeSelect {...p} value={form.action} onChange={set('action')}>
-                  <option value="">All event types</option>
+                  <option value="">{t('All event types')}</option>
                   {facets.data?.actions.map((a) => (
                     <option key={a} value={a}>
                       {codeLabel(a)}
@@ -200,10 +206,10 @@ export default function AuditVaultPage() {
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Target record type">
+            <Field label={t('Target record type')}>
               {(p) => (
                 <NativeSelect {...p} value={form.entity} onChange={set('entity')}>
-                  <option value="">All record types</option>
+                  <option value="">{t('All record types')}</option>
                   {facets.data?.entities.map((a) => (
                     <option key={a} value={a}>
                       {a}
@@ -212,21 +218,21 @@ export default function AuditVaultPage() {
                 </NativeSelect>
               )}
             </Field>
-            <Field label="Target account" hint="Account email, or part of it">
+            <Field label={t('Target account')} hint={t('Account email, or part of it')}>
               {(p) => <Input {...p} value={form.actor} onChange={set('actor')} maxLength={120} />}
             </Field>
-            <Field label="From date">
+            <Field label={t('From date')}>
               {(p) => <DatePicker {...p} value={form.from} onChange={set('from')} />}
             </Field>
-            <Field label="To date">
+            <Field label={t('To date')}>
               {(p) => <DatePicker {...p} value={form.to} onChange={set('to')} />}
             </Field>
             <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-3">
               <Button type="submit">
-                <Search aria-hidden="true" /> Apply filters
+                <Search aria-hidden="true" /> {t('Apply filters')}
               </Button>
               <Button type="button" variant="secondary" onClick={reset}>
-                Clear
+                {t('Clear')}
               </Button>
               <Button
                 type="button"
@@ -234,7 +240,7 @@ export default function AuditVaultPage() {
                 loading={verify.isPending}
                 onClick={() => verify.mutate()}
               >
-                <ShieldCheck aria-hidden="true" /> Verify integrity
+                <ShieldCheck aria-hidden="true" /> {t('Verify integrity')}
               </Button>
             </div>
           </form>
@@ -244,16 +250,27 @@ export default function AuditVaultPage() {
       {verdict && (
         <Alert variant={verdict.mismatched > 0 ? 'error' : 'success'} className="mb-4">
           {verdict.mismatched > 0 && (
-            <ShieldAlert className="mr-1 inline size-4" aria-hidden="true" />
+            <ShieldAlert className="me-1 inline size-4" aria-hidden="true" />
           )}
-          {verdict.total.toLocaleString('en-PK')} entries checked
           {verdict.from || verdict.to
-            ? ` for ${verdict.from ?? 'the start'} to ${verdict.to ?? 'today'}`
-            : ''}
-          : {verdict.valid.toLocaleString('en-PK')} valid,{' '}
-          {verdict.mismatched.toLocaleString('en-PK')} mismatched,{' '}
-          {verdict.legacy.toLocaleString('en-PK')} legacy (written before hashing began).
-          {verdict.mismatched > 0 && ` Mismatched: ${verdict.mismatchedIds.join(', ')}.`}
+            ? t('{{total}} entries checked for {{from}} to {{to}}:', {
+                total: verdict.total.toLocaleString('en-PK'),
+                from: verdict.from ?? t('the start'),
+                to: verdict.to ?? t('today'),
+              })
+            : t('{{total}} entries checked:', {
+                total: verdict.total.toLocaleString('en-PK'),
+              })}{' '}
+          {t(
+            '{{valid}} valid, {{mismatched}} mismatched, {{legacy}} legacy (written before hashing began).',
+            {
+              valid: verdict.valid.toLocaleString('en-PK'),
+              mismatched: verdict.mismatched.toLocaleString('en-PK'),
+              legacy: verdict.legacy.toLocaleString('en-PK'),
+            },
+          )}
+          {verdict.mismatched > 0 &&
+            ` ${t('Mismatched: {{ids}}.', { ids: verdict.mismatchedIds.join(', ') })}`}
         </Alert>
       )}
 
@@ -264,22 +281,22 @@ export default function AuditVaultPage() {
         <Card>
           <EmptyState
             icon={History}
-            title="No audit entries match"
-            description="Change or clear the filters to see more."
+            title={t('No audit entries match')}
+            description={t('Change or clear the filters to see more.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Audit log">
+            <Table aria-label={t('Audit log')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Event ID</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>User hash</TableHead>
-                  <TableHead>Event type</TableHead>
-                  <TableHead>Target</TableHead>
-                  <TableHead>Result</TableHead>
+                  <TableHead>{t('Event ID')}</TableHead>
+                  <TableHead>{t('Time')}</TableHead>
+                  <TableHead>{t('User hash')}</TableHead>
+                  <TableHead>{t('Event type')}</TableHead>
+                  <TableHead>{t('Target')}</TableHead>
+                  <TableHead>{t('Result')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -293,7 +310,7 @@ export default function AuditVaultPage() {
                       >
                         {r.eventId}
                       </button>
-                      {r.legacy && <p className="text-xs text-text-muted">legacy</p>}
+                      {r.legacy && <p className="text-xs text-text-muted">{t('legacy')}</p>}
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {formatDateTime(r.createdAt)}
@@ -306,7 +323,7 @@ export default function AuditVaultPage() {
                     <TableCell>{r.entity ?? '—'}</TableCell>
                     <TableCell>
                       <Badge variant={r.success ? 'decided' : 'rejected'}>
-                        {r.success ? 'Succeeded' : 'Failed'}
+                        {r.success ? t('Succeeded') : t('Failed')}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -324,7 +341,7 @@ export default function AuditVaultPage() {
       )}
 
       <div className="mt-8">
-        <ExportMenu kind="AUDIT_TRAIL" params={{ ...filters }} title="Export Audit Trail" />
+        <ExportMenu kind="AUDIT_TRAIL" params={{ ...filters }} title={t('Export Audit Trail')} />
       </div>
       {open && <DetailDrawer id={open} onClose={() => setOpen(null)} />}
     </>

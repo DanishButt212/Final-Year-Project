@@ -1,5 +1,5 @@
 import type { BadgeVariant } from '@/components/ui/badge';
-import { msg } from '@/i18n';
+import i18n, { msg } from '@/i18n';
 
 export type CaseStatus =
   | 'DRAFT'
@@ -22,8 +22,9 @@ export const CASE_TYPES: { value: CaseType; label: string }[] = [
   { value: 'BAIL_APPLICATION', label: msg('Bail Application') },
 ];
 
+/** The case category in the current language. */
 export const caseTypeLabel = (type: CaseType) =>
-  CASE_TYPES.find((t) => t.value === type)?.label ?? type;
+  i18n.t(CASE_TYPES.find((ct) => ct.value === type)?.label ?? type);
 
 /**
  * Status -> badge colour and wording, following MASTER.md:
@@ -46,7 +47,7 @@ export const CLOSED_STATUSES: CaseStatus[] = ['DECIDED', 'REJECTED', 'DISMISSED'
 
 /** "Judge name · Courtroom", or "Not yet assigned" before allocation. */
 export const judgeBench = (c: { judge: string | null; courtroom: string | null }) =>
-  c.judge ? `${c.judge}${c.courtroom ? ` · ${c.courtroom}` : ''}` : msg('Not yet assigned');
+  c.judge ? `${c.judge}${c.courtroom ? ` · ${c.courtroom}` : ''}` : i18n.t('Not yet assigned');
 
 export function statusBadge(status: CaseStatus) {
   return STATUS_BADGES[status] ?? { variant: 'neutral' as const, label: status };

@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   AlertTriangle,
@@ -50,6 +51,9 @@ import {
   RunCheckPanel,
   ScheduleHearingDialog,
 } from './BoardDialogs';
+import { useTranslation } from 'react-i18next';
+
+import { msg } from '@/i18n';
 
 const STATUS_VARIANT = {
   SCHEDULED: 'hearing',
@@ -58,10 +62,10 @@ const STATUS_VARIANT = {
   CANCELLED: 'rejected',
 } as const;
 const STATUS_LABEL = {
-  SCHEDULED: 'Scheduled',
-  ADJOURNED: 'Adjourned',
-  HELD: 'Completed',
-  CANCELLED: 'Cancelled',
+  SCHEDULED: msg('Scheduled'),
+  ADJOURNED: msg('Adjourned'),
+  HELD: msg('Completed'),
+  CANCELLED: msg('Cancelled'),
 } as const;
 
 function HearingCard({
@@ -85,6 +89,7 @@ function HearingCard({
   onDragStart: () => void;
   onDragEnd: () => void;
 }) {
+  const { t } = useTranslation();
   const clash = h.conflicts.length > 0;
   return (
     <div
@@ -96,7 +101,7 @@ function HearingCard({
       }}
       onDragEnd={onDragEnd}
       className={cn(
-        'h-full min-w-40 cursor-grab space-y-1 rounded-md border bg-surface p-2 text-left',
+        'h-full min-w-40 cursor-grab space-y-1 rounded-md border bg-surface p-2 text-start',
         clash ? 'border-2 border-destructive bg-status-rejected-bg' : 'border-border',
         dragging && 'opacity-50',
       )}
@@ -123,16 +128,16 @@ function HearingCard({
           variant="secondary"
           className="min-h-8 px-2 text-xs"
           onClick={onReschedule}
-          aria-label={`${clash ? 'Resolve conflict for' : 'Reschedule'} ${h.ucn}, ${h.startTime} in ${roomName}`}
+          aria-label={`${clash ? t('Resolve conflict for') : t('Reschedule')} ${h.ucn}, ${h.startTime} in ${roomName}`}
         >
-          <Move aria-hidden="true" /> {clash ? 'Resolve' : 'Reschedule'}
+          <Move aria-hidden="true" /> {clash ? t('Resolve') : t('Reschedule')}
         </Button>
         <Button
           size="sm"
           variant="ghost"
           className="min-h-8 px-2"
           onClick={onCancel}
-          aria-label={`Cancel hearing ${h.ucn}`}
+          aria-label={t('Cancel hearing {{ucn}}', { ucn: h.ucn })}
         >
           <Trash2 aria-hidden="true" />
         </Button>
@@ -144,8 +149,8 @@ function HearingCard({
             className="block pt-1 text-xs font-semibold"
           >
             {h.virtualSession.status === 'ACTIVE'
-              ? 'Open virtual courtroom control'
-              : 'Virtual session ended'}
+              ? t('Open virtual courtroom control')
+              : t('Virtual session ended')}
           </Link>
         ) : (
           h.status === 'SCHEDULED' &&
@@ -156,7 +161,7 @@ function HearingCard({
               loading={initializing}
               onClick={onInitialize}
             >
-              <Video aria-hidden="true" /> Initialize Virtual Courtroom Session
+              <Video aria-hidden="true" /> {t('Initialize Virtual Courtroom Session')}
             </Button>
           )
         ))}
@@ -166,6 +171,7 @@ function HearingCard({
 
 /** UC-3.1 / 3.2 / 3.3: Master Bench Allocation and Scheduling Board. */
 export default function BoardPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [courtChoice, setCourtId] = useState('');
@@ -278,25 +284,27 @@ export default function BoardPage() {
   const statusForPublish = !b
     ? null
     : !b.isWorkingDay
-      ? 'Not a working day.'
+      ? t('Not a working day.')
       : b.conflictCount > 0
-        ? 'Resolve all scheduling conflicts before publishing.'
+        ? t('Resolve all scheduling conflicts before publishing.')
         : b.hearingCount === 0
-          ? 'There are no hearings to publish.'
+          ? t('There are no hearings to publish.')
           : null;
 
   return (
     <>
       <PageHeader
-        title="Master Bench Allocation and Scheduling Board"
-        description="Every courtroom and judge across the day, with anti-clash checks. Drag a hearing onto a free slot to move it."
-        crumbs={[{ label: 'Dashboard', to: '/admin' }, { label: 'Bench Scheduling' }]}
+        title={t('Master Bench Allocation and Scheduling Board')}
+        description={t(
+          'Every courtroom and judge across the day, with anti-clash checks. Drag a hearing onto a free slot to move it.',
+        )}
+        crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Bench Scheduling') }]}
       />
 
       <Card className="mb-4">
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_auto] md:items-end">
-            <Field label="Court">
+            <Field label={t('Court')}>
               {(p) => (
                 <NativeSelect value={courtId} onChange={(e) => setCourtId(e.target.value)} {...p}>
                   {courts.data?.map((c) => (
@@ -312,12 +320,12 @@ export default function BoardPage() {
                 variant="secondary"
                 size="icon"
                 onClick={() => setDate(addDaysIso(date, -1))}
-                aria-label="Previous day"
+                aria-label={t('Previous day')}
               >
-                <ChevronLeft aria-hidden="true" />
+                <ChevronLeft className="rtl:-scale-x-100" aria-hidden="true" />
               </Button>
               <div className="flex-1">
-                <Field label="Date">
+                <Field label={t('Date')}>
                   {(p) => (
                     <DatePicker
                       value={date}
@@ -331,39 +339,58 @@ export default function BoardPage() {
                 variant="secondary"
                 size="icon"
                 onClick={() => setDate(addDaysIso(date, 1))}
-                aria-label="Next day"
+                aria-label={t('Next day')}
               >
-                <ChevronRight aria-hidden="true" />
+                <ChevronRight className="rtl:-scale-x-100" aria-hidden="true" />
               </Button>
               <Button variant="ghost" onClick={() => setDate(todayIso())}>
-                Today
+                {t('Today')}
               </Button>
             </div>
           </div>
 
-          <div role="group" aria-label="Week" className="grid grid-cols-5 gap-2">
+          <div role="group" aria-label={t('Week')} className="grid grid-cols-5 gap-2">
             {week.data?.days.map((d) => (
               <button
                 key={d.date}
                 type="button"
                 onClick={() => setDate(d.date)}
                 aria-pressed={d.date === date}
-                aria-label={`${weekdayName(d.date)} ${isoToDdMmYyyy(d.date)}, ${d.total} hearings${d.conflicts ? `, ${d.conflicts} in conflict` : ''}`}
+                aria-label={
+                  d.conflicts
+                    ? t('{{day}} {{date}}, {{total}} hearings, {{conflicts}} in conflict', {
+                        day: weekdayName(d.date),
+                        date: isoToDdMmYyyy(d.date),
+                        total: d.total,
+                        conflicts: d.conflicts,
+                      })
+                    : t('{{day}} {{date}}, {{total}} hearings', {
+                        day: weekdayName(d.date),
+                        date: isoToDdMmYyyy(d.date),
+                        total: d.total,
+                      })
+                }
                 className={cn(
-                  'min-h-14 rounded-md border px-2 py-1 text-left text-sm',
+                  'min-h-14 rounded-md border px-2 py-1 text-start text-sm',
                   d.date === date
                     ? 'border-primary bg-primary-soft'
                     : 'border-border bg-surface hover:bg-primary-soft',
                 )}
               >
-                <span className="block font-semibold">{weekdayName(d.date).slice(0, 3)}</span>
+                <span className="block font-semibold">
+                  {i18n.language === 'ur'
+                    ? t(weekdayName(d.date))
+                    : weekdayName(d.date).slice(0, 3)}
+                </span>
                 <span className="block text-xs text-text-muted">
                   {d.date.slice(8, 10)}-{d.date.slice(5, 7)}
                 </span>
                 <span className="block text-xs">
-                  {d.total} hearing{d.total === 1 ? '' : 's'}
+                  {d.total === 1 ? t('1 hearing') : t('{{count}} hearings', { count: d.total })}
                   {d.conflicts > 0 && (
-                    <span className="ml-1 font-bold text-destructive">· {d.conflicts} clash</span>
+                    <span className="ms-1 font-bold text-destructive">
+                      · {t('{{conflicts}} clash', { conflicts: d.conflicts })}
+                    </span>
                   )}
                 </span>
               </button>
@@ -372,7 +399,7 @@ export default function BoardPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button onClick={() => setScheduling({})} disabled={!b || !bookable}>
-              <CalendarPlus aria-hidden="true" /> Schedule hearing
+              <CalendarPlus aria-hidden="true" /> {t('Schedule hearing')}
             </Button>
             <Button
               variant="secondary"
@@ -380,10 +407,10 @@ export default function BoardPage() {
               loading={runCheck.isPending}
               disabled={!courtId}
             >
-              <ShieldCheck aria-hidden="true" /> Run Anti-Clash Check
+              <ShieldCheck aria-hidden="true" /> {t('Run Anti-Clash Check')}
             </Button>
             <Button variant="secondary" onClick={() => setAuto(true)} disabled={!b || !bookable}>
-              <Wand2 aria-hidden="true" /> Auto-generate schedule
+              <Wand2 aria-hidden="true" /> {t('Auto-generate schedule')}
             </Button>
             <span title={statusForPublish ?? undefined}>
               <Button
@@ -393,22 +420,22 @@ export default function BoardPage() {
                 disabled={Boolean(statusForPublish)}
                 aria-describedby="publish-hint"
               >
-                <Megaphone aria-hidden="true" /> Publish Cause List
+                <Megaphone aria-hidden="true" /> {t('Publish Cause List')}
               </Button>
             </span>
             <span id="publish-hint" className="text-sm text-text-muted">
               {b?.causeList?.status === 'PUBLISHED'
-                ? `Published ${formatDateTime(b.causeList.publishedAt)}`
-                : (statusForPublish ?? 'Not published yet')}
+                ? t('Published {{dateTime}}', { dateTime: formatDateTime(b.causeList.publishedAt) })
+                : (statusForPublish ?? t('Not published yet'))}
             </span>
-            <div role="group" aria-label="View" className="ml-auto flex gap-1">
+            <div role="group" aria-label={t('View')} className="ms-auto flex gap-1">
               <Button
                 variant={view === 'grid' ? 'primary' : 'secondary'}
                 size="sm"
                 onClick={() => setView('grid')}
                 aria-pressed={view === 'grid'}
               >
-                <LayoutGrid aria-hidden="true" /> Grid
+                <LayoutGrid aria-hidden="true" /> {t('Grid')}
               </Button>
               <Button
                 variant={view === 'agenda' ? 'primary' : 'secondary'}
@@ -416,7 +443,7 @@ export default function BoardPage() {
                 onClick={() => setView('agenda')}
                 aria-pressed={view === 'agenda'}
               >
-                <List aria-hidden="true" /> Agenda
+                <List aria-hidden="true" /> {t('Agenda')}
               </Button>
             </div>
           </div>
@@ -435,23 +462,23 @@ export default function BoardPage() {
         </div>
       )}
       {dropError && (
-        <Alert variant="error" className="mb-4" title="Hearing not moved">
+        <Alert variant="error" className="mb-4" title={t('Hearing not moved')}>
           {dropError}
         </Alert>
       )}
       {board.isError && <Alert variant="error">{parseApiError(board.error).message}</Alert>}
 
       {!b ? (
-        <div role="status" aria-label="Loading board" className="space-y-3">
+        <div role="status" aria-label={t('Loading board')} className="space-y-3">
           <Skeleton className="h-16" />
           <Skeleton className="h-64" />
-          <span className="sr-only">Loading…</span>
+          <span className="sr-only">{t('Loading…')}</span>
         </div>
       ) : (
         <>
           <div
             className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm"
-            aria-label="Legend"
+            aria-label={t('Legend')}
           >
             <span className="font-semibold">
               {b.weekday} {isoToDdMmYyyy(b.date)}
@@ -460,23 +487,23 @@ export default function BoardPage() {
               <span
                 className="size-3 rounded-sm border border-border bg-surface"
                 aria-hidden="true"
-              />{' '}
-              Booked
+              />
+              {t('Booked', {})}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span
                 className="size-3 rounded-sm border-2 border-dashed border-primary"
                 aria-hidden="true"
-              />{' '}
-              Free slot
+              />
+              {t('Free slot', {})}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <AlertTriangle className="size-3.5 text-destructive" aria-hidden="true" />
               <span
                 className="size-3 rounded-sm border-2 border-destructive bg-status-rejected-bg"
                 aria-hidden="true"
-              />{' '}
-              Conflict ({b.conflictCount})
+              />
+              {t('Conflict ({{conflictCount}})', { conflictCount: b.conflictCount })}
             </span>
           </div>
 
@@ -484,38 +511,43 @@ export default function BoardPage() {
             <Card>
               <EmptyState
                 icon={CalendarPlus}
-                title="Not a working day"
-                description="Courts sit Monday to Friday. Choose a weekday to schedule hearings."
+                title={t('Not a working day')}
+                description={t(
+                  'Courts sit Monday to Friday. Choose a weekday to schedule hearings.',
+                )}
               />
             </Card>
           ) : b.courtrooms.length === 0 ? (
             <Card>
               <EmptyState
                 icon={LayoutGrid}
-                title="No courtrooms in this court"
-                description="Add courtrooms under Courts & Benches."
+                title={t('No courtrooms in this court')}
+                description={t('Add courtrooms under Courts & Benches.')}
               />
             </Card>
           ) : view === 'grid' ? (
             <div className="w-full overflow-x-auto rounded-lg border border-border bg-surface">
               <table
                 role="grid"
-                aria-label={`Hearing schedule for ${b.court.name} on ${isoToDdMmYyyy(b.date)}`}
+                aria-label={t('Hearing schedule for {{name}} on {{isoToDdMmYyyy}}', {
+                  name: b.court.name,
+                  isoToDdMmYyyy: isoToDdMmYyyy(b.date),
+                })}
                 className="w-full border-collapse text-sm"
               >
                 <thead className="bg-primary-soft">
                   <tr>
                     <th
                       scope="col"
-                      className="sticky left-0 z-10 min-w-44 bg-primary-soft px-3 py-2 text-left"
+                      className="sticky start-0 z-10 min-w-44 bg-primary-soft px-3 py-2 text-start"
                     >
-                      Courtroom and judge
+                      {t('Courtroom and judge')}
                     </th>
                     {b.slots.map((s) => (
                       <th
                         key={s.slot}
                         scope="col"
-                        className="min-w-44 whitespace-nowrap px-3 py-2 text-left"
+                        className="min-w-44 whitespace-nowrap px-3 py-2 text-start"
                       >
                         {s.start}–{s.end}
                       </th>
@@ -527,16 +559,20 @@ export default function BoardPage() {
                     <tr key={room.id} className="border-t border-border align-top">
                       <th
                         scope="row"
-                        className="sticky left-0 z-10 bg-surface px-3 py-2 text-left font-normal"
+                        className="sticky start-0 z-10 bg-surface px-3 py-2 text-start font-normal"
                       >
                         <span className="block font-semibold">{room.name}</span>
                         {room.judges.map((j) => (
                           <span key={j.id} className="block text-xs text-text-muted">
-                            {j.name} · {j.used}/{j.total} slots
+                            {t('{{name}} · {{used}}/{{total}} slots', {
+                              name: j.name,
+                              used: j.used,
+                              total: j.total,
+                            })}
                           </span>
                         ))}
                         {room.judges.length === 0 && (
-                          <span className="text-xs text-text-muted">No judge assigned</span>
+                          <span className="text-xs text-text-muted">{t('No judge assigned')}</span>
                         )}
                       </th>
                       {room.cells.map((cell) => {
@@ -572,10 +608,13 @@ export default function BoardPage() {
                                 onClick={() =>
                                   setScheduling({ courtroomId: room.id, slot: cell.slot })
                                 }
-                                aria-label={`Free slot ${s.start} in ${room.name}. Schedule a hearing`}
+                                aria-label={t(
+                                  'Free slot {{start}} in {{name}}. Schedule a hearing',
+                                  { start: s.start, name: room.name },
+                                )}
                                 className="flex min-h-20 w-full items-center justify-center rounded-md border-2 border-dashed border-border text-xs font-medium text-text-muted hover:border-primary hover:bg-primary-soft hover:text-primary disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                Free
+                                {t('Free')}
                               </button>
                             )}
                           </td>
@@ -597,7 +636,7 @@ export default function BoardPage() {
                         <h2 className="text-lg font-bold">{room.name}</h2>
                         <p className="text-sm text-text-muted">
                           {room.judges.map((j) => `${j.name} (${j.used}/${j.total})`).join(', ') ||
-                            'No judge assigned'}
+                            t('No judge assigned')}
                         </p>
                       </div>
                       <ul className="space-y-2">
@@ -633,9 +672,12 @@ export default function BoardPage() {
                                   onClick={() =>
                                     setScheduling({ courtroomId: room.id, slot: cell.slot })
                                   }
-                                  aria-label={`Free slot ${s.start} in ${room.name}. Schedule a hearing`}
+                                  aria-label={t(
+                                    'Free slot {{start}} in {{name}}. Schedule a hearing',
+                                    { start: s.start, name: room.name },
+                                  )}
                                 >
-                                  Free · schedule a hearing
+                                  {t('Free · schedule a hearing')}
                                 </Button>
                               )}
                             </li>
@@ -643,7 +685,7 @@ export default function BoardPage() {
                         })}
                       </ul>
                       {booked.length === 0 && (
-                        <p className="text-sm text-text-muted">No hearings booked.</p>
+                        <p className="text-sm text-text-muted">{t('No hearings booked.')}</p>
                       )}
                     </CardContent>
                   </Card>

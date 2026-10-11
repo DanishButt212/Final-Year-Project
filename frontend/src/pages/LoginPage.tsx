@@ -23,8 +23,10 @@ import {
   type ChamberLoginValues,
   type LoginValues,
 } from '@/lib/schemas';
+import { useTranslation } from 'react-i18next';
 
 function ChamberLoginForm() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [formError, setFormError] = useState<string | null>(null);
@@ -58,10 +60,10 @@ function ChamberLoginForm() {
     >
       {formError && <Alert variant="error">{formError}</Alert>}
       <Field
-        label="Chamber ID"
+        label={t('Chamber ID')}
         required
         error={errors.chamberCode?.message}
-        hint="Shown on Chamber Settings, for example CH-000001."
+        hint={t('Shown on Chamber Settings, for example CH-000001.')}
       >
         {(p) => (
           <Input
@@ -72,20 +74,21 @@ function ChamberLoginForm() {
           />
         )}
       </Field>
-      <Field label="Personal email" required error={errors.identifier?.message}>
+      <Field label={t('Personal email')} required error={errors.identifier?.message}>
         {(p) => <Input type="email" autoComplete="username" {...p} {...register('identifier')} />}
       </Field>
-      <Field label="Password" required error={errors.password?.message}>
+      <Field label={t('Password')} required error={errors.password?.message}>
         {(p) => <PasswordInput autoComplete="current-password" {...p} {...register('password')} />}
       </Field>
       <Button type="submit" className="w-full" loading={isSubmitting}>
-        <Building2 aria-hidden="true" /> Enter chamber
+        <Building2 aria-hidden="true" /> {t('Enter chamber')}
       </Button>
     </form>
   );
 }
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,21 +124,21 @@ export default function LoginPage() {
 
   return (
     <AuthCard
-      title="Log in"
-      description="Use your email address. Administrators can also use their username."
+      title={t('Log in')}
+      description={t('Use your email address. Administrators can also use their username.')}
       footer={
         <p>
-          New here?{' '}
+          {t('New here?')}{' '}
           <Link to="/register" className="font-semibold">
-            Create an account
+            {t('Create an account')}
           </Link>
         </p>
       }
     >
       <Tabs defaultValue="standard">
-        <TabsList aria-label="Login type">
-          <TabsTrigger value="standard">Log in</TabsTrigger>
-          <TabsTrigger value="chamber">Chamber desk login</TabsTrigger>
+        <TabsList aria-label={t('Login type')}>
+          <TabsTrigger value="standard">{t('Log in')}</TabsTrigger>
+          <TabsTrigger value="chamber">{t('Chamber desk login')}</TabsTrigger>
         </TabsList>
         <TabsContent value="standard">
           <form
@@ -147,29 +150,31 @@ export default function LoginPage() {
             {state?.notice && <Alert variant="success">{state.notice}</Alert>}
             {formError && <Alert variant="error">{formError}</Alert>}
 
-            <Field label="Email or username" error={errors.identifier?.message} required>
+            <Field label={t('Email or username')} error={errors.identifier?.message} required>
               {(p) => (
                 <Input autoComplete="username" autoFocus {...p} {...register('identifier')} />
               )}
             </Field>
-            <Field label="Password" error={errors.password?.message} required>
+            <Field label={t('Password')} error={errors.password?.message} required>
               {(p) => (
                 <PasswordInput autoComplete="current-password" {...p} {...register('password')} />
               )}
             </Field>
 
-            <div className="text-right text-sm">
-              <Link to="/forgot-password">Forgot your password?</Link>
+            <div className="text-end text-sm">
+              <Link to="/forgot-password">{t('Forgot your password?')}</Link>
             </div>
 
             <Button type="submit" className="w-full" loading={isSubmitting}>
-              <LogIn aria-hidden="true" /> Log in
+              <LogIn className="rtl:-scale-x-100" aria-hidden="true" /> {t('Log in')}
             </Button>
           </form>
         </TabsContent>
         <TabsContent value="chamber">
           <p className="mb-4 text-sm text-text-muted">
-            For senior lawyers: enter your unique Chamber ID together with your email and password.
+            {t(
+              'For senior lawyers: enter your unique Chamber ID together with your email and password.',
+            )}
           </p>
           <ChamberLoginForm />
         </TabsContent>

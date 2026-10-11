@@ -19,6 +19,7 @@ import { chamberApi, type ChamberProfile } from '@/lib/chamber-api';
 import { applyServerError } from '@/lib/form-errors';
 import { MESSAGES, PHONE_REGEX, summaryFor } from '@/lib/schemas';
 import { ChipInput } from './shared';
+import { useTranslation } from 'react-i18next';
 
 const schema = z.object({
   name: z.string().trim().min(1, MESSAGES.fieldRequired).max(120),
@@ -62,6 +63,7 @@ const toValues = (p: ChamberProfile): Values => ({
 });
 
 function SettingsForm({ profile }: { profile: ChamberProfile }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -131,29 +133,37 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Building2 className="size-5 text-primary" aria-hidden="true" /> Firm identity
+            <Building2 className="size-5 text-primary" aria-hidden="true" /> {t('Firm identity')}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
-          <Field label="Chamber name" required error={errors.name?.message}>
+          <Field label={t('Chamber name')} required error={errors.name?.message}>
             {(p) => <Input maxLength={120} {...p} {...register('name')} />}
           </Field>
-          <Field label="Chamber phone" error={errors.phone?.message} hint="+92 3XX XXXXXXX">
+          <Field
+            label={t('Chamber phone')}
+            error={errors.phone?.message}
+            hint={t('+92 3XX XXXXXXX')}
+          >
             {(p) => <PhoneInput {...p} {...register('phone')} />}
           </Field>
           <div className="md:col-span-2">
-            <Field label="Office Physical Address" required error={errors.officeAddress?.message}>
+            <Field
+              label={t('Office Physical Address')}
+              required
+              error={errors.officeAddress?.message}
+            >
               {(p) => <Textarea rows={2} maxLength={300} {...p} {...register('officeAddress')} />}
             </Field>
           </div>
-          <Field label="Chamber email" error={errors.email?.message}>
+          <Field label={t('Chamber email')} error={errors.email?.message}>
             {(p) => <Input type="email" maxLength={120} {...p} {...register('email')} />}
           </Field>
           <div className="md:col-span-2 grid gap-4 md:grid-cols-1">
             <Field
-              label="Sub-partner Names"
+              label={t('Sub-partner Names')}
               error={errors.partnerNames?.message}
-              hint="Press Enter or Add after each name (up to 10)."
+              hint={t('Press Enter or Add after each name (up to 10).')}
             >
               {(p) => (
                 <Controller
@@ -161,7 +171,7 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
                   name="partnerNames"
                   render={({ field }) => (
                     <ChipInput
-                      label="Sub-partner names"
+                      label={t('Sub-partner names')}
                       values={field.value}
                       onChange={field.onChange}
                       max={10}
@@ -174,9 +184,9 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
               )}
             </Field>
             <Field
-              label="Bar Association Membership IDs"
+              label={t('Bar Association Membership IDs')}
               error={errors.barMembershipIds?.message}
-              hint="Up to 10 IDs."
+              hint={t('Up to 10 IDs.')}
             >
               {(p) => (
                 <Controller
@@ -184,7 +194,7 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
                   name="barMembershipIds"
                   render={({ field }) => (
                     <ChipInput
-                      label="Bar membership IDs"
+                      label={t('Bar membership IDs')}
                       values={field.value}
                       onChange={field.onChange}
                       max={10}
@@ -197,9 +207,9 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
               )}
             </Field>
             <Field
-              label="Practice Verticals"
+              label={t('Practice Verticals')}
               error={errors.practiceVerticals?.message}
-              hint="For example Criminal Defence, Family Law (up to 12)."
+              hint={t('For example Criminal Defence, Family Law (up to 12).')}
             >
               {(p) => (
                 <Controller
@@ -207,7 +217,7 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
                   name="practiceVerticals"
                   render={({ field }) => (
                     <ChipInput
-                      label="Practice verticals"
+                      label={t('Practice verticals')}
                       values={field.value}
                       onChange={field.onChange}
                       max={12}
@@ -225,14 +235,14 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Billing defaults</CardTitle>
+          <CardTitle>{t('Billing defaults')}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <Field
-            label="Default hourly rate (PKR)"
+            label={t('Default hourly rate (PKR)')}
             required
             error={errors.defaultHourlyRatePkr?.message}
-            hint="Used when a billable entry has no rate of its own."
+            hint={t('Used when a billable entry has no rate of its own.')}
           >
             {(p) => (
               <Input
@@ -246,10 +256,10 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
             )}
           </Field>
           <Field
-            label="Low balance threshold (PKR)"
+            label={t('Low balance threshold (PKR)')}
             required
             error={errors.lowBalanceThresholdPkr?.message}
-            hint="Clients below this retainer balance are flagged."
+            hint={t('Clients below this retainer balance are flagged.')}
           >
             {(p) => (
               <Input
@@ -266,7 +276,7 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
       </Card>
 
       <Button type="submit" loading={save.isPending}>
-        <Save aria-hidden="true" /> Update Firm Directory Profiles
+        <Save aria-hidden="true" /> {t('Update Firm Directory Profiles')}
       </Button>
     </form>
   );
@@ -274,6 +284,7 @@ function SettingsForm({ profile }: { profile: ChamberProfile }) {
 
 /** "Chamber Settings & Identity Profile" */
 export default function ChamberSettingsPage() {
+  const { t } = useTranslation();
   const { data, isPending, isError, error, dataUpdatedAt } = useQuery({
     queryKey: ['chamber', 'profile'],
     queryFn: chamberApi.profile,
@@ -281,9 +292,9 @@ export default function ChamberSettingsPage() {
   return (
     <>
       <PageHeader
-        title="Chamber Settings & Identity Profile"
-        description="Update the identity and billing defaults of your chamber."
-        crumbs={[{ label: 'Dashboard', to: '/lawyer' }, { label: 'Chamber Settings' }]}
+        title={t('Chamber Settings & Identity Profile')}
+        description={t('Update the identity and billing defaults of your chamber.')}
+        crumbs={[{ label: t('Dashboard'), to: '/lawyer' }, { label: t('Chamber Settings') }]}
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
@@ -294,24 +305,24 @@ export default function ChamberSettingsPage() {
             <Card>
               <CardContent className="flex flex-wrap items-center gap-x-8 gap-y-2">
                 <p>
-                  <span className="text-sm text-text-muted">Chamber ID</span>
+                  <span className="text-sm text-text-muted">{t('Chamber ID')}</span>
                   <br />
                   <span className="case-number text-lg font-semibold">{data.chamberCode}</span>
                 </p>
                 <p>
-                  <span className="text-sm text-text-muted">Licence status</span>
+                  <span className="text-sm text-text-muted">{t('Licence status')}</span>
                   <br />
                   <Badge variant={data.licenseStatus === 'ACTIVE' ? 'decided' : 'rejected'}>
-                    {data.licenseStatus === 'ACTIVE' ? 'Active' : 'Suspended'}
+                    {data.licenseStatus === 'ACTIVE' ? t('Active') : t('Suspended')}
                   </Badge>
                 </p>
                 <p>
-                  <span className="text-sm text-text-muted">Senior lawyer</span>
+                  <span className="text-sm text-text-muted">{t('Senior lawyer')}</span>
                   <br />
                   <span className="font-medium">{data.lawyerName}</span>
                 </p>
                 <p className="w-full text-sm text-text-muted">
-                  Use the Chamber ID with your email on the Chamber desk login form.
+                  {t('Use the Chamber ID with your email on the Chamber desk login form.')}
                 </p>
               </CardContent>
             </Card>

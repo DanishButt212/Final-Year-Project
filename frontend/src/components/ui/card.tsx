@@ -10,6 +10,7 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
     />
   ),
 );
+// i18n-ignore
 Card.displayName = 'Card';
 
 export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

@@ -3,7 +3,8 @@ import { ArchScalesGlyph } from './ArchScalesIcon';
 
 const PRIMARY = '#01411C';
 const GOLD = '#B8962E';
-export const SEAL_RING_TEXT = 'DIGITAL ADAALAT · JUDICIAL ERP · PAKISTAN ·';
+// i18n-ignore
+export const SEAL_RING_TEXT = 'DIGITAL ADAALAT · JUDICIAL ERP · PAKISTAN';
 
 /** Gold diamonds on the inner ring, at 12, 3, 6 and 9 o'clock. */
 const DIAMONDS: [number, number][] = [
@@ -41,7 +42,7 @@ export function SealLogo({ size = 40, title = 'DigitalAdaalat', style, ...rest }
       <circle cx={100} cy={100} r={66} fill="none" stroke={PRIMARY} strokeWidth={1.6} />
       <defs>
         {/* Starts at 6 o'clock and runs clockwise, so the text reads upright over the top. */}
-        <path id={pathId} d="M100 177 A77 77 0 1 1 100 23 A77 77 0 1 1 100 177" />
+        <path id={pathId} d="M24 100 A76 76 0 0 1 176 100" />
       </defs>
       <g className="da-seal-ring" style={{ transformOrigin: '50% 50%', transformBox: 'fill-box' }}>
         {/* Invisible guide circle: keeps the group's box centred on (100,100) so it rotates in place. */}
@@ -50,11 +51,11 @@ export function SealLogo({ size = 40, title = 'DigitalAdaalat', style, ...rest }
           fill={PRIMARY}
           fontFamily="'Inter Variable', Inter, system-ui, sans-serif"
           fontWeight={700}
-          fontSize={11.5}
+          fontSize={9.8}
           letterSpacing={1}
           direction="ltr"
         >
-          <textPath href={`#${pathId}`} textLength={470} lengthAdjust="spacing">
+          <textPath href={`#${pathId}`} textLength={225} lengthAdjust="spacing">
             {SEAL_RING_TEXT}
           </textPath>
         </text>

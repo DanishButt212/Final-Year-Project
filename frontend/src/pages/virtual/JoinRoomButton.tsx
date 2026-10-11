@@ -4,12 +4,14 @@ import { Link } from 'react-router';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { virtualApi } from '@/lib/virtual-api';
+import { useTranslation } from 'react-i18next';
 
 /** Small "Virtual" marker for hearing rows and cards. */
 export function VirtualBadge() {
+  const { t } = useTranslation();
   return (
     <Badge variant="accent" className="gap-1">
-      Virtual
+      {t('Virtual')}
     </Badge>
   );
 }
@@ -19,6 +21,7 @@ export function VirtualBadge() {
  * the Admin Bench has not opened the session or the hearing is not yet within 15 minutes.
  */
 export function JoinRoomButton({ hearingId }: { hearingId: string }) {
+  const { t } = useTranslation();
   const { data, isPending } = useQuery({
     queryKey: ['virtual-status', hearingId],
     queryFn: () => virtualApi.status(hearingId),
@@ -27,7 +30,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
   if (isPending || !data) {
     return (
       <Button size="sm" variant="secondary" disabled>
-        <Video aria-hidden="true" /> Join Remote Hearing Video Room
+        <Video aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
       </Button>
     );
   }
@@ -39,7 +42,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
     return (
       <div className="max-w-64 space-y-1">
         <Button size="sm" variant="secondary" disabled aria-describedby={id}>
-          <Lock aria-hidden="true" /> Join Remote Hearing Video Room
+          <Lock aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
         </Button>
         <p id={id} className="whitespace-normal text-xs text-text-muted">
           {data.message}
@@ -50,7 +53,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
   return (
     <Button size="sm" asChild>
       <Link to={`/courtroom/${hearingId}`}>
-        <Video aria-hidden="true" /> Join Remote Hearing Video Room
+        <Video aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
       </Link>
     </Button>
   );

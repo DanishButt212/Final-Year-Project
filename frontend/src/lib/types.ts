@@ -14,6 +14,9 @@ export interface User {
   profileImage: string | null;
   status: UserStatus;
   createdAt: string;
+  /** UX upgrade: interface language and root text size, kept on the account. */
+  preferredLanguage?: 'en' | 'ur';
+  fontScale?: number;
   lawyerProfile?: { barNumber: string | null; verificationStatus: VerificationStatus };
 }
 

@@ -1,9 +1,12 @@
 import { useAuth } from '@/auth/useAuth';
 import { usePublicSettings } from './use-public-settings';
 
-export const LAWYER_PENDING_MESSAGE =
-  'Your lawyer profile is pending verification. You can file cases once the registrar approves your bar credentials.';
-export const REGISTRATION_CLOSED_MESSAGE = 'Case registration is currently closed.';
+import { msg } from '@/i18n';
+
+export const LAWYER_PENDING_MESSAGE = msg(
+  'Your lawyer profile is pending verification. You can file cases once the registrar approves your bar credentials.',
+);
+export const REGISTRATION_CLOSED_MESSAGE = msg('Case registration is currently closed.');
 
 /** Whether the signed-in litigant or lawyer may start a new filing right now, and why not. */
 export function useFilingGate(): { canFile: boolean; reason: string | null } {

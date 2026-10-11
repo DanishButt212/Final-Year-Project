@@ -9,27 +9,29 @@ import { MyAllocatedCases } from '../judge/JudgeCasesPage';
 import { RecentOrdersPanel, TodayHearingsPanel } from '../judge/JudgeDashboardPanels';
 import CaseOverview from './CaseOverview';
 import { ChamberIdCard } from '../chamber/ChamberIdCard';
+import { useTranslation } from 'react-i18next';
 
 export function LitigantDashboard() {
+  const { t } = useTranslation();
   return (
-    <DashboardFrame description="Your cases, hearings and payments at a glance.">
+    <DashboardFrame description={t('Your cases, hearings and payments at a glance.')}>
       <CaseOverview />
       <PanelGrid>
         <NextHearingCard />
         <EmptyPanel
-          title="Court fee challans"
+          title={t('Court fee challans')}
           icon={Receipt}
-          emptyTitle="Nothing to pay"
-          emptyText="Challans for your filings and their receipts will appear here."
-          actionLabel="Challans & payments"
+          emptyTitle={t('Nothing to pay')}
+          emptyText={t('Challans for your filings and their receipts will appear here.')}
+          actionLabel={t('Challans & payments')}
           actionTo="/litigant/payments"
         />
         <EmptyPanel
-          title="Evidence vault"
+          title={t('Evidence vault')}
           icon={Archive}
-          emptyTitle="No evidence stored"
-          emptyText="Upload and organise evidence for your cases."
-          actionLabel="Open evidence vault"
+          emptyTitle={t('No evidence stored')}
+          emptyText={t('Upload and organise evidence for your cases.')}
+          actionLabel={t('Open evidence vault')}
           actionTo="/litigant/evidence"
         />
       </PanelGrid>
@@ -38,50 +40,51 @@ export function LitigantDashboard() {
 }
 
 export function LawyerDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const status = user?.lawyerProfile?.verificationStatus;
   return (
-    <DashboardFrame description="Your chamber, clients and cases at a glance.">
+    <DashboardFrame description={t('Your chamber, clients and cases at a glance.')}>
       {status === 'PENDING' && (
-        <Alert variant="info" title="Verification pending" className="mb-6">
-          {LAWYER_PENDING_MESSAGE}
+        <Alert variant="info" title={t('Verification pending')} className="mb-6">
+          {t(LAWYER_PENDING_MESSAGE)}
         </Alert>
       )}
       {status === 'VERIFIED' && <ChamberIdCard />}
       <CaseOverview />
       {status === 'REJECTED' && (
-        <Alert variant="error" title="Verification rejected" className="mb-6">
-          Your Bar Council registration could not be verified. Please contact the registrar.
+        <Alert variant="error" title={t('Verification rejected')} className="mb-6">
+          {t('Your Bar Council registration could not be verified. Please contact the registrar.')}
         </Alert>
       )}
       {status === 'VERIFIED' && (
-        <Alert variant="success" title="Verified lawyer" className="mb-6">
-          Your Bar Council registration has been verified.
+        <Alert variant="success" title={t('Verified lawyer')} className="mb-6">
+          {t('Your Bar Council registration has been verified.')}
         </Alert>
       )}
       <PanelGrid>
         <EmptyPanel
-          title="Clients"
+          title={t('Clients')}
           icon={Users}
-          emptyTitle="No clients yet"
-          emptyText="Add the people your chamber represents."
-          actionLabel="Manage clients"
+          emptyTitle={t('No clients yet')}
+          emptyText={t('Add the people your chamber represents.')}
+          actionLabel={t('Manage clients')}
           actionTo="/lawyer/chamber/clients"
         />
         <EmptyPanel
-          title="Billable hours"
+          title={t('Billable hours')}
           icon={Clock}
-          emptyTitle="No time recorded"
-          emptyText="Record time against clients and cases to bill accurately."
-          actionLabel="Billable hours"
+          emptyTitle={t('No time recorded')}
+          emptyText={t('Record time against clients and cases to bill accurately.')}
+          actionLabel={t('Billable hours')}
           actionTo="/lawyer/chamber/billable"
         />
         <EmptyPanel
-          title="Interns"
+          title={t('Interns')}
           icon={GraduationCap}
-          emptyTitle="No interns assigned"
-          emptyText="Legal interns supervised by you will appear here."
-          actionLabel="View interns"
+          emptyTitle={t('No interns assigned')}
+          emptyText={t('Legal interns supervised by you will appear here.')}
+          actionLabel={t('View interns')}
           actionTo="/lawyer/chamber/interns"
         />
         <NextHearingCard />
@@ -93,8 +96,9 @@ export function LawyerDashboard() {
 export { default as InternDashboard } from '../intern/InternDashboardPage';
 
 export function JudgeDashboard() {
+  const { t } = useTranslation();
   return (
-    <DashboardFrame description="Today's cause list and your caseload.">
+    <DashboardFrame description={t("Today's cause list and your caseload.")}>
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
         <TodayHearingsPanel />
         <RecentOrdersPanel />
@@ -105,8 +109,9 @@ export function JudgeDashboard() {
 }
 
 export function AdminDashboard() {
+  const { t } = useTranslation();
   return (
-    <DashboardFrame description="Live metrics for the whole court system.">
+    <DashboardFrame description={t('Live metrics for the whole court system.')}>
       <AnalyticsBoard />
     </DashboardFrame>
   );

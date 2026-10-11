@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState, type ReactElement } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
  * Returns the dialog element, which the page must render.
  */
 export function useUnsavedChangesGuard(dirty: boolean): ReactElement {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [pending, setPending] = useState<string | null>(null);
 
@@ -61,15 +63,16 @@ export function useUnsavedChangesGuard(dirty: boolean): ReactElement {
     <Dialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Leave this page?</DialogTitle>
+          <DialogTitle>{t('Leave this page?')}</DialogTitle>
           <DialogDescription>
-            Your case details have not been submitted. If you leave now, everything you entered will
-            be lost.
+            {t(
+              'Your case details have not been submitted. If you leave now, everything you entered will be lost.',
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="secondary" onClick={() => setPending(null)}>
-            Stay on this page
+            {t('Stay on this page')}
           </Button>
           <Button
             variant="destructive"
@@ -79,7 +82,7 @@ export function useUnsavedChangesGuard(dirty: boolean): ReactElement {
               if (to) navigate(to);
             }}
           >
-            Leave and discard
+            {t('Leave and discard')}
           </Button>
         </DialogFooter>
       </DialogContent>

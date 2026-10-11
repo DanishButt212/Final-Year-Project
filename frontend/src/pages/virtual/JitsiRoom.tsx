@@ -1,6 +1,8 @@
+import i18n from '@/i18n';
 import { useEffect, useRef, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { loadJitsi, virtualApi, type JitsiApi, type JoinInfo } from '@/lib/virtual-api';
+import { useTranslation } from 'react-i18next';
 
 const HEARTBEAT_MS = 15_000;
 
@@ -21,6 +23,7 @@ export function JitsiRoom({
   onLeft?: () => void;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const container = useRef<HTMLDivElement>(null);
   const callbacks = useRef({ onApi, onJoined, onLeft });
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +54,8 @@ export function JitsiRoom({
             prejoinPageEnabled: false,
             prejoinConfig: { enabled: false },
             disableDeepLinking: true,
-            subject: `${join.hearing.ucn} · Virtual hearing`,
+            // The room subject is set once when the meeting starts (i18n.t keeps the effect independent of t).
+            subject: i18n.t('{{ucn}} · Virtual hearing', { ucn: join.hearing.ucn }),
           },
           interfaceConfigOverwrite: { SHOW_CHROME_EXTENSION_BANNER: false },
         });
@@ -95,8 +99,8 @@ export function JitsiRoom({
 
   if (error) {
     return (
-      <Alert variant="error" title="Video room unavailable">
-        {error} Check your connection and try again.
+      <Alert variant="error" title={t('Video room unavailable')}>
+        {t('{{error}} Check your connection and try again.', { error })}
       </Alert>
     );
   }
@@ -104,7 +108,7 @@ export function JitsiRoom({
     <div
       ref={container}
       className={className ?? 'h-full min-h-[420px] w-full overflow-hidden rounded-md bg-black'}
-      aria-label="Video conference room"
+      aria-label={t('Video conference room')}
     />
   );
 }

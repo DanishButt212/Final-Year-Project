@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from '@/components/ui/toaster';
 import { chamberApi } from '@/lib/chamber-api';
+import { useTranslation } from 'react-i18next';
 
 /** Small dashboard card with the Chamber ID and a copy button. */
 export function ChamberIdCard() {
+  const { t } = useTranslation();
   const { data } = useQuery({
     queryKey: ['chamber', 'profile'],
     queryFn: chamberApi.profile,
@@ -23,7 +25,9 @@ export function ChamberIdCard() {
             <Building2 className="size-5" aria-hidden="true" />
           </span>
           <div>
-            <p className="text-sm text-text-muted">{data.name} · Chamber ID</p>
+            <p className="text-sm text-text-muted">
+              {t('{{name}} · Chamber ID', { name: data.name })}
+            </p>
             <p className="case-number text-lg font-semibold">{data.chamberCode}</p>
           </div>
         </div>
@@ -35,12 +39,12 @@ export function ChamberIdCard() {
               setCopied(true);
               setTimeout(() => setCopied(false), 2000);
             } catch {
-              toast.error('Could not copy. Select the Chamber ID and copy it manually.');
+              toast.error(t('Could not copy. Select the Chamber ID and copy it manually.'));
             }
           }}
         >
           {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-          {copied ? 'Copied' : 'Copy Chamber ID'}
+          {copied ? t('Copied') : t('Copy Chamber ID')}
         </Button>
       </CardContent>
     </Card>

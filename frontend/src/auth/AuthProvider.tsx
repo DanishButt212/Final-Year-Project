@@ -1,3 +1,4 @@
+import { PreferenceSync } from '@/preferences/PreferenceSync';
 import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react';
 import { toast } from '@/components/ui/toaster';
@@ -5,6 +6,7 @@ import { peekSessionNotice, setUnauthorizedHandler } from '@/lib/api';
 import { authApi } from '@/lib/auth-api';
 import type { User } from '@/lib/types';
 import { AuthContext, type AuthState } from './context';
+import { useTranslation } from 'react-i18next';
 
 const ME_KEY = ['auth', 'me'];
 
@@ -19,6 +21,7 @@ function endSession(queryClient: QueryClient) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isPending } = useQuery<User | null>({
@@ -41,11 +44,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         endSession(queryClient);
         const notice = peekSessionNotice();
         // A session ended by the security engine shows its own message on the login page.
-        if (!notice) toast.info('Your session has ended. Please log in again.');
+        if (!notice) toast.info(t('Your session has ended. Please log in again.'));
       }
     });
     return () => setUnauthorizedHandler(null);
-  }, [queryClient]);
+  }, [queryClient, t]);
 
   const login = useCallback<AuthState['login']>(
     async (identifier, password, chamberCode) => {
@@ -74,5 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [data, isPending, login, logout, setUser],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      <PreferenceSync />
+      {children}
+    </AuthContext.Provider>
+  );
 }

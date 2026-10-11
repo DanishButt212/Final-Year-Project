@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { parseApiError } from '@/lib/api';
 import { authApi } from '@/lib/auth-api';
 import { forgotPasswordSchema, summaryFor, type ForgotPasswordValues } from '@/lib/schemas';
+import { useTranslation } from 'react-i18next';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [done, setDone] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -32,12 +34,12 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthCard
-      title="Forgot your password?"
-      description="Enter your email address and we will send you a link to choose a new one."
-      footer={<Link to="/login">Back to log in</Link>}
+      title={t('Forgot your password?')}
+      description={t('Enter your email address and we will send you a link to choose a new one.')}
+      footer={<Link to="/login">{t('Back to log in')}</Link>}
     >
       {done ? (
-        <Alert variant="success" title="Check your email">
+        <Alert variant="success" title={t('Check your email')}>
           {done}
         </Alert>
       ) : (
@@ -47,13 +49,13 @@ export default function ForgotPasswordPage() {
           className="space-y-4"
         >
           {formError && <Alert variant="error">{formError}</Alert>}
-          <Field label="Email address" error={errors.email?.message} required>
+          <Field label={t('Email address')} error={errors.email?.message} required>
             {(p) => (
               <Input type="email" autoComplete="email" autoFocus {...p} {...register('email')} />
             )}
           </Field>
           <Button type="submit" className="w-full" loading={isSubmitting}>
-            <Mail aria-hidden="true" /> Send reset link
+            <Mail aria-hidden="true" /> {t('Send reset link')}
           </Button>
         </form>
       )}

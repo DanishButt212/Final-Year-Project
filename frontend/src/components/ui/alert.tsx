@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import { translateText } from '@/lib/server-messages';
 import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
@@ -32,13 +34,18 @@ export function Alert({
   children?: ReactNode;
   className?: string;
 }) {
+  useTranslation(); // re-render on language change
   const { box, Icon, role } = STYLES[variant];
   return (
     <div role={role} className={cn('flex gap-3 rounded-md border p-3 text-sm', box, className)}>
       <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <div>
-        {title && <p className="font-semibold">{title}</p>}
-        {children && <div className={title ? 'mt-0.5' : undefined}>{children}</div>}
+        {title && <p className="font-semibold">{translateText(title)}</p>}
+        {children && (
+          <div className={title ? 'mt-0.5' : undefined}>
+            {typeof children === 'string' ? translateText(children) : children}
+          </div>
+        )}
       </div>
     </div>
   );

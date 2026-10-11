@@ -1,12 +1,18 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 /** Horizontal step indicator. The current step is announced with aria-current="step". */
 export function Stepper({ steps, current }: { steps: string[]; current: number }) {
+  const { t } = useTranslation();
   return (
-    <nav aria-label="Progress" className="mb-6">
+    <nav aria-label={t('Progress')} className="mb-6">
       <p className="mb-2 text-sm font-semibold text-text-muted sm:hidden">
-        Step {current} of {steps.length}: {steps[current - 1]}
+        {t('Step {{current}} of {{length}}: {{item}}', {
+          current,
+          length: steps.length,
+          item: t(steps[current - 1]),
+        })}
       </p>
       <ol className="flex items-center gap-2">
         {steps.map((label, i) => {
@@ -34,9 +40,13 @@ export function Stepper({ steps, current }: { steps: string[]; current: number }
                   state === 'current' ? 'font-bold text-text' : 'text-text-muted',
                 )}
               >
-                {label}
+                {t(label)}
                 <span className="sr-only">
-                  {state === 'done' ? ' (completed)' : state === 'current' ? ' (current step)' : ''}
+                  {state === 'done'
+                    ? ' (completed)'
+                    : state === 'current'
+                      ? t(' (current step)')
+                      : ''}
                 </span>
               </span>
               {n < steps.length && (

@@ -1,6 +1,7 @@
 import { Eraser } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 export interface SignatureHandle {
   clear: () => void;
@@ -13,6 +14,7 @@ export const SignatureCanvas = forwardRef<
   SignatureHandle,
   { onChange?: (hasInk: boolean) => void }
 >(function SignatureCanvas({ onChange }, ref) {
+  const { t } = useTranslation();
   const canvas = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const ink = useRef(false);
@@ -68,7 +70,7 @@ export const SignatureCanvas = forwardRef<
       <canvas
         ref={canvas}
         role="img"
-        aria-label="Signature pad. Draw the recipient signature with a finger or stylus."
+        aria-label={t('Signature pad. Draw the recipient signature with a finger or stylus.')}
         className="h-48 w-full cursor-crosshair rounded-md border-2 border-dashed border-primary bg-white"
         style={{ touchAction: 'none' }}
         onPointerDown={(e) => {
@@ -107,7 +109,7 @@ export const SignatureCanvas = forwardRef<
         onClick={clear}
         disabled={!hasInk}
       >
-        <Eraser aria-hidden="true" /> Clear
+        <Eraser aria-hidden="true" /> {t('Clear')}
       </Button>
     </div>
   );

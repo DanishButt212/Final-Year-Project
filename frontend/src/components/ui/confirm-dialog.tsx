@@ -1,3 +1,4 @@
+import { translateText } from '@/lib/server-messages';
 import type { ReactNode } from 'react';
 import { Button } from './button';
 import {
@@ -8,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from './dialog';
+import { useTranslation } from 'react-i18next';
 
 /** Confirm step before a consequential action. Cancel is always available. */
 export function ConfirmDialog({
@@ -31,24 +33,25 @@ export function ConfirmDialog({
   onConfirm: () => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle>{translateText(title)}</DialogTitle>
+          <DialogDescription>{translateText(description)}</DialogDescription>
         </DialogHeader>
         {children}
         <DialogFooter>
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={loading}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             variant={destructive ? 'destructive' : 'primary'}
             onClick={onConfirm}
             loading={loading}
           >
-            {confirmLabel}
+            {translateText(confirmLabel)}
           </Button>
         </DialogFooter>
       </DialogContent>

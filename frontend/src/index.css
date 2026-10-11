@@ -56,7 +56,8 @@
   /* Typography */
   /* Inter and Merriweather cover Latin only, so Urdu characters fall through to Nastaliq per glyph. */
   --font-sans:
-    'Inter Variable', 'Inter', 'Noto Nastaliq Urdu', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    'Inter Variable', 'Inter', 'Noto Nastaliq Urdu', system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
   --font-heading: 'Merriweather', 'Noto Nastaliq Urdu', Georgia, serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   --font-urdu: 'Noto Nastaliq Urdu', serif;
@@ -154,7 +155,6 @@
   html[lang='ur'] h4 {
     line-height: 1.9;
   }
-
 }
 
 /* Unlayered on purpose: it must beat the line-heights of Tailwind's utility layer. */
@@ -305,10 +305,10 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
 
 /* Seal intro. Times are absolute from the moment the intro mounts (about 4.5 s in total). */
 .da-intro-stamp {
-  animation: da-stamp 620ms cubic-bezier(0.55, 0, 1, 0.45) 350ms both;
+  animation: da-stamp 760ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
 }
 .da-intro-stage {
-  animation: da-shake 320ms linear 950ms both;
+  animation: da-shake 260ms cubic-bezier(0.22, 1, 0.36, 1) 980ms both;
 }
 .da-intro-ripple {
   position: absolute;
@@ -326,7 +326,7 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
   animation: da-ripple 1200ms ease-out 1100ms both;
 }
 .da-intro .da-seal-ring {
-  animation: da-ring 1500ms cubic-bezier(0.16, 1, 0.3, 1) 900ms both;
+  animation: da-ring 1200ms cubic-bezier(0.22, 1, 0.36, 1) 860ms both;
 }
 .da-intro .da-beam {
   animation: da-sway 1800ms ease-in-out 1050ms both;
@@ -339,13 +339,13 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
   animation-delay: calc(1350ms + var(--i, 0) * 100ms);
 }
 .da-intro-wordmark {
-  animation: da-rise 600ms ease-out 1900ms both;
+  animation: da-rise 680ms cubic-bezier(0.22, 1, 0.36, 1) 1800ms both;
 }
 .da-intro-urdu {
-  animation: da-fade 600ms ease-out 2400ms both;
+  animation: da-fade 500ms ease-out 2380ms both;
 }
 .da-intro-tagline {
-  animation: da-fade 600ms ease-out 2600ms both;
+  animation: da-fade 500ms ease-out 2520ms both;
 }
 .da-intro-fly .da-intro-words {
   opacity: 0;
@@ -362,7 +362,7 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
 @keyframes da-stamp {
   from {
     opacity: 0;
-    transform: scale(2.6) rotate(-20deg);
+    transform: scale(1.35) rotate(-8deg);
   }
   to {
     opacity: 1;
@@ -375,16 +375,16 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
     transform: translate(0, 0);
   }
   20% {
-    transform: translate(-4px, 2px);
+    transform: translate(-2px, 1px);
   }
   40% {
-    transform: translate(4px, -2px);
+    transform: translate(2px, -1px);
   }
   60% {
-    transform: translate(-3px, 1px);
+    transform: translate(-1px, 0.5px);
   }
   80% {
-    transform: translate(2px, -1px);
+    transform: translate(1px, -0.5px);
   }
 }
 @keyframes da-ripple {
@@ -399,7 +399,7 @@ html[lang='ur'] :is(.leading-none, .leading-tight, .leading-snug) {
 }
 @keyframes da-ring {
   from {
-    transform: rotate(-140deg);
+    transform: rotate(-42deg);
   }
   to {
     transform: rotate(0deg);

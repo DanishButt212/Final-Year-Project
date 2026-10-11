@@ -1,21 +1,19 @@
 import { api } from './api';
 import { pkParts } from './pk-time';
 
+import { msg } from '@/i18n';
+
 export type RoomState = 'LOCKED' | 'OPEN' | 'NOT_YET' | 'CLOSED';
 export type ProviderKind = 'JAAS' | 'JITSI_PUBLIC';
 export type ParticipantStatus = 'JOINED' | 'MUTED' | 'VIDEO_OFF' | 'EJECTED';
 export type SessionCommand = 'MUTE_AUDIO' | 'DISABLE_VIDEO' | 'EJECT' | 'READMIT';
 export type SessionEvent =
-  | 'JOINED'
-  | 'LEFT'
-  | 'AUDIO_MUTED'
-  | 'AUDIO_UNMUTED'
-  | 'VIDEO_OFF'
-  | 'VIDEO_ON'
-  | 'HEARTBEAT';
+  'JOINED' | 'LEFT' | 'AUDIO_MUTED' | 'AUDIO_UNMUTED' | 'VIDEO_OFF' | 'VIDEO_ON' | 'HEARTBEAT';
 
-export const LOBBY_LOCKED_MESSAGE = 'Court Session Lobby is currently locked by the Admin Bench.';
-export const MODERATION_REQUIRES_JAAS = 'Moderation controls require the JaaS configuration.';
+export const LOBBY_LOCKED_MESSAGE = msg(
+  'Court Session Lobby is currently locked by the Admin Bench.',
+);
+export const MODERATION_REQUIRES_JAAS = msg('Moderation controls require the JaaS configuration.');
 
 export interface RoomStatus {
   hearingId: string;
@@ -190,10 +188,10 @@ export function loadJitsi(scriptUrl: string): Promise<JitsiCtor> {
     script.onload = () =>
       w.JitsiMeetExternalAPI
         ? resolve(w.JitsiMeetExternalAPI)
-        : reject(new Error('The video service did not load.'));
+        : reject(new Error(msg('The video service did not load.')));
     script.onerror = () => {
       loaded.delete(scriptUrl);
-      reject(new Error('The video service could not be reached.'));
+      reject(new Error(msg('The video service could not be reached.')));
     };
     document.head.appendChild(script);
   });

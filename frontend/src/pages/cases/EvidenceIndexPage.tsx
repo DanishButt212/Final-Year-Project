@@ -22,9 +22,11 @@ import {
 import { parseApiError } from '@/lib/api';
 import { casesApi } from '@/lib/cases-api';
 import { PORTALS, portalPath } from '@/lib/navigation';
+import { useTranslation } from 'react-i18next';
 
 /** "Evidence Vault Workspace": pick a case, then manage its vault. */
 export default function EvidenceIndexPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [page, setPage] = useState(1);
   const { data, isPending, isError, error } = useQuery({
@@ -40,9 +42,12 @@ export default function EvidenceIndexPage() {
   return (
     <>
       <PageHeader
-        title="Evidence Vault Workspace"
-        description="Open a case to manage its pleadings and submit digital exhibits."
-        crumbs={[{ label: 'Dashboard', to: portalPath(portal, '') }, { label: 'Evidence Vault' }]}
+        title={t('Evidence Vault Workspace')}
+        description={t('Open a case to manage its pleadings and submit digital exhibits.')}
+        crumbs={[
+          { label: t('Dashboard'), to: portalPath(portal, '') },
+          { label: t('Evidence Vault') },
+        ]}
       />
       {isError && <Alert variant="error">{parseApiError(error).message}</Alert>}
       {isPending ? (
@@ -51,21 +56,21 @@ export default function EvidenceIndexPage() {
         <Card>
           <EmptyState
             icon={Archive}
-            title="No cases yet"
-            description="Exhibits belong to a case. File a case first."
+            title={t('No cases yet')}
+            description={t('Exhibits belong to a case. File a case first.')}
           />
         </Card>
       ) : (
         data && (
           <>
-            <Table aria-label="Cases">
+            <Table aria-label={t('Cases')}>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Case number</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>{t('Case number')}</TableHead>
+                  <TableHead>{t('Title')}</TableHead>
+                  <TableHead>{t('Status')}</TableHead>
                   <TableHead>
-                    <span className="sr-only">Action</span>
+                    <span className="sr-only">{t('Action')}</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -79,9 +84,9 @@ export default function EvidenceIndexPage() {
                     <TableCell>
                       <StatusBadge status={c.status} />
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-end">
                       <Button size="sm" variant="secondary" asChild>
-                        <Link to={`${base}/${c.id}?tab=documents`}>Manage Vault Docs</Link>
+                        <Link to={`${base}/${c.id}?tab=documents`}>{t('Manage Vault Docs')}</Link>
                       </Button>
                     </TableCell>
                   </TableRow>
