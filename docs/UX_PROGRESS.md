@@ -9,7 +9,7 @@ frontend tests 115/115; backend e2e 207/207.
 ## Phases
 - [x] A. Brand (seal, wordmark, favicon), seal intro, public landing page, public case status
 - [x] B. Urdu / English (react-i18next, RTL, Nastaliq) and font size control
-- [ ] C. Case progress stepper, next-hearing reminders, add to calendar, reminder job
+- [x] C. Case progress stepper, next-hearing reminders, add to calendar, reminder job
 - [ ] D. Global search (command palette)
 - [ ] E. PDF preview, skeleton loading, feedback and micro-interactions
 - [ ] F. Dashboard charts
@@ -25,3 +25,6 @@ frontend tests 115/115; backend e2e 207/207.
   zero (`npm run i18n:lint`). New User fields preferredLanguage and fontScale, Notification titleKey/bodyKey/params.
   Visual check of landing, login, filing form and dashboards in Urdu at 375 px (125 %) and 1280 px. Open for Phase H:
   confirm breadcrumb chevron direction at higher zoom; charts need LTR-internal axes (Phase F).
+- Phase C (11-10-2026): done. New endpoint `POST /api/admin/reminders/run`, new table HearingReminder, `progress` on
+  all case responses. Backend e2e 215/215, frontend 115/115. Checked the stepper (LTR and RTL, horizontal and
+  vertical), the next-hearing card and the .ics output (10:30 PKT = 05:30Z).
