@@ -385,6 +385,11 @@ Eleven UX features in eight phases; progress in `docs/UX_PROGRESS.md`.
 - Radix menus, selects and tabs now get the reading direction from a `DirectionProvider`, so keyboard arrows and alignment mirror in Urdu.
 - User-entered text (case titles, relief sought, party names) is wrapped in `<bdi>` so English data keeps its punctuation in place inside Urdu pages; scheduling conflict messages from the API are translated through patterns.
 
+**Phase D: global search (command palette)**
+- `GET /api/search?q=` (new `SearchModule`): 2 to 64 characters (DTO), at most 8 results, 60 requests per minute per client. Matches the UCN (prefix for terms starting with "DA", exact match case-insensitive), the case title and party names, always inside `caseScopeFor` (the same rule as the case pages): litigants what they filed, lawyers what they filed or appear in, judges their allocated cases, administrators everything; drafts are excluded. Decision: interns and process servers get no case results (they have no case pages to open); their palette still offers pages and actions. Results contain only id, UCN, title, case type, status, stage and party names.
+- New `backend/test/search.e2e-spec.ts` (8 tests): litigants, lawyers and judges never find another user's case by name, title, exact or partial UCN; administrators find all; interns and process servers get nothing; whitelisted fields, the 8-result cap, validation and the session requirement.
+- Frontend: `cmdk` behind a shadcn-style `Command` component; `CommandPalette` is a lazy chunk (20.7 kB, 7.7 kB gzip) fetched on hover or focus of the header search button or at the first Ctrl+K / Cmd+K. Groups: Recent (last 5 cases and pages, per user, localStorage), Cases (debounced 250 ms server search, matched text highlighted, stage badge), Actions (role-specific, plus switching the language) and Pages (the sidebar items of the role, profile, notifications). Escape closes it and Radix returns focus to the opener. The search button is in the signed-in header and the process server console.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).
 

@@ -10,7 +10,7 @@ frontend tests 115/115; backend e2e 207/207.
 - [x] A. Brand (seal, wordmark, favicon), seal intro, public landing page, public case status
 - [x] B. Urdu / English (react-i18next, RTL, Nastaliq) and font size control
 - [x] C. Case progress stepper, next-hearing reminders, add to calendar, reminder job
-- [ ] D. Global search (command palette)
+- [x] D. Global search (command palette)
 - [ ] E. PDF preview, skeleton loading, feedback and micro-interactions
 - [ ] F. Dashboard charts
 - [ ] G. Guided tour and legal glossary
@@ -28,3 +28,5 @@ frontend tests 115/115; backend e2e 207/207.
 - Phase C (11-10-2026): done. New endpoint `POST /api/admin/reminders/run`, new table HearingReminder, `progress` on
   all case responses. Backend e2e 215/215, frontend 115/115. Checked the stepper (LTR and RTL, horizontal and
   vertical), the next-hearing card and the .ics output (10:30 PKT = 05:30Z).
+- Phase D (11-10-2026): done. New endpoint `GET /api/search`, 8 new e2e tests (backend e2e 223/223). Palette checked
+  at 1280 px (English) and 375 px (Urdu). Main chunk 555.4 kB (171.1 kB gzip); the palette is its own chunk.
