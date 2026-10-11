@@ -7,7 +7,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { Trim } from '../common/validators';
 import { CaseEventType, DecisionType } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SchedulingService } from '../scheduling/scheduling.service';
 import { ddmmyyyy, todayUtc } from '../scheduling/slots';
@@ -152,11 +152,12 @@ export class JudgeDecisionsService {
         const parties = await caseAudience(tx, h.caseId);
         await this.notifications.notifyMany(
           [...parties, ...admins.map((a) => a.id)],
-          {
-            type: 'HEARING_ADJOURNED',
-            title: 'Hearing adjourned',
-            body: `${h.case.ucn}: the hearing of ${when} was adjourned. A new date needs to be fixed.`,
-          },
+          notice(
+            'HEARING_ADJOURNED',
+            'Hearing adjourned',
+            '{{ucn}}: the hearing of {{when}} was adjourned. A new date needs to be fixed.',
+            { ucn: h.case.ucn, when },
+          ),
           tx,
         );
       }
@@ -296,11 +297,12 @@ export class JudgeDecisionsService {
           if (s.serverId) {
             await this.notifications.notify(
               s.serverId,
-              {
-                type: 'SUMMONS_ASSIGNED',
-                title: 'Summons cancelled',
-                body: `${s.recipientName} (${c.ucn}) was cancelled because the case was decided.`,
-              },
+              notice(
+                'SUMMONS_ASSIGNED',
+                'Summons cancelled',
+                '{{recipient}} ({{ucn}}) was cancelled because the case was decided.',
+                { recipient: s.recipientName, ucn: c.ucn },
+              ),
               tx,
             );
           }
@@ -332,21 +334,25 @@ export class JudgeDecisionsService {
         const audience = await caseAudience(tx, caseId);
         await this.notifications.notifyMany(
           audience,
-          {
-            type: 'CASE_DECIDED',
-            title: 'Your case has been decided',
-            body: `${c.ucn}: ${LABEL[dto.decisionType]}. Open the case to read the order.`,
-          },
+          notice(
+            'CASE_DECIDED',
+            'Your case has been decided',
+            '{{ucn}}: {{decision}}. Open the case to read the order.',
+            { ucn: c.ucn, decision: LABEL[dto.decisionType] },
+          ),
           tx,
         );
         if (cancelled.length > 0) {
           await this.notifications.notifyMany(
             audience,
-            {
-              type: 'HEARING_CANCELLED',
-              title: 'Hearings cancelled',
-              body: `${c.ucn}: ${cancelled.length} future hearing${cancelled.length === 1 ? ' was' : 's were'} cancelled because the case was decided.`,
-            },
+            notice(
+              'HEARING_CANCELLED',
+              'Hearings cancelled',
+              cancelled.length === 1
+                ? '{{ucn}}: {{count}} future hearing was cancelled because the case was decided.'
+                : '{{ucn}}: {{count}} future hearings were cancelled because the case was decided.',
+              { ucn: c.ucn, count: cancelled.length },
+            ),
             tx,
           );
         }

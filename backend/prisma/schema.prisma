@@ -23,6 +23,12 @@ enum Role {
   ADMIN
 }
 
+/// Interface language of a signed-in user (UX upgrade). Generated PDFs stay in English.
+enum UiLanguage {
+  en
+  ur
+}
+
 enum UserStatus {
   ACTIVE
   SUSPENDED
@@ -281,6 +287,8 @@ model User {
   failedLoginCount      Int        @default(0) // failed passwords in the current 15-minute window
   failedLoginWindowAt   DateTime? // start of that window
   lockedUntil           DateTime? // per-account lockout after 5 failures in 15 minutes
+  preferredLanguage     UiLanguage @default(en) // UX upgrade: interface language
+  fontScale             Float      @default(1) // UX upgrade: root text size, 1 / 1.125 / 1.25
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -999,8 +1007,12 @@ model Notification {
   userId    String
   channel   NotificationChannel @default(IN_APP)
   type      String
-  title     String
+  title     String // English text, kept for e-mail, SMS and older clients
   body      String
+  /// UX upgrade: English templates ("Hearing for {{ucn}} ...") the client translates; null on older rows.
+  titleKey  String?
+  bodyKey   String?
+  params    Json?
   readAt    DateTime?
   sentAt    DateTime?
   createdAt DateTime            @default(now())

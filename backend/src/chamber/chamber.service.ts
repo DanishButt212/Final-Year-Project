@@ -11,7 +11,7 @@ import { nextSequence } from '../common/counters';
 import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChamberContext } from './chamber.guard';
 import {
@@ -205,11 +205,14 @@ export class ChamberService {
       });
       await this.notifications.notify(
         ctx.userId,
-        {
-          type: 'CHAMBER_LOW_BALANCE',
-          title: 'Low retainer balance',
-          body: `${client.name} (${client.clientCode}) is ${s.status === 'OVERDRAWN' ? 'overdrawn' : 'below the threshold'}: balance PKR ${s.balance}.`,
-        },
+        notice(
+          'CHAMBER_LOW_BALANCE',
+          'Low retainer balance',
+          s.status === 'OVERDRAWN'
+            ? '{{client}} ({{clientCode}}) is overdrawn: balance PKR {{balance}}.'
+            : '{{client}} ({{clientCode}}) is below the threshold: balance PKR {{balance}}.',
+          { client: client.name, clientCode: client.clientCode, balance: s.balance },
+        ),
         tx,
       );
     } else if (s.status === 'OK' && notified) {

@@ -18,7 +18,7 @@ import {
   Prisma,
   SessionCommand,
 } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildSlots, ddmmyyyy, isoDate, Slot } from '../scheduling/slots';
 import { SettingsService } from '../settings/settings.service';
@@ -334,11 +334,12 @@ export class VirtualCourtroomService {
         );
         await this.notifications.notifyMany(
           await this.audience(h),
-          {
-            type: 'HEARING_VIRTUAL_SESSION_OPENED',
-            title: 'Virtual courtroom open',
-            body: `${SESSION_OPENED_BODY} ${h.case.ucn}, hearing on ${when}.`,
-          },
+          notice(
+            'HEARING_VIRTUAL_SESSION_OPENED',
+            'Virtual courtroom open',
+            `${SESSION_OPENED_BODY} {{ucn}}, hearing on {{when}}.`,
+            { ucn: h.case.ucn, when },
+          ),
           tx,
         );
         return created;
@@ -457,7 +458,10 @@ export class VirtualCourtroomService {
   /** UC-4.2 Manage Room Participants: records the command; the admin's client applies it through Jitsi. */
   async command(actor: AuthUser, sessionId: string, dto: SessionCommandDto, meta: RequestMeta) {
     if (!this.provider.moderationEnabled) {
-      throw new ConflictException({ code: 'MODERATION_UNAVAILABLE', message: MODERATION_REQUIRES_JAAS });
+      throw new ConflictException({
+        code: 'MODERATION_UNAVAILABLE',
+        message: MODERATION_REQUIRES_JAAS,
+      });
     }
     const p = await this.prisma.courtSessionParticipant.findFirst({
       where: { id: dto.participantId, sessionId },

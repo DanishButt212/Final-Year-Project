@@ -9,6 +9,40 @@ export interface NotifyPayload {
   type: string;
   title: string;
   body: string;
+  /** English templates with {{placeholders}}; the web client translates them (see notice()). */
+  titleKey?: string;
+  bodyKey?: string;
+  params?: Record<string, string | number>;
+}
+
+export type NoticeParams = Record<string, string | number | null | undefined>;
+
+const fill = (template: string, params: NoticeParams) =>
+  template.replace(/\{\{(\w+)\}\}/g, (_m, k: string) => String(params[k] ?? ''));
+
+/**
+ * Builds a notification from English templates: the rendered text goes to the title and body columns (e-mail,
+ * SMS and older clients), and the templates plus parameters are stored so the web client can show the notice
+ * in the reader's language. Parameters are data (UCNs, dates, names), never translated text.
+ */
+export function notice(
+  type: string,
+  titleKey: string,
+  bodyKey: string,
+  params: NoticeParams = {},
+): NotifyPayload {
+  const clean = Object.fromEntries(Object.entries(params).map(([k, v]) => [k, v ?? ''])) as Record<
+    string,
+    string | number
+  >;
+  return {
+    type,
+    title: fill(titleKey, clean),
+    body: fill(bodyKey, clean),
+    titleKey,
+    bodyKey,
+    params: clean,
+  };
 }
 
 @Injectable()
@@ -77,7 +111,17 @@ export class NotificationsService {
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        select: { id: true, type: true, title: true, body: true, readAt: true, createdAt: true },
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          body: true,
+          titleKey: true,
+          bodyKey: true,
+          params: true,
+          readAt: true,
+          createdAt: true,
+        },
       }),
     ]);
     return { data: rows, unreadCount, meta: pageMeta(query.page, query.limit, total) };

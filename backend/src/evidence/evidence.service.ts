@@ -17,7 +17,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { buildValidationException } from '../common/validation';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
@@ -282,11 +282,14 @@ export class EvidenceService {
         if (a.case.judgeId) {
           await this.notifications.notify(
             a.case.judgeId,
-            {
-              type: 'EVIDENCE_ADDED',
-              title: 'New exhibit in the vault',
-              body: `${a.case.ucn}: ${stored.length} new exhibit${stored.length === 1 ? '' : 's'} submitted.`,
-            },
+            notice(
+              'EVIDENCE_ADDED',
+              'New exhibit in the vault',
+              stored.length === 1
+                ? '{{ucn}}: {{count}} new exhibit submitted.'
+                : '{{ucn}}: {{count}} new exhibits submitted.',
+              { ucn: a.case.ucn, count: stored.length },
+            ),
             tx,
           );
         }
@@ -461,11 +464,14 @@ export class EvidenceService {
       });
       await this.notifications.notifyMany(
         await caseAudience(tx, caseId),
-        {
-          type: 'EVIDENCE_LOCKED',
-          title: 'Exhibits locked by the bench',
-          body: `${c.ucn}: ${res.count} exhibit${res.count === 1 ? '' : 's'} locked by order of the bench.`,
-        },
+        notice(
+          'EVIDENCE_LOCKED',
+          'Exhibits locked by the bench',
+          res.count === 1
+            ? '{{ucn}}: {{count}} exhibit locked by order of the bench.'
+            : '{{ucn}}: {{count}} exhibits locked by order of the bench.',
+          { ucn: c.ucn, count: res.count },
+        ),
         tx,
       );
       return res.count;

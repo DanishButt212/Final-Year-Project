@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ListUsersQueryDto, NotificationPreferencesDto, UpdateProfileDto } from './dto/users.dto';
 import { toPublicUser } from './user.mapper';
 
+export const PREFERENCES_SAVED_MESSAGE = 'Display preferences saved.';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -35,11 +37,19 @@ export class UsersService {
       data.phone = dto.phone;
     }
     if (dto.profileImage !== undefined) data.profileImage = dto.profileImage;
+    const profileFields = Object.keys(data).length;
+    if (dto.preferredLanguage !== undefined) data.preferredLanguage = dto.preferredLanguage;
+    if (dto.fontScale !== undefined) data.fontScale = dto.fontScale;
     if (Object.keys(data).length === 0) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
         message: Messages.INVALID_FIELDS,
-        details: [{ field: 'phone', messages: ['Provide a phone number or a profile image.'] }],
+        details: [
+          {
+            field: 'phone',
+            messages: ['Provide a phone number, a profile image or a display preference.'],
+          },
+        ],
       });
     }
 
@@ -57,7 +67,9 @@ export class UsersService {
       metadata: { fields: Object.keys(data) },
       ...meta,
     });
-    return { message: Messages.PROFILE_UPDATED, user: toPublicUser(user) };
+    // Language and text size alone are display preferences, not profile details.
+    const message = profileFields ? Messages.PROFILE_UPDATED : PREFERENCES_SAVED_MESSAGE;
+    return { message, user: toPublicUser(user) };
   }
 
   async getPreferences(userId: string) {

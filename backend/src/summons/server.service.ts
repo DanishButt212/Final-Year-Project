@@ -20,7 +20,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { EvidenceCryptoService } from '../evidence/evidence-crypto.service';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
@@ -357,11 +357,12 @@ export class ServerService {
         const audience = await caseAudience(tx, s.caseId);
         await this.notifications.notifyMany(
           audience,
-          {
-            type: 'SUMMONS_EXECUTED',
-            title: 'Summons executed',
-            body: `The summons to ${s.recipientName} in ${s.case.ucn} was served.`,
-          },
+          notice(
+            'SUMMONS_EXECUTED',
+            'Summons executed',
+            'The summons to {{recipient}} in {{ucn}} was served.',
+            { recipient: s.recipientName, ucn: s.case.ucn },
+          ),
           tx,
         );
       });

@@ -6,7 +6,7 @@ import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { Prisma } from '../generated/prisma/client';
 import { MockBarCouncilService } from '../integrations/mock-bar-council.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestMeta } from './constants';
 import { ListLawyersQueryDto } from './dto/admin.dto';
@@ -157,11 +157,11 @@ export class AdminLawyersService {
       });
       await this.notifications.notify(
         lawyer.user.id,
-        {
-          type: 'LAWYER_VERIFIED',
-          title: 'Bar credentials verified',
-          body: 'The registrar approved your bar credentials. You can now file cases.',
-        },
+        notice(
+          'LAWYER_VERIFIED',
+          'Bar credentials verified',
+          'The registrar approved your bar credentials. You can now file cases.',
+        ),
         tx,
       );
     });

@@ -18,7 +18,7 @@ import { ddmmyyyy } from '../scheduling/slots';
 import { pageMeta } from '../common/pagination';
 import { EvidenceCryptoService } from '../evidence/evidence-crypto.service';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
@@ -186,11 +186,16 @@ export class SummonsAdminService {
       if (dto.assignedServerId) {
         await this.notifications.notify(
           dto.assignedServerId,
-          {
-            type: 'SUMMONS_ASSIGNED',
-            title: 'New summons assigned',
-            body: `${dto.recipientName} (${c.ucn}), due ${ddmmyyyy(dateOnly(due))}.`,
-          },
+          notice(
+            'SUMMONS_ASSIGNED',
+            'New summons assigned',
+            '{{recipient}} ({{ucn}}), due {{due}}.',
+            {
+              recipient: dto.recipientName,
+              ucn: c.ucn,
+              due: ddmmyyyy(dateOnly(due)),
+            },
+          ),
           tx,
         );
       }
@@ -324,21 +329,23 @@ export class SummonsAdminService {
       });
       await this.notifications.notify(
         dto.serverId,
-        {
-          type: 'SUMMONS_ASSIGNED',
-          title: reassigned ? 'Summons reassigned to you' : 'New summons assigned',
-          body: `${s.recipientName} (${s.case.ucn}).`,
-        },
+        notice(
+          'SUMMONS_ASSIGNED',
+          reassigned ? 'Summons reassigned to you' : 'New summons assigned',
+          '{{recipient}} ({{ucn}}).',
+          { recipient: s.recipientName, ucn: s.case.ucn },
+        ),
         tx,
       );
       if (s.serverId) {
         await this.notifications.notify(
           s.serverId,
-          {
-            type: 'SUMMONS_ASSIGNED',
-            title: 'Summons reassigned',
-            body: `${s.recipientName} (${s.case.ucn}) was moved to another process server.`,
-          },
+          notice(
+            'SUMMONS_ASSIGNED',
+            'Summons reassigned',
+            '{{recipient}} ({{ucn}}) was moved to another process server.',
+            { recipient: s.recipientName, ucn: s.case.ucn },
+          ),
           tx,
         );
       }
@@ -376,11 +383,12 @@ export class SummonsAdminService {
       if (s.serverId) {
         await this.notifications.notify(
           s.serverId,
-          {
-            type: 'SUMMONS_ASSIGNED',
-            title: 'Summons cancelled',
-            body: `${s.recipientName} (${s.case.ucn}) was cancelled by the registry.`,
-          },
+          notice(
+            'SUMMONS_ASSIGNED',
+            'Summons cancelled',
+            '{{recipient}} ({{ucn}}) was cancelled by the registry.',
+            { recipient: s.recipientName, ucn: s.case.ucn },
+          ),
           tx,
         );
       }

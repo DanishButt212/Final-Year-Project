@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -12,7 +13,10 @@ import {
 } from 'class-validator';
 import { PHONE_MESSAGE, PHONE_REGEX } from '../../common/patterns';
 import { Trim } from '../../common/validators';
-import { Role, UserStatus } from '../../generated/prisma/client';
+import { Role, UiLanguage, UserStatus } from '../../generated/prisma/client';
+
+/** Root text-size steps offered by the interface (100 %, 112.5 %, 125 %). */
+export const FONT_SCALES = [1, 1.125, 1.25] as const;
 
 export class UpdateProfileDto {
   /** Phone in the format +92 3XX XXXXXXX. */
@@ -29,6 +33,16 @@ export class UpdateProfileDto {
     message: 'Profile image must be a link or an uploaded file path.',
   })
   profileImage?: string | null;
+
+  /** Interface language: en or ur. */
+  @IsOptional()
+  @IsEnum(UiLanguage, { message: 'Language must be en or ur.' })
+  preferredLanguage?: UiLanguage;
+
+  /** Root text size: 1, 1.125 or 1.25. */
+  @IsOptional()
+  @IsIn(FONT_SCALES, { message: 'Text size must be 1, 1.125 or 1.25.' })
+  fontScale?: number;
 }
 
 export class ListUsersQueryDto {

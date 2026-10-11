@@ -8,7 +8,11 @@ import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { CaseEventType, CaseStatus, Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import {
+  NotificationsService,
+  notice,
+  NotifyPayload,
+} from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { fullName, RequestMeta } from '../admin/constants';
@@ -153,8 +157,8 @@ export class SchedulingService {
     if (!judge) throw bad('judgeId', 'Choose an active judge of the case’s court.');
   }
 
-  private async notify(db: Db, userIds: string[], type: string, title: string, body: string) {
-    await this.notifications.notifyMany(userIds, { type, title, body }, db);
+  private async notify(db: Db, userIds: string[], payload: NotifyPayload) {
+    await this.notifications.notifyMany(userIds, payload, db);
   }
 
   private async audit_(
@@ -309,9 +313,12 @@ export class SchedulingService {
           await this.notify(
             tx,
             c.audience,
-            'HEARING_SCHEDULED',
-            'Hearing scheduled',
-            `${c.ucn}: hearing on ${when}, ${h.courtroom?.name ?? ''}, ${fullName(h.judge)}.`,
+            notice(
+              'HEARING_SCHEDULED',
+              'Hearing scheduled',
+              '{{ucn}}: hearing on {{when}}, {{courtroom}}, {{judge}}.',
+              { ucn: c.ucn, when, courtroom: h.courtroom?.name, judge: fullName(h.judge) },
+            ),
           );
           await this.syncCauseList(tx, c.courtId, date);
           return { message: 'Hearing scheduled successfully.', hearing: hearingView(h, slots) };
@@ -412,9 +419,12 @@ export class SchedulingService {
           await this.notify(
             tx,
             c.audience,
-            'HEARING_RESCHEDULED',
-            'Hearing rescheduled',
-            `${c.ucn}: hearing moved to ${when}, ${h.courtroom?.name ?? ''}, ${fullName(h.judge)}.`,
+            notice(
+              'HEARING_RESCHEDULED',
+              'Hearing rescheduled',
+              '{{ucn}}: hearing moved to {{when}}, {{courtroom}}, {{judge}}.',
+              { ucn: c.ucn, when, courtroom: h.courtroom?.name, judge: fullName(h.judge) },
+            ),
           );
           await this.syncCauseList(tx, old.courtroom?.courtId, old.date);
           await this.syncCauseList(tx, c.courtId, date);
@@ -491,9 +501,12 @@ export class SchedulingService {
         await this.notify(
           tx,
           c.audience,
-          'HEARING_CANCELLED',
-          'Hearing cancelled',
-          `${c.ucn}: the hearing of ${when} was cancelled. Reason: ${dto.reason}`,
+          notice(
+            'HEARING_CANCELLED',
+            'Hearing cancelled',
+            '{{ucn}}: the hearing of {{when}} was cancelled. Reason: {{reason}}',
+            { ucn: c.ucn, when, reason: dto.reason },
+          ),
         );
         await this.syncCauseList(tx, h0.courtroom?.courtId, h0.date);
         const h = await this.hearingFull(tx, id);
@@ -777,9 +790,12 @@ export class SchedulingService {
                 await this.notify(
                   tx,
                   ctx.audience,
-                  'HEARING_SCHEDULED',
-                  'Hearing scheduled',
-                  `${c.ucn}: hearing on ${ddmmyyyy(date)} at ${s.start}, ${room.name}.`,
+                  notice(
+                    'HEARING_SCHEDULED',
+                    'Hearing scheduled',
+                    '{{ucn}}: hearing on {{date}} at {{time}}, {{courtroom}}.',
+                    { ucn: c.ucn, date: ddmmyyyy(date), time: s.start, courtroom: room.name },
+                  ),
                 );
                 placed.push(hearingView(await this.hearingFull(tx, created.id), slots));
                 done = true;
@@ -864,22 +880,18 @@ export class SchedulingService {
               h.judgeId,
             ]);
             for (const u of users) {
-              people.set(u, [...(people.get(u) ?? []), `${h.case.ucn} at ${h.startTime ?? ''}`]);
+              people.set(u, [...(people.get(u) ?? []), `${h.case.ucn} (${h.startTime ?? ''})`]);
             }
           }
-          const bodies = new Map(
-            [...people].map(([userId, items]) => [
-              userId,
-              `The cause list for ${ddmmyyyy(date)} is published. Listed: ${items.join('; ')}.`,
-            ]),
-          );
           await this.notifications.notifyMany(
-            [...bodies.keys()],
-            (userId) => ({
-              type: 'CAUSE_LIST_PUBLISHED',
-              title: 'Cause list published',
-              body: bodies.get(userId) ?? '',
-            }),
+            [...people.keys()],
+            (userId) =>
+              notice(
+                'CAUSE_LIST_PUBLISHED',
+                'Cause list published',
+                'The cause list for {{date}} is published. Listed: {{items}}.',
+                { date: ddmmyyyy(date), items: (people.get(userId) ?? []).join('; ') },
+              ),
             tx,
           );
         }

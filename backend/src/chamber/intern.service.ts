@@ -17,7 +17,7 @@ import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { UCN_REGEX } from '../cases/ucn';
 import { Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { CheckInDto, ResearchLogDto } from './chamber.dto';
@@ -174,11 +174,15 @@ export class InternService {
       select: { id: true },
     });
     await this.act(ctx, AuditAction.RESEARCH_LOG_CREATED, 'InternDiaryEntry', row.id, meta);
-    await this.notifications.notify(ctx.supervisorUserId, {
-      type: 'RESEARCH_SUBMITTED',
-      title: 'New research log to review',
-      body: `${dto.caseNumber.toUpperCase()}: a new research log was submitted by your intern.`,
-    });
+    await this.notifications.notify(
+      ctx.supervisorUserId,
+      notice(
+        'RESEARCH_SUBMITTED',
+        'New research log to review',
+        '{{ucn}}: a new research log was submitted by your intern.',
+        { ucn: dto.caseNumber.toUpperCase() },
+      ),
+    );
     return { message: LOG_SAVED, id: row.id };
   }
 

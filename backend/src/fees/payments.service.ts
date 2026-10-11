@@ -8,7 +8,7 @@ import { nextReceiptNo } from '../common/counters';
 import { Messages } from '../common/messages';
 import { PageQueryDto, pageMeta } from '../common/pagination';
 import { CaseEventType } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthorizeDto, CheckoutDto } from './fees.dto';
 import { receiptPdf } from './pdf';
@@ -241,11 +241,12 @@ export class PaymentsService {
       const audience = await caseAudience(tx, payment.challan.caseId);
       await this.notifications.notifyMany(
         [...new Set([user.id, ...audience])],
-        {
-          type: 'PAYMENT_RECEIVED',
-          title: 'Court fee received',
-          body: `${payment.challan.case.ucn}: PKR ${payment.amount.toFixed(2)} paid. Receipt ${receiptNo}.`,
-        },
+        notice(
+          'PAYMENT_RECEIVED',
+          'Court fee received',
+          '{{ucn}}: PKR {{amount}} paid. Receipt {{receiptNo}}.',
+          { ucn: payment.challan.case.ucn, amount: payment.amount.toFixed(2), receiptNo },
+        ),
         tx,
       );
       return {

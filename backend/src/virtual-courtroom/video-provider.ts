@@ -117,7 +117,9 @@ export class JitsiVideoProvider implements VideoProvider {
       },
     };
     const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
-    const signature = createSign('RSA-SHA256').update(unsigned).sign(this.key as KeyObject);
+    const signature = createSign('RSA-SHA256')
+      .update(unsigned)
+      .sign(this.key as KeyObject);
     return `${unsigned}.${b64url(signature)}`;
   }
 }

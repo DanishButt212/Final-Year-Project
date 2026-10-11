@@ -10,7 +10,7 @@ import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { caseDetailInclude, toCaseDetail } from '../cases/cases.service';
 import { AdminCourtsService } from './admin-courts.service';
@@ -214,11 +214,19 @@ export class AdminCasesService {
       });
       await this.notifications.notify(
         target.filedById,
-        {
-          type: 'CASE_ALLOCATED',
-          title: 'Your case has been allocated',
-          body: `${target.ucn} was allocated to ${judgeName} at ${court.name}${courtroom ? `, ${courtroom.name}` : ''}.`,
-        },
+        courtroom
+          ? notice(
+              'CASE_ALLOCATED',
+              'Your case has been allocated',
+              '{{ucn}} was allocated to {{judge}} at {{court}}, {{courtroom}}.',
+              { ucn: target.ucn, judge: judgeName, court: court.name, courtroom: courtroom.name },
+            )
+          : notice(
+              'CASE_ALLOCATED',
+              'Your case has been allocated',
+              '{{ucn}} was allocated to {{judge}} at {{court}}.',
+              { ucn: target.ucn, judge: judgeName, court: court.name },
+            ),
         tx,
       );
     });

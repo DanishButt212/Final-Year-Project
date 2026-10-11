@@ -4,7 +4,7 @@ import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { Messages } from '../common/messages';
 import { Prisma, Role, SecurityAlertStatus } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { isLoopback, normalizeIp } from './ip';
@@ -212,11 +212,18 @@ export class SecurityService {
       });
       await this.notifications.notifyMany(
         admins.map((a) => a.id),
-        {
-          type: 'SECURITY_ALERT',
-          title: 'Privilege escalation alert',
-          body: `${user?.email ?? 'An unidentified client'} from ${ip ?? 'an unknown address'} was refused ${count} times on admin routes (${input.code}). Review it under Security Alerts.`,
-        },
+        notice(
+          'SECURITY_ALERT',
+          'Privilege escalation alert',
+          user?.email
+            ? ip
+              ? '{{account}} from {{ip}} was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.'
+              : '{{account}} from an unknown address was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.'
+            : ip
+              ? 'An unidentified client from {{ip}} was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.'
+              : 'An unidentified client from an unknown address was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.',
+          { account: user?.email, ip, count, code: input.code },
+        ),
         tx,
       );
     });

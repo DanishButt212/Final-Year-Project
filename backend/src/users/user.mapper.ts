@@ -15,6 +15,8 @@ export function toPublicUser(user: UserWithProfile) {
     phone: user.phone,
     profileImage: user.profileImage,
     status: user.status,
+    preferredLanguage: user.preferredLanguage,
+    fontScale: user.fontScale,
     createdAt: user.createdAt,
     ...(user.lawyerProfile
       ? {

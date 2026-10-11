@@ -10,7 +10,7 @@ import { assertPhoneFree } from '../common/phone-check';
 import { pageMeta } from '../common/pagination';
 import { Prisma } from '../generated/prisma/client';
 import { MockMailerService } from '../integrations/mock-mailer.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateInternDto, InternStatusDto, ResearchLogQueryDto, ReviewLogDto } from './chamber.dto';
 import { ChamberContext } from './chamber.guard';
@@ -56,6 +56,19 @@ export const toLogItem = (r: LogRow) => ({
 const conflict = (code: string, message: string) => new ConflictException({ code, message });
 
 /** The supervising lawyer's side of the internship: accounts, attendance overview and research log review. */
+/** Full sentences per variant, so each one can be translated as a whole. */
+const REVIEW_BODY: Record<string, string> = {
+  'case:APPROVED:plain': 'Your research log for {{ucn}} was approved.',
+  'case:APPROVED:note': 'Your research log for {{ucn}} was approved: {{comment}}',
+  'case:NEEDS_REVISION:plain': 'Your research log for {{ucn}} was returned for revision.',
+  'case:NEEDS_REVISION:note':
+    'Your research log for {{ucn}} was returned for revision: {{comment}}',
+  'none:APPROVED:plain': 'Your research log was approved.',
+  'none:APPROVED:note': 'Your research log was approved: {{comment}}',
+  'none:NEEDS_REVISION:plain': 'Your research log was returned for revision.',
+  'none:NEEDS_REVISION:note': 'Your research log was returned for revision: {{comment}}',
+};
+
 @Injectable()
 export class ChamberInternsService {
   constructor(
@@ -329,12 +342,14 @@ export class ChamberInternsService {
         throw conflict('ALREADY_REVIEWED', 'This log has already been reviewed.');
       await this.notifications.notify(
         log.intern.userId,
-        {
-          type: 'RESEARCH_REVIEWED',
-          title:
-            dto.status === 'APPROVED' ? 'Research log approved' : 'Research log needs revision',
-          body: `Your research log${log.case ? ` for ${log.case.ucn}` : ''} was ${dto.status === 'APPROVED' ? 'approved' : 'returned for revision'}${dto.comment ? `: ${dto.comment}` : '.'}`,
-        },
+        notice(
+          'RESEARCH_REVIEWED',
+          dto.status === 'APPROVED' ? 'Research log approved' : 'Research log needs revision',
+          REVIEW_BODY[
+            `${log.case ? 'case' : 'none'}:${dto.status}:${dto.comment ? 'note' : 'plain'}`
+          ],
+          { ucn: log.case?.ucn, comment: dto.comment },
+        ),
         tx,
       );
       await this.audit.logWithin(tx, {

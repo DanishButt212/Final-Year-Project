@@ -8,7 +8,7 @@ import { nextSequence } from '../common/counters';
 import { Messages } from '../common/messages';
 import { pkDateTime, pkDdMmYyyy, pkParts } from '../common/pk-time';
 import { InternCertificate } from '../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService, notice } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChamberContext } from './chamber.guard';
 import { isoDay } from './chamber.util';
@@ -21,7 +21,8 @@ const MUTED = '#4A524C';
 
 export const NOT_ELIGIBLE =
   'A certificate can be issued once the intern has at least one approved research log.';
-export const NOT_ISSUED_YET = 'Your supervising lawyer has not issued your completion certificate yet.';
+export const NOT_ISSUED_YET =
+  'Your supervising lawyer has not issued your completion certificate yet.';
 
 const ddmmyyyyDate = (d: Date) => {
   const s = isoDay(d);
@@ -204,11 +205,12 @@ export class CertificateService {
         });
         await this.notifications.notifyMany(
           [intern.userId],
-          {
-            type: 'CERTIFICATE_ISSUED',
-            title: 'Completion certificate issued',
-            body: `${ctx.chamber.name} issued your completion certificate ${created.certificateNo}. You can download it from the Certificate page.`,
-          },
+          notice(
+            'CERTIFICATE_ISSUED',
+            'Completion certificate issued',
+            '{{chamber}} issued your completion certificate {{certificateNo}}. You can download it from the Certificate page.',
+            { chamber: ctx.chamber.name, certificateNo: created.certificateNo },
+          ),
           tx,
         );
         return created;
@@ -298,8 +300,16 @@ export class CertificateService {
     const { width: w, height: h } = doc.page;
 
     // Frame and watermark, same look as the sealed reports.
-    doc.rect(24, 24, w - 48, h - 48).lineWidth(2).strokeColor(GREEN).stroke();
-    doc.rect(32, 32, w - 64, h - 64).lineWidth(0.6).strokeColor(GOLD).stroke();
+    doc
+      .rect(24, 24, w - 48, h - 48)
+      .lineWidth(2)
+      .strokeColor(GREEN)
+      .stroke();
+    doc
+      .rect(32, 32, w - 64, h - 64)
+      .lineWidth(0.6)
+      .strokeColor(GOLD)
+      .stroke();
     doc.save();
     doc.rotate(-25, { origin: [w / 2, h / 2] });
     doc.fillColor(GREEN).fillOpacity(0.06).font('Helvetica-Bold').fontSize(34);
@@ -313,8 +323,16 @@ export class CertificateService {
 
     const inner = { width: w - 120, align: 'center' as const };
     doc.y = 70;
-    doc.fillColor(GREEN).font('Helvetica-Bold').fontSize(20).text('DigitalAdaalat', 60, doc.y, inner);
-    doc.fillColor(MUTED).font('Helvetica').fontSize(9).text('Judicial ERP, Islamic Republic of Pakistan', inner);
+    doc
+      .fillColor(GREEN)
+      .font('Helvetica-Bold')
+      .fontSize(20)
+      .text('DigitalAdaalat', 60, doc.y, inner);
+    doc
+      .fillColor(MUTED)
+      .font('Helvetica')
+      .fontSize(9)
+      .text('Judicial ERP, Islamic Republic of Pakistan', inner);
     doc.moveDown(1.2);
     doc.fillColor(INK).font('Times-Bold').fontSize(28).text('Certificate of Completion', inner);
     doc.fillColor(MUTED).font('Helvetica').fontSize(10).text('Legal Internship', inner);
@@ -342,9 +360,22 @@ export class CertificateService {
 
     // Signature line for the supervising lawyer.
     const lineY = doc.y + 20;
-    doc.moveTo(w / 2 - 120, lineY).lineTo(w / 2 + 120, lineY).lineWidth(0.8).strokeColor(INK).stroke();
-    doc.fillColor(INK).font('Helvetica-Bold').fontSize(10).text(cert.lawyerName, 60, lineY + 6, inner);
-    doc.fillColor(MUTED).font('Helvetica').fontSize(9).text(`Supervising advocate, ${cert.chamberName}`, inner);
+    doc
+      .moveTo(w / 2 - 120, lineY)
+      .lineTo(w / 2 + 120, lineY)
+      .lineWidth(0.8)
+      .strokeColor(INK)
+      .stroke();
+    doc
+      .fillColor(INK)
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .text(cert.lawyerName, 60, lineY + 6, inner);
+    doc
+      .fillColor(MUTED)
+      .font('Helvetica')
+      .fontSize(9)
+      .text(`Supervising advocate, ${cert.chamberName}`, inner);
 
     // Footer with the certificate number and the start of the seal.
     doc.fillColor(MUTED).font('Helvetica').fontSize(8);

@@ -93,7 +93,8 @@ export class JudgeOrdersService {
             where: {
               judgeId: judge.id,
               decidedAt: { not: null },
-              decisionType: q.outcome && !wantOutcomes ? (q.outcome as DecisionType) : { not: null },
+              decisionType:
+                q.outcome && !wantOutcomes ? (q.outcome as DecisionType) : { not: null },
               ...search,
             },
             select: {
