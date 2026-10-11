@@ -51,7 +51,7 @@ export default function CaseOverview() {
 
   return (
     <section aria-label={t('Case overview')} className="mb-6 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3" data-tour="new-case">
         <h2 className="text-xl font-bold">{t('Your cases')}</h2>
         {gate.canFile ? (
           <Button asChild size="lg">
@@ -116,7 +116,7 @@ export default function CaseOverview() {
                 </span>
               </Link>
             </div>
-            <Card>
+            <Card data-tour="recent-cases">
               <CardHeader className="flex-row items-center justify-between">
                 <CardTitle>{t('Recent cases')}</CardTitle>
                 {data.recent.length > 0 && (

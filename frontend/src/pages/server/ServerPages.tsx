@@ -93,7 +93,7 @@ export function RosterPage() {
         </Button>
       </div>
       {summary.data && (
-        <dl className="mb-4 grid grid-cols-3 gap-2 text-center">
+        <dl className="mb-4 grid grid-cols-3 gap-2 text-center" data-tour="roster-summary">
           {[
             [t('Open'), summary.data.open],
             [t('Overdue'), summary.data.overdue],

@@ -1,3 +1,4 @@
+import { Term } from '@/components/glossary/Term';
 import { QueryError } from '@/components/ui/query-error';
 import { CopyButton } from '@/components/ui/copy-button';
 import { PreviewButton } from '@/components/viewer/PreviewButton';
@@ -134,7 +135,8 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>
-                {t('Challan')} <span className="case-number">{challan.challanNo}</span>{' '}
+                <Term id="challan">{t('Challan')}</Term>{' '}
+                <span className="case-number">{challan.challanNo}</span>{' '}
                 <CopyButton value={challan.challanNo} label={t('Copy challan number')} />
               </CardTitle>
               <p className="text-sm text-text-muted">

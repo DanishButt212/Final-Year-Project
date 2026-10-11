@@ -293,6 +293,8 @@ export const SERVER_MESSAGES = [
   msg('Profile image must be a link or an uploaded file path.'),
   msg('Progress log entry committed.'),
   msg('Provide a phone number, a profile image or a display preference.'),
+  msg('Tour version must be a whole number.'),
+  msg('Tour version must be between 0 and 1000.'),
   msg('Radius must be a whole number of metres.'),
   msg('Radius must be between 50 and 5000 metres.'),
   msg('Rating must be from 1 to 5.'),

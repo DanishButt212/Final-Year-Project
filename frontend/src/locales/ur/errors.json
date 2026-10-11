@@ -367,6 +367,8 @@
   "Too many attempts. Please wait a minute and try again.": "بہت زیادہ کوششیں۔ براہِ کرم ایک منٹ انتظار کر کے دوبارہ کوشش کریں۔",
   "Too many failed attempts. Try again in 15 minutes.": "بہت زیادہ ناکام کوششیں۔ 15 منٹ بعد دوبارہ کوشش کریں۔",
   "Total payable": "کل واجب الادا",
+  "Tour version must be a whole number.": "تعارفی دورے کا ورژن مکمل عدد ہونا چاہیے۔",
+  "Tour version must be between 0 and 1000.": "تعارفی دورے کا ورژن 0 اور 1000 کے درمیان ہونا چاہیے۔",
   "Use 64 characters or fewer.": "64 یا اس سے کم حروف استعمال کریں۔",
   "Use a valid from date.": "آغاز کی درست تاریخ استعمال کریں۔",
   "Use a valid to date.": "اختتام کی درست تاریخ استعمال کریں۔",

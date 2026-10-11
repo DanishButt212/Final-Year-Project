@@ -228,7 +228,7 @@ export default function AnalyticsBoard() {
       ) : (
         data && (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-tour="analytics">
               <Stat icon={Scale} label={t('Total cases')} value={data.cases.total} />
               <Stat
                 icon={Hourglass}
@@ -329,7 +329,7 @@ export default function AnalyticsBoard() {
                 />
               </ChartCard>
 
-              <Card>
+              <Card data-tour="pending-allocation">
                 <CardHeader className="flex-row items-center justify-between">
                   <CardTitle>{t('Pending allocation')}</CardTitle>
                   <Link

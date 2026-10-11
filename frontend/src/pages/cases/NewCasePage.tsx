@@ -1,3 +1,4 @@
+import { Term, TermsHint } from '@/components/glossary/Term';
 import { translateText } from '@/lib/server-messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
@@ -395,6 +396,7 @@ function NewCaseWizard() {
           <Card>
             <CardHeader>
               <CardTitle>{t('Case details')}</CardTitle>
+              <TermsHint ids={['relief', 'court-fee', 'ad-valorem']} />
             </CardHeader>
             <CardContent className="space-y-4">
               <Field label={t('Case type')} error={errors.caseType?.message} required>
@@ -456,6 +458,7 @@ function NewCaseWizard() {
 
         {step === 2 && (
           <div className="space-y-8">
+            <TermsHint ids={['petitioner', 'respondent', 'advocate']} />
             <PartyRows
               name="petitioners"
               label={t('Petitioners')}
@@ -482,6 +485,7 @@ function NewCaseWizard() {
                   'Attach petitions, statements and affidavits as PDF. Once the case is submitted, documents are locked to the case number and cannot be changed or deleted. This step is optional; you can add documents later.',
                 )}
               </p>
+              <TermsHint ids={['pleadings', 'petition', 'affidavit']} />
             </CardHeader>
             <CardContent>
               <PdfDropZone
@@ -520,7 +524,9 @@ function NewCaseWizard() {
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="text-sm text-text-muted">{t('Relief sought')}</dt>
+                  <dt className="text-sm text-text-muted">
+                    <Term id="relief">{t('Relief sought')}</Term>
+                  </dt>
                   <dd className="whitespace-pre-wrap break-words">{values.reliefSought}</dd>
                 </div>
                 {values.caseType === 'CIVIL_SUIT' && values.claimAmountPkr?.trim() && (

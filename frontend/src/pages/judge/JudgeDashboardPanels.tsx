@@ -25,7 +25,7 @@ export function TodayHearingsPanel() {
   });
   const rows = data?.data ?? [];
   return (
-    <Card>
+    <Card data-tour="today-cause-list">
       <CardHeader>
         <CardTitle>{t("Today's cause list")}</CardTitle>
         <p className="text-sm text-text-muted">

@@ -19,7 +19,7 @@ export function ChamberIdCard() {
   const [copied, setCopied] = useState(false);
   if (!data) return null;
   return (
-    <Card className="mb-6">
+    <Card className="mb-6" data-tour="chamber-id">
       <CardContent className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-md bg-primary-soft text-primary">

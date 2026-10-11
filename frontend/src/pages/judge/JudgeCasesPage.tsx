@@ -46,7 +46,7 @@ export function MyAllocatedCases() {
   }
 
   return (
-    <Card>
+    <Card data-tour="allocated-cases">
       <CardHeader>
         <CardTitle>{t('My Allocated Cases')}</CardTitle>
         <p className="text-sm text-text-muted">{t('Cases the registrar has allocated to you.')}</p>

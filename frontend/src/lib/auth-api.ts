@@ -53,6 +53,7 @@ export const usersApi = {
     profileImage?: string | null;
     preferredLanguage?: 'en' | 'ur';
     fontScale?: number;
+    tourCompletedVersion?: number;
   }) {
     return (await api.patch<{ message: string; user: User }>('/users/me', body)).data;
   },

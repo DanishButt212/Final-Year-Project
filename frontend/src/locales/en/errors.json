@@ -367,6 +367,8 @@
   "Too many attempts. Please wait a minute and try again.": "Too many attempts. Please wait a minute and try again.",
   "Too many failed attempts. Try again in 15 minutes.": "Too many failed attempts. Try again in 15 minutes.",
   "Total payable": "Total payable",
+  "Tour version must be a whole number.": "Tour version must be a whole number.",
+  "Tour version must be between 0 and 1000.": "Tour version must be between 0 and 1000.",
   "Use 64 characters or fewer.": "Use 64 characters or fewer.",
   "Use a valid from date.": "Use a valid from date.",
   "Use a valid to date.": "Use a valid to date.",

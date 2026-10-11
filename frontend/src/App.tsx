@@ -16,6 +16,7 @@ import RegisterPage from '@/pages/RegisterPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 
 const PublicStatusPage = lazy(() => import('@/pages/PublicStatusPage'));
+const GlossaryPage = lazy(() => import('@/pages/GlossaryPage'));
 /** Route pages are loaded on demand (one chunk per page); layouts, guards and the public auth pages load eagerly. */
 const CaseRoute = lazy(() => import('@/pages/PortalPages').then((m) => ({ default: m.CaseRoute })));
 const ComingSoonPage = lazy(() =>
@@ -126,6 +127,10 @@ export default function App() {
       <DocumentTitle />
       <Suspense fallback={<PageLoading />}>
         <Routes>
+          {/* The glossary is public and also opens inside the signed-in shell. */}
+          <Route element={<AdaptiveLayout />}>
+            <Route path="glossary" element={<GlossaryPage />} />
+          </Route>
           <Route element={<PublicLayout />}>
             <Route index element={<LandingPage />} />
             <Route path="status" element={<Navigate to="/#case-status" replace />} />

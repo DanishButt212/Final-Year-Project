@@ -1,3 +1,4 @@
+import { TermsHint } from '@/components/glossary/Term';
 import { QueryError } from '@/components/ui/query-error';
 import { AddToCalendar } from '@/components/hearing/AddToCalendar';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -227,6 +228,7 @@ export function CauseListsPage() {
           { label: t('Daily Cause Lists') },
         ]}
       />
+      <TermsHint ids={['cause-list', 'bench', 'courtroom', 'adjournment']} className="-mt-2 mb-4" />
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
         <Field label={t('Date')}>
           {(p) => (

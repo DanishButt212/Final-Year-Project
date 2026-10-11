@@ -100,7 +100,12 @@ export default function ChartView({
         ) : (
           <BarChart data={rows} margin={{ top: 8, right: 12, bottom: 0, left: -12 }}>
             <CartesianGrid stroke={GRID} vertical={false} />
-            <XAxis dataKey="label" interval={tickInterval ?? 0} {...axisProps} />
+            <XAxis
+              dataKey="label"
+              interval={tickInterval ?? 'preserveStartEnd'}
+              minTickGap={4}
+              {...axisProps}
+            />
             <YAxis allowDecimals={false} tickFormatter={yTick} {...axisProps} />
             {tooltip}
             <Bar

@@ -1,6 +1,6 @@
 import { SearchTrigger } from '@/components/search/SearchTrigger';
 import { LanguageToggle } from '@/components/preferences/PreferenceControls';
-import { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { ClipboardList, LogOut, UserCircle } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
@@ -10,6 +10,10 @@ import { NotificationBell } from '@/components/layout/NotificationBell';
 import { toast } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+
+const TourController = lazy(() =>
+  import('@/components/tour/TourController').then((m) => ({ default: m.TourController })),
+);
 
 const tab = ({ isActive }: { isActive: boolean }) =>
   cn(
@@ -40,6 +44,9 @@ export function ServerShell() {
       >
         {t('Skip to main content')}
       </a>
+      <Suspense fallback={null}>
+        <TourController />
+      </Suspense>
       <header className="bg-primary text-on-primary">
         <div className="mx-auto flex min-h-14 max-w-3xl items-center justify-between gap-2 px-4">
           <Logo to="/process-server" />
@@ -65,6 +72,7 @@ export function ServerShell() {
       </main>
       <nav
         aria-label={t('Console navigation')}
+        data-tour="nav"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface"
       >
         <div className="mx-auto flex max-w-3xl">

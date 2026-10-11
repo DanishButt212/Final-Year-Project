@@ -1,3 +1,4 @@
+import { Term } from '@/components/glossary/Term';
 import { Ban, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/lib/format';
@@ -14,6 +15,15 @@ const circleClass: Record<StageState, string> = {
   current:
     'border-primary bg-surface text-primary ring-2 ring-accent ring-offset-2 ring-offset-surface',
   upcoming: 'border-border bg-surface text-text-muted',
+};
+
+/** The glossary entry that explains each stage. */
+const STAGE_TERM: Record<CaseProgressData['stages'][number]['key'], string> = {
+  FILED: 'filing',
+  FEE_PAID: 'court-fee',
+  ALLOCATED: 'allocation',
+  HEARING: 'hearing',
+  DECIDED: 'decision',
 };
 
 /**
@@ -99,7 +109,11 @@ export function CaseProgress({
                         : 'text-text-muted',
                   )}
                 >
-                  {t(STAGE_LABEL[stage.key])}
+                  {staticExample ? (
+                    t(STAGE_LABEL[stage.key])
+                  ) : (
+                    <Term id={STAGE_TERM[stage.key]}>{t(STAGE_LABEL[stage.key])}</Term>
+                  )}
                   <span className="sr-only"> {stateText[stage.state]}</span>
                 </span>
                 {!staticExample && stage.date && (

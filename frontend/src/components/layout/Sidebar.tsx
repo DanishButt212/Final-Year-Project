@@ -110,7 +110,7 @@ export function Sidebar({
           <LanguageToggle />
           <FontSizeControl />
         </div>
-        <nav aria-label={t('Portal navigation')} className="px-2 pb-4">
+        <nav aria-label={t('Portal navigation')} className="px-2 pb-4" data-tour="nav">
           <ul className="space-y-0.5">
             {items.map((item, index) => (
               <li key={item.slug || 'home'}>

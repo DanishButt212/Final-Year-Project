@@ -1,6 +1,7 @@
 import { SearchTrigger } from '@/components/search/SearchTrigger';
 import { FontSizeControl, LanguageToggle } from '@/components/preferences/PreferenceControls';
-import { ChevronDown, LogOut, Menu, UserCircle } from 'lucide-react';
+import { BookOpen, ChevronDown, Compass, LogOut, Menu, UserCircle } from 'lucide-react';
+import { START_TOUR_EVENT } from '@/lib/tour-events';
 import { Link, useNavigate } from 'react-router';
 import {
   DropdownMenu,
@@ -57,6 +58,7 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
                 <button
                   type="button"
                   aria-label={t('Account menu')}
+                  data-tour="account"
                   className="flex min-h-10 items-center gap-2 rounded-md px-2 hover:bg-primary-hover focus-visible:outline-white"
                 >
                   <span className="hidden text-end leading-tight sm:block">
@@ -72,6 +74,16 @@ export function Header({ onMenuClick, menuOpen }: { onMenuClick: () => void; men
               <DropdownMenuContent>
                 <DropdownMenuItem asChild>
                   <Link to="/profile">{t('My Profile')}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => window.dispatchEvent(new Event(START_TOUR_EVENT))}
+                >
+                  <Compass aria-hidden="true" /> {t('Take the tour again')}
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/glossary">
+                    <BookOpen aria-hidden="true" /> {t('Legal glossary')}
+                  </Link>
                 </DropdownMenuItem>
                 {(user.role === 'LITIGANT' || user.role === 'LAWYER') && (
                   <>

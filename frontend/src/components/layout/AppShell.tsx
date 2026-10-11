@@ -1,10 +1,16 @@
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { FOCUS_KEY } from '@/lib/heading-focus';
 import { useAuth } from '@/auth/useAuth';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+
+// The guided tour (and driver.js) load in their own chunks.
+const TourController = lazy(() =>
+  import('@/components/tour/TourController').then((m) => ({ default: m.TourController })),
+);
+
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -68,6 +74,9 @@ export function AppShell() {
       >
         {t('Skip to main content')}
       </a>
+      <Suspense fallback={null}>
+        <TourController />
+      </Suspense>
       <Header onMenuClick={() => setMenuOpen((o) => !o)} menuOpen={menuOpen} />
       <div className="flex flex-1">
         <Sidebar role={user.role} open={menuOpen} onClose={closeMenu} />

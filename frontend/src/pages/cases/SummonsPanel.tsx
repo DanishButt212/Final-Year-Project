@@ -1,3 +1,4 @@
+import { TermsHint } from '@/components/glossary/Term';
 import { QueryError } from '@/components/ui/query-error';
 import { useViewer } from '@/components/viewer/viewer-context';
 import { PreviewButton } from '@/components/viewer/PreviewButton';
@@ -103,6 +104,7 @@ export default function SummonsPanel({
   }
   return (
     <div className="space-y-4">
+      <TermsHint ids={['summons', 'notice', 'process-server', 'proof-of-service']} />
       <Table aria-label={t('Summons and notices')}>
         <TableHeader>
           <TableRow>

@@ -1,3 +1,4 @@
+import { TermsHint } from '@/components/glossary/Term';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Gavel } from 'lucide-react';
 import { useState } from 'react';
@@ -78,6 +79,7 @@ export function OutcomeDialog({
               {t('Hearing of {{date}}.', { date: formatDate(hearing.date) })}
             </DialogDescription>
           </DialogHeader>
+          <TermsHint ids={['adjournment', 'order', 'interim-order']} className="mb-3" />
           {formError && (
             <Alert variant="error" className="mb-3">
               {formError}
@@ -216,6 +218,7 @@ export function DecideDialog({
                 )}
               </DialogDescription>
             </DialogHeader>
+            <TermsHint ids={['judgment', 'dismissal', 'disposal', 'decree']} className="mb-3" />
             {formError && (
               <Alert variant="error" className="mb-3">
                 {formError}

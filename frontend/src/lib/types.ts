@@ -17,6 +17,8 @@ export interface User {
   /** UX upgrade: interface language and root text size, kept on the account. */
   preferredLanguage?: 'en' | 'ur';
   fontScale?: number;
+  /** Guided tour version finished or skipped (0 = never). */
+  tourCompletedVersion?: number;
   lawyerProfile?: { barNumber: string | null; verificationStatus: VerificationStatus };
 }
 

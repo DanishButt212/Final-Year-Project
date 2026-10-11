@@ -1,3 +1,4 @@
+import { TermsHint } from '@/components/glossary/Term';
 import { QueryError } from '@/components/ui/query-error';
 import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { AddToCalendar } from '@/components/hearing/AddToCalendar';
@@ -122,6 +123,7 @@ export default function CaseDetailPage() {
       </div>
 
       <CaseProgressPanel progress={data.progress} />
+      <TermsHint ids={['ucn', 'allocation', 'hearing', 'evidence-vault']} className="-mt-3 mb-4" />
       <DecisionBlock decision={data.decision} />
 
       <Tabs defaultValue={initialTab}>

@@ -3,7 +3,7 @@
 /**
  * Quick visual check against a running dev stack (vite on 5173 by default).
  *   node scripts/shots.mjs <name> <path> [--w=375] [--lang=ur] [--scale=1.25] [--wait=ms] [--full]
- *     [--frames=500,1200] [--login=email:password] [--intro]
+ *     [--frames=500,1200] [--login=email:password] [--intro] [--role=ROLE] [--click=sel] [--tour[=n]]
  * Writes e2e/artifacts/shots/<name>[-<frame>].png (git-ignored). Never prints credentials.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -35,17 +35,17 @@ page.on('pageerror', (e) => console.log('pageerror:', e.message));
 page.on('console', (m) => m.type() === 'error' && console.log('console:', m.text().slice(0, 300)));
 
 await page.addInitScript(
-  ({ lang, scale, intro }) => {
+  ({ lang, scale, intro, tour }) => {
     try {
       if (lang) localStorage.setItem('da_lang', lang);
       if (scale) localStorage.setItem('da_font_scale', scale);
       if (!intro) sessionStorage.setItem('da_intro_seen', '1');
-      sessionStorage.setItem('da_tour_skip', '1');
+      if (!tour) sessionStorage.setItem('da_tour_skip', '1');
     } catch {
       /* ignore */
     }
   },
-  { lang: opt.lang, scale: opt.scale, intro: Boolean(opt.intro) },
+  { lang: opt.lang, scale: opt.scale, intro: Boolean(opt.intro), tour: Boolean(opt.tour) },
 );
 
 /** Credentials for a role from the git-ignored docs/DEV_ACCOUNTS.md (read here, never printed). */
@@ -103,6 +103,15 @@ if (opt.frames) {
       await page.locator(sel).first().click();
       await page.waitForLoadState('networkidle').catch(() => {});
       await page.waitForTimeout(400);
+    }
+  }
+  if (opt.tour) {
+    // --tour starts the guided tour; --tour=3 moves on to step 3.
+    await page.evaluate(() => window.dispatchEvent(new Event('da:start-tour')));
+    await page.waitForSelector('.driver-popover', { timeout: 15000 });
+    for (let i = 1; i < Number(opt.tour); i++) {
+      await page.locator('.driver-popover-next-btn').click();
+      await page.waitForTimeout(500);
     }
   }
   if (opt.press) {
