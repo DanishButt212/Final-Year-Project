@@ -292,6 +292,54 @@ Target: Neon (PostgreSQL), Render (API), Vercel (web app), an S3-compatible buck
 ### Next
 - The React Native (Expo) process server app and the first real deploy following `docs/DEPLOYMENT.md`.
 
+## Phase 5C decisions: QA fixes (10-10-2026 to 11-10-2026)
+Fixes for the read-only QA run (report and scripts outside the repo, `digitaladaalat-qa/QA_REPORT.md`). Verified by re-running the QA API scripts and Playwright journeys against `digitaladaalat_test`. Four new migrations: `payment_cancelled`, `auth_revocation_lockout`, `summons_seal_version`, `qa_indexes`.
+
+**Critical and high**
+- QA-001 fixed: `GET /payments/mine` takes `MyPaymentsQueryDto` (page query plus an optional boolean `includeFailed`, "true"/"false" transformed); Payments & Receipts lists payments again for litigants and lawyers.
+- QA-002 fixed: the filing form submits only from step 4. Next and Submit are separate buttons with different keys, and Enter on steps 1-3 acts as Next (validates and moves on), so the Review step is always shown.
+- QA-003 fixed: an unpaid challan is not recalculated while a payment session on it is PENDING (sessions older than 30 minutes are cancelled); checkout drops a session whose amount no longer matches; `authorize` re-reads the challan inside the locked transaction and, on a different amount, marks the payment `CANCELLED` (new enum value) and answers 409 "The challan amount has changed. Please start the payment again." (audited as PAYMENT_FAILED, reason AMOUNT_CHANGED).
+- QA-004 fixed: `sessionsInvalidatedAt = now` on password reset, admin suspend/block/delete, lawyer rejection and intern deactivation. There is no "change password" endpoint (reset is the only path).
+
+**Medium**
+- QA-005 fixed: tokens carry a `jti` and `ims` (issue time in ms, compared with `sessionsInvalidatedAt`, so a login right after a cut-off works). Logout stores the jti in `RevokedToken` (jti, userId, expiresAt), which the JWT strategy checks; only that token ends, other devices stay signed in. Expired rows are purged on startup and daily.
+- QA-006 fixed: evidence downloads, proof photos/signatures and the server profile photo are decrypted fully in memory and the GCM tag is verified before any byte is sent (files are capped by the upload limits). A failure answers 409 "This file failed its integrity check and cannot be opened. The registry has been notified." and writes `FILE_INTEGRITY_FAILED` to the audit log. Streaming decryption remains only for internal hashing (seal checks, proof PDFs), which already detects failures.
+- QA-007 fixed: the mock mailer logs the full body only when `NODE_ENV=development`; elsewhere only the masked recipient and the subject. The one-time link dialogs now say the server keeps only a fingerprint of the link.
+- QA-008 fixed: the table scroll box is `relative` (sr-only labels inside it had widened the page) and a focusable, labelled region; grid children get `min-width: 0`. All nine pages fit at 375, 768 and 1280 px.
+- QA-009 fixed: `Summons.sealVersion`. New proofs use version 2, which also seals case id, UCN, recipient name and CNIC, and service address; version 1 proofs keep verifying with the old payload. The verify screen shows the version.
+- QA-010 fixed: Lawyer Verification tabs control real panels, the unread dot is `aria-hidden` with sr-only "Unread:", table scroll regions are keyboard focusable. Axe: 0 violations on all 60 pages.
+- QA-011 partly fixed: `npm audit fix` (no `--force`) moved handlebars to 4.7.10, so the critical advisory is gone. Remaining: 4 high (mysql2 and deepmerge-ts through the `prisma` CLI 7.10.0, already the latest 7.x; the only offered fix is a downgrade to Prisma 6) and 22 moderate (Jest 30 tool chain, dev only; `uuid` under `exceljs`, not reachable). No major upgrades.
+
+**Low**
+- QA-012 fixed: `NoHtml()` validator rejects "<" and ">" in names, addresses, party and recipient names, chamber and client text fields.
+- QA-013 fixed: Bar Council number required for lawyer registration (DTO `ValidateIf` and form schema).
+- QA-014 fixed: `assertPhoneFree` refuses a phone used by another ACTIVE account ("This phone number is already registered to another account.") on registration, staff provisioning, intern creation and profile update. No DB constraint, so deleted or suspended accounts do not block a number.
+- QA-015 fixed: 5 wrong passwords within 15 minutes lock the account for 15 minutes (HTTP 423 "Too many failed attempts. Try again in 15 minutes.", the right password is refused too, audited as `AUTH_ACCOUNT_LOCKED`); a successful login resets the counter. The per-IP throttle is unchanged.
+- QA-016 fixed: Swagger is served only when `NODE_ENV` is not production or `ENABLE_SWAGGER=true` (added to `.env.example`).
+- QA-017 fixed: expenses dated after today (Pakistan time) are refused.
+- QA-018 fixed: Lawyer Verification shows list and detail side by side only from 1536 px (2xl), so the table has the full width at 1280.
+- QA-019 fixed: the shared `DialogContent` records its opener when it opens (for dialogs opened from a dropdown menu, the menu button) and returns focus there on close.
+- QA-020 fixed: `DocumentTitle` sets "page heading | DigitalAdaalat" for every route ("Home | DigitalAdaalat" on the landing page).
+- QA-021 fixed: shared label map `lib/labels.ts` (event codes and roles). The audit vault shows the label with the raw code as a tooltip and on the detail view; security alerts show labels; notification titles and bodies replace raw codes.
+- QA-022 fixed: the summons notification uses DD-MM-YYYY (shared `ddmmyyyy`).
+- QA-023 fixed: money always has two decimals ("PKR 19,650.50") in `formatPkr` and the chamber balance helper.
+- QA-024 fixed: shared `DatePicker` (react-day-picker 9.14.0 in a Radix popover 1.2.0, themed green): typed or picked, shown and typed as DD-MM-YYYY, sent as YYYY-MM-DD; it replaces all 15 native date inputs.
+- QA-025 fixed: shared `PhoneInput` with a fixed "+92" prefix and a "3XX XXXXXXX" mask; typed or pasted "+92 300 1234567", "03001234567" or "3001234567" all become "+92 300 1234567". The stored format is unchanged.
+- QA-026 fixed: 47 route pages and the portal, schedule and finance wrappers load with `React.lazy`; Suspense boundaries sit inside the shells, so header and sidebar stay. Main chunk 1,480 kB to 521 kB; charts (357 kB) and the date picker load only where used. API start-up: a warm `node dist/main` is healthy in about 9.5 s (Nest init about 7 s, of which `@nestjs/swagger` about 4.6 s, needed by the decorators anyway). The 60-70 s seen in QA happened right after `nest build`, from a cold file cache (antivirus scanning the freshly written files), not from application code; no change.
+- QA-027 fixed: public `GET /auth/session` answers 200 with the user or `{ user: null }` (optional JWT guard); the web app uses it for its session check, so public pages log no 401. `GET /auth/me` is unchanged.
+- QA-028 fixed: schedulable cases exclude cases with an upcoming SCHEDULED hearing.
+- QA-029 fixed: static import in `test/qa-platform.e2e-spec.ts`; backend `tsc --noEmit` passes.
+- QA-030 fixed: chip inputs split on commas (typed, pasted or added), trimmed and de-duplicated.
+- QA-031 fixed: the seed ends with a consistency pass: every allocated case gets a PAID challan with a successful payment, and every intern diary entry without a case is linked to a case of the supervising lawyer.
+- QA-032 fixed: `FilingGateGuard` (registration open, lawyer verified) and `EvidenceUploadGuard` (party of an allocated, undecided case) run before the upload interceptors; filing checks permission before validating the body.
+- QA-033 not changed (decision): the labels mirror the project report.
+- QA-034 fixed: after login, focus moves to the first page's main heading (flag set before the login request and kept until the heading has focus).
+- QA-035 fixed: indexes on `AuditLog(createdAt)`, `Case(decidedAt)` and `Hearing(outcomeAt)`.
+
+**Other decisions**
+- Frontend unit tests: three expectations follow the new behaviour (two-decimal money; the phone mask now accepts "03001111111", so the format error is checked with an incomplete number). Testing Library's async timeout and the vitest test timeout were raised, and the two routing test files pre-import the lazy pages, because lazy route modules take several seconds to import under jsdom. No new test files.
+- Step 0: the earlier QA browser specs and two small UI fixes (compact header on phones, hearing tabs with real panels) were committed first.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).
 

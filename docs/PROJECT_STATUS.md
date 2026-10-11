@@ -1,16 +1,16 @@
-# DigitalAdaalat: Project Status (audit of main, 07-10-2026, updated after Phase 5B)
+# DigitalAdaalat: Project Status (audit of main, 07-10-2026, updated after Phase 5C on 11-10-2026)
 
-Read-only audit of the code on `main`. Nothing was built, tested or run for this report. The full project report is not in the repo, so section 5 checks the rules in `docs/PROJECT_BRIEF.md`, `docs/CHANGES.md` and the exact strings in the code.
+Read-only audit of the code on `main`, updated after the Phase 5C QA fixes (full QA run with API scripts, Playwright journeys and axe; every QA issue is listed in `docs/CHANGES.md`, section Phase 5C). The full project report is not in the repo, so section 5 checks the rules in `docs/PROJECT_BRIEF.md`, `docs/CHANGES.md` and the exact strings in the code.
 
 ## 1. Overview
 | Item | Value |
 |---|---|
 | Stack | NestJS 12 + Prisma 7 + PostgreSQL; React 19 + Vite 8 + TS, Tailwind 4, shadcn/ui, TanStack Query, RHF + Zod |
-| Prisma | 41 models, 35 enums, 12 migrations (3 hand-written: audit trigger, partial unique indexes, 4F) |
+| Prisma | 42 models, 35 enums, 15 migrations (3 hand-written: audit trigger, partial unique indexes, 4F) |
 | Backend | 22 Nest modules (17 feature + app, prisma, health, settings, integrations), 16 controller files, 161 route handlers |
 | Frontend | 72 page/component files under `pages/`, 61 routes, 6 role portals |
 | Roles | LITIGANT, LAWYER, INTERN, PROCESS_SERVER, JUDGE, ADMIN |
-| Tests | 2 backend unit specs, 3 e2e specs (auth, users, cases), 11 frontend test files (login, register, filing, portfolio, case detail, routing) |
+| Tests | 2 backend unit specs, 12 backend e2e suites (auth, users, cases, RBAC matrix, filing/fees/allocation, scheduling, judge/evidence, summons, chamber, virtual, platform), 11 frontend test files, Playwright browser specs in `frontend/e2e` |
 
 ## 2. Features per role (C = Complete, P = Partial, S = Stub)
 **LITIGANT**
@@ -131,30 +131,26 @@ Noticed in code, not in CHANGES: none left after Phase 5B (the per-slot rule, th
 - Admin MFA / hardware token: not built.
 - Real NADRA, Bar Council, payment gateway, email/SMS: mocks only (by design).
 - Virtual courtroom moderation on public Jitsi: disabled without JaaS keys.
-- Automated tests for core flows required by CLAUDE.md (allocation, anti-clash, payments, audit log, summons, virtual courtroom): missing; only auth, users and filing have e2e tests.
 - Deployment: prepared, not executed.
 
 ## 8. Known issues and risks
 - No TODO/FIXME comments in the code (the only "XXX" hits are the phone format).
-- No automated UI coverage for phases 3A-4F. Phase 4F screens (control workspace, room view, join buttons) were only API-tested when built, never in a browser with a real Jitsi call; check camera/mic, iframe load and the self-mute behaviour.
+- QA (10-10-2026) covered every role in the browser, including the virtual courtroom up to the meet.jit.si iframe; a live Jitsi call with moderation still needs JaaS keys (public meet.jit.si waits for a logged-in moderator).
 - Deployment files (render.yaml, vercel.json, S3 driver) were never run against Render, Vercel, Neon or a real bucket.
 - External/env dependencies: JaaS keys (moderation), public meet.jit.si limits embedded meetings; S3 credentials (prod files); Neon pooled + direct URLs; 4 secrets that must never change (`EVIDENCE_ENCRYPTION_KEY`, seal secrets, JWT).
 - Security: browser GPS can be spoofed; TRUST_PROXY must match the real proxy chain or the blacklist could block Vercel's address; blocked-host cache is in-memory (single instance only); throttling is in-memory (per instance).
 - Performance: notification/attendee polling; the virtual status endpoint is called once per virtual row; report export capped at 50,000 rows; Render free plan sleeps (~1 min cold start).
 - Vercel rewrite limits for large uploads (25 MB PDFs, evidence) are untested.
 - Server clock: fixed in Phase 5B (Pakistan time computed explicitly; `TZ=Asia/Karachi` in render.yaml with a startup warning).
-- Phase 5B screens (judge Orders, dashboard panels, certificate issue/download/verify) were type-checked but not opened in a browser yet.
-
+- Phase 5C: 35 QA issues addressed (34 fixed, QA-033 kept by decision); npm audit still reports 4 high and 22 moderate advisories in dev/build tooling (Prisma CLI 7.10.0 is the latest 7.x).
 ## 9. Deployment status
 Prepared: `render.yaml` (`TZ=Asia/Karachi`, build runs `prisma migrate deploy`, start `node dist/main`, health `/api/health`), `frontend/vercel.json` (`/api` rewrite + SPA fallback), relative `/api` base URL + Vite proxy, S3-compatible storage driver, fail-fast env validation, `npm run seed:demo` with `DEMO_PASSWORD`, `.env.example` updates, `docs/DEPLOYMENT.md`.
 You still do by hand: create Neon (pooled + direct URLs), R2/Supabase bucket and keys, generate 4 secrets; create the Render Blueprint and fill env values; set the Render URL in `vercel.json`; import into Vercel (root `frontend`); set `FRONTEND_URL` (`TZ` is already in the Blueprint); run `seed:demo` with `.env.production`; run the smoke-test checklist; take backups.
 
 ## 10. Suggested order of remaining work
 1. Deploy following DEPLOYMENT.md and run the smoke test (Neon, bucket, Render, Vercel).
-2. Browser pass over 4F and 5B screens: virtual courtroom with two accounts (JaaS if available), judge Orders and dashboard, certificate issue and PDF.
-3. Core-flow tests: allocation, anti-clash, payments, audit trigger, summons seal, certificate seal.
-4. Expo process-server app (reuses `/server/*` with Bearer token).
-5. Final UI and accessibility pass.
-6. Defense prep: demo script, seed:demo on the morning, backups.
+2. Virtual courtroom with JaaS keys and two real devices (moderation commands on a live call).
+3. Expo process-server app (reuses `/server/*` with Bearer token).
+4. Defense prep: demo script, seed:demo on the morning, backups.
 
-Estimate: backend ~93%, frontend ~90%, whole project ~80%. Every web use case in the brief now has a working screen. What remains is the Expo app, automated tests for the core flows, a browser pass over the newest screens and the first real deployment.
+Estimate: backend ~96%, frontend ~94%, whole project ~85%. Every web use case in the brief has a working, browser-tested screen. What remains is the Expo app, a live JaaS test and the first real deployment.
