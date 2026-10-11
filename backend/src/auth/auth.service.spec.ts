@@ -7,7 +7,15 @@ type Mock = jest.Mock;
 
 function build() {
   const prisma = {
-    user: { findFirst: jest.fn(), findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
+    user: {
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      findUniqueOrThrow: jest
+        .fn()
+        .mockResolvedValue({ failedLoginCount: 0, failedLoginWindowAt: null }),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
     lawyerProfile: { findUnique: jest.fn() },
     passwordResetToken: { findUnique: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
     $transaction: jest.fn().mockResolvedValue([]),
@@ -137,7 +145,9 @@ describe('AuthService', () => {
       const res = await service.login({ identifier: 'J@X.test', password: 'RightPass1' }, {});
       expect(res.message).toBe(Messages.LOGIN_SUCCESS);
       expect(res.token).toBe('signed.jwt.token');
-      expect(jwt.signAsync).toHaveBeenCalledWith({ sub: 'u1', role: 'JUDGE' });
+      expect(jwt.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: 'u1', role: 'JUDGE', jti: expect.any(String) }),
+      );
       expect(JSON.stringify(res.user)).not.toContain('passwordHash');
     });
 

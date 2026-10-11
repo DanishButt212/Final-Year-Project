@@ -104,6 +104,8 @@ export function challanPdf(d: ChallanPdfData) {
     .fillColor('#4A524C')
     .text(
       'This is a computer generated challan. Pay it online through the DigitalAdaalat portal. Payment is accepted until the due date shown.',
+      doc.page.margins.left,
+      doc.y,
       { width: 483 },
     );
   doc.end();
@@ -147,6 +149,8 @@ export function receiptPdf(d: ReceiptPdfData) {
     .fillColor('#4A524C')
     .text(
       'Payment received through the simulated demonstration gateway. This receipt is computer generated and valid without a signature.',
+      doc.page.margins.left,
+      doc.y,
       { width: 483 },
     );
   doc.end();
