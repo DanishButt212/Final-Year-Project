@@ -340,6 +340,11 @@ Fixes for the read-only QA run (report and scripts outside the repo, `digitalada
 - Frontend unit tests: three expectations follow the new behaviour (two-decimal money; the phone mask now accepts "03001111111", so the format error is checked with an incomplete number). Testing Library's async timeout and the vitest test timeout were raised, and the two routing test files pre-import the lazy pages, because lazy route modules take several seconds to import under jsdom. No new test files.
 - Step 0: the earlier QA browser specs and two small UI fixes (compact header on phones, hearing tabs with real panels) were committed first.
 
+**Test run after Phase 5C (11-10-2026)**
+- Backend e2e (`npm run test:e2e` on `digitaladaalat_test`): first run 148/207, all 59 failures from the new rules, not regressions. The test helper `validRegistration` gave every user the same phone (refused since QA-014); its default phone now follows the CNIC (`36302-1111111-1` gives `+92 300 1111111`), and the users test lawyer now has a bar number (QA-013).
+- App fix found by the run: registration, staff provisioning and intern creation check CNIC/email duplicates before the phone rule, so a duplicate account gets "This account identifier is already in use..." again instead of the phone message.
+- After the changes: backend e2e 207/207, frontend 115/115. The repo tests take reset links from the mocked mailer, not the server log, so they needed no change; the out-of-repo QA scripts that read the log now issue the reset token through the test database.
+
 ## Planned changes (not done yet)
 - **Phase 3, hearing slots:** done in Phase 3B (partial unique indexes, see above).
 

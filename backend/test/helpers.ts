@@ -37,13 +37,17 @@ export async function resetDatabase(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }
 
+/**
+ * A phone may belong to only one active account (QA-014), so the default phone follows the CNIC:
+ * "36302-1111111-1" gives "+92 300 1111111", and every user with its own CNIC gets its own number.
+ */
 export const validRegistration = (overrides: Record<string, unknown> = {}) => ({
   role: 'LITIGANT',
   firstName: 'Ayesha',
   lastName: 'Siddiqui',
   cnic: '36302-1111111-1',
   email: 'ayesha@example.test',
-  phone: '+92 300 1111111',
+  phone: `+92 300 ${String(overrides.cnic ?? '36302-1111111-1').slice(6, 13)}`,
   password: 'Passw0rdTest',
   confirmPassword: 'Passw0rdTest',
   ...overrides,

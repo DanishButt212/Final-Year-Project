@@ -55,6 +55,7 @@ describe('Users and RBAC (e2e)', () => {
             role: 'LAWYER',
             email: 'lawyer@example.test',
             cnic: '36302-2222222-2',
+            barNumber: 'LH-22222',
           }),
         )
         .expect(201);

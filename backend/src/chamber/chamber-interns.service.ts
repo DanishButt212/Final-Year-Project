@@ -135,12 +135,13 @@ export class ChamberInternsService {
   }
 
   async create(ctx: ChamberContext, dto: CreateInternDto, meta: RequestMeta) {
-    await assertPhoneFree(this.prisma, dto.phone);
     const duplicate = await this.prisma.user.findFirst({
       where: { OR: [{ cnic: dto.cnic }, { email: dto.email }] },
       select: { id: true },
     });
     if (duplicate) throw conflict('DUPLICATE_IDENTIFIER', Messages.DUPLICATE_IDENTIFIER);
+    // Identity first (CNIC/email), then the phone rule, so a duplicate account gets the identifier message.
+    await assertPhoneFree(this.prisma, dto.phone);
 
     const rounds = this.config.getOrThrow<number>('BCRYPT_ROUNDS');
     const passwordHash = await bcrypt.hash(randomBytes(32).toString('hex'), rounds);

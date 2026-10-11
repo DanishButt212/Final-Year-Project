@@ -64,7 +64,6 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       });
     }
 
-    await assertPhoneFree(this.prisma, dto.phone);
     const barNumber = dto.role === 'LAWYER' && dto.barNumber ? dto.barNumber : undefined;
     const duplicate = await this.prisma.user.findFirst({
       where: { OR: [{ cnic: dto.cnic }, { email: dto.email }] },
@@ -74,6 +73,8 @@ export class AuthService implements OnModuleInit, OnModuleDestroy {
       ? await this.prisma.lawyerProfile.findUnique({ where: { barNumber }, select: { id: true } })
       : null;
     if (duplicate || barTaken) throw this.duplicateError();
+    // Identity first (CNIC/email), then the phone rule, so a duplicate account gets the identifier message.
+    await assertPhoneFree(this.prisma, dto.phone);
 
     const passwordHash = await bcrypt.hash(dto.password, this.rounds);
     let user;

@@ -85,7 +85,6 @@ export class AdminUsersService {
 
   /** Creates INTERN, PROCESS_SERVER, JUDGE or ADMIN accounts. No password is ever chosen by the admin. */
   async provision(actor: AuthUser, dto: CreateStaffDto, meta: RequestMeta) {
-    await assertPhoneFree(this.prisma, dto.phone);
     let courtId: string | null = null;
     let courtroomId: string | null = null;
     let serverCourtId: string | null = null;
@@ -189,6 +188,8 @@ export class AdminUsersService {
       select: { id: true },
     });
     if (duplicate) throw conflict(Messages.DUPLICATE_IDENTIFIER, 'DUPLICATE_IDENTIFIER');
+    // Identity first (CNIC/email), then the phone rule, so a duplicate account gets the identifier message.
+    await assertPhoneFree(this.prisma, dto.phone);
 
     // Random, never-disclosed password: the person sets their own through the reset link.
     const rounds = this.config.getOrThrow<number>('BCRYPT_ROUNDS');
