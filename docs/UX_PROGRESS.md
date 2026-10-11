@@ -11,7 +11,7 @@ frontend tests 115/115; backend e2e 207/207.
 - [x] B. Urdu / English (react-i18next, RTL, Nastaliq) and font size control
 - [x] C. Case progress stepper, next-hearing reminders, add to calendar, reminder job
 - [x] D. Global search (command palette)
-- [ ] E. PDF preview, skeleton loading, feedback and micro-interactions
+- [x] E. PDF preview, skeleton loading, feedback and micro-interactions
 - [ ] F. Dashboard charts
 - [ ] G. Guided tour and legal glossary
 - [ ] H. Final verification and docs
@@ -30,3 +30,6 @@ frontend tests 115/115; backend e2e 207/207.
   vertical), the next-hearing card and the .ics output (10:30 PKT = 05:30Z).
 - Phase D (11-10-2026): done. New endpoint `GET /api/search`, 8 new e2e tests (backend e2e 223/223). Palette checked
   at 1280 px (English) and 375 px (Urdu). Main chunk 555.4 kB (171.1 kB gzip); the palette is its own chunk.
+- Phase E (11-10-2026): done. No new endpoints or database fields. Viewer checked at 1280 px (challan PDF, summons
+  photo lightbox over the detail dialog) and 375 px in English and Urdu. Frontend 115/115, backend unit 34/34 (two
+  stale Phase 5C auth tests fixed). Main chunk 560.2 kB (172.6 kB gzip); the viewer and the pdf.js worker are lazy.
