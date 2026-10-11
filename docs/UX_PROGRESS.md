@@ -8,7 +8,7 @@ frontend tests 115/115; backend e2e 207/207.
 
 ## Phases
 - [x] A. Brand (seal, wordmark, favicon), seal intro, public landing page, public case status
-- [ ] B. Urdu / English (react-i18next, RTL, Nastaliq) and font size control
+- [x] B. Urdu / English (react-i18next, RTL, Nastaliq) and font size control
 - [ ] C. Case progress stepper, next-hearing reminders, add to calendar, reminder job
 - [ ] D. Global search (command palette)
 - [ ] E. PDF preview, skeleton loading, feedback and micro-interactions
@@ -21,3 +21,7 @@ frontend tests 115/115; backend e2e 207/207.
   (162.74 kB gzip) after adding i18next; the intro is a separate 2.7 kB chunk. Visual check at 375 and 1280 px in
   English and Urdu (125 % text at 375 px), intro frames checked. `scripts/shots.mjs` takes screenshots into the
   git-ignored `e2e/artifacts/shots/`.
+- Phase B (11-10-2026): done. 2,200 translation keys, Urdu complete (`npm run i18n:check`), untranslated-string lint at
+  zero (`npm run i18n:lint`). New User fields preferredLanguage and fontScale, Notification titleKey/bodyKey/params.
+  Visual check of landing, login, filing form and dashboards in Urdu at 375 px (125 %) and 1280 px. Open for Phase H:
+  confirm breadcrumb chevron direction at higher zoom; charts need LTR-internal axes (Phase F).
