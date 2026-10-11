@@ -26,6 +26,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PublicModule } from './public/public.module';
 import { RemindersModule } from './reminders/reminders.module';
 import { SearchModule } from './search/search.module';
+import { InsightsModule } from './insights/insights.module';
 import { SettingsModule } from './settings/settings.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
@@ -68,6 +69,7 @@ import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.mo
     PublicModule,
     RemindersModule,
     SearchModule,
+    InsightsModule,
     HealthModule,
   ],
   providers: [
