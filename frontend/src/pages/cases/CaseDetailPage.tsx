@@ -25,9 +25,17 @@ import FeesPanel from './FeesPanel';
 import VaultPanel from './VaultPanel';
 import { useTranslation } from 'react-i18next';
 
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+function Detail({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div>
+    <div className={className}>
       <dt className="text-sm text-text-muted">{label}</dt>
       <dd className="break-words font-medium">{children}</dd>
     </div>
@@ -185,13 +193,11 @@ export default function CaseDetailPage() {
                 <Detail label={t('Judge bench')}>
                   {judgeBench({ judge: data.judge, courtroom: data.courtroom?.name ?? null })}
                 </Detail>
-                <div className="sm:col-span-2">
-                  <Detail label={t('Relief sought')}>
-                    <span className="whitespace-pre-wrap font-normal">
-                      <bdi>{data.reliefSought}</bdi>
-                    </span>
-                  </Detail>
-                </div>
+                <Detail label={t('Relief sought')} className="sm:col-span-2">
+                  <span className="whitespace-pre-wrap font-normal">
+                    <bdi>{data.reliefSought}</bdi>
+                  </span>
+                </Detail>
               </dl>
             </CardContent>
           </Card>

@@ -49,7 +49,7 @@ export function ServerShell() {
       </Suspense>
       <header className="bg-primary text-on-primary">
         <div className="mx-auto flex min-h-14 max-w-3xl items-center justify-between gap-2 px-4">
-          <Logo to="/process-server" />
+          <Logo to="/process-server" wordmarkClassName="hidden sm:inline-flex" />
           <div className="flex items-center gap-1">
             <SearchTrigger />
             <LanguageToggle tone="inverse" className="me-1 hidden sm:inline-flex" />

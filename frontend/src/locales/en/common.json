@@ -3,6 +3,7 @@
   "{{a}} hearings this week and {{b}} next week. Busiest day: {{day}} ({{n}}). Darker bars are this week.": "{{a}} hearings this week and {{b}} next week. Busiest day: {{day}} ({{n}}). Darker bars are this week.",
   "{{caseTypeLabel}} · {{judgeBench}} · Filed {{date}}": "{{caseTypeLabel}} · {{judgeBench}} · Filed {{date}}",
   "{{current}} of {{total}}": "{{current}} of {{total}}",
+  "{{date}} at {{time}}": "{{date}} at {{time}}",
   "{{isoToDdMmYyyy}} to {{isoToDdMmYyyy2}}": "{{isoToDdMmYyyy}} to {{isoToDdMmYyyy2}}",
   "{{label}} is planned but not built yet. This page will be replaced when the feature is delivered.": "{{label}} is planned but not built yet. This page will be replaced when the feature is delivered.",
   "{{n}} cases filed in the last 12 months; the most in {{month}} ({{m}}).": "{{n}} cases filed in the last 12 months; the most in {{month}} ({{m}}).",

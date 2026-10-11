@@ -159,7 +159,7 @@ function PublicFooter() {
     <footer className="no-print border-t border-border bg-surface">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-sm text-text-muted sm:flex-row sm:items-center sm:justify-between">
         <p>
-          // i18n-ignore
+          {/* i18n-ignore */}
           <bdi dir="ltr">DigitalAdaalat</bdi> · {t('Final Year Project')} ·{' '}
           {t('Air University, Multan Campus')}
         </p>

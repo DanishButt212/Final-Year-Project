@@ -47,8 +47,8 @@ const seal = (withText) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
   ${withText ? `<circle cx="100" cy="100" r="66" fill="none" stroke="${P}" stroke-width="1.6"/>` : ''}
   ${
     withText
-      ? `<defs><path id="ring" d="M100 177 A77 77 0 1 1 100 23 A77 77 0 1 1 100 177"/></defs>
-  <text fill="${P}" font-family="Inter, sans-serif" font-weight="700" font-size="11.5" letter-spacing="1"><textPath href="#ring" textLength="470" lengthAdjust="spacing">DIGITAL ADAALAT · JUDICIAL ERP · PAKISTAN ·</textPath></text>
+      ? `<defs><path id="ring" d="M24 100 A76 76 0 0 1 176 100"/></defs>
+  <text fill="${P}" font-family="Inter, sans-serif" font-weight="700" font-size="9.8" letter-spacing="1"><textPath href="#ring" textLength="225" lengthAdjust="spacing">DIGITAL ADAALAT · JUDICIAL ERP · PAKISTAN</textPath></text>
   ${diamonds}`
       : ''
   }

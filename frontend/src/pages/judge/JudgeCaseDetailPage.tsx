@@ -32,9 +32,17 @@ import { vaultKey } from '@/lib/query-keys';
 import VaultPanel from '@/pages/cases/VaultPanel';
 import { useTranslation } from 'react-i18next';
 
-function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+function Detail({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div>
+    <div className={className}>
       <dt className="text-sm text-text-muted">{label}</dt>
       <dd className="break-words font-medium">{children}</dd>
     </div>
@@ -160,16 +168,17 @@ export default function JudgeCaseDetailPage() {
                 <Detail label={t('Courtroom')}>{data.courtroom?.name ?? '—'}</Detail>
                 <Detail label={t('Next hearing')}>
                   {data.nextHearing
-                    ? `${formatDate(data.nextHearing.date)} at ${data.nextHearing.startTime ?? ''}`
+                    ? t('{{date}} at {{time}}', {
+                        date: formatDate(data.nextHearing.date),
+                        time: data.nextHearing.startTime ?? '',
+                      })
                     : t('None scheduled')}
                 </Detail>
-                <div className="sm:col-span-2">
-                  <Detail label={t('Relief sought')}>
-                    <span className="whitespace-pre-wrap font-normal">
-                      <bdi>{data.reliefSought}</bdi>
-                    </span>
-                  </Detail>
-                </div>
+                <Detail label={t('Relief sought')} className="sm:col-span-2">
+                  <span className="whitespace-pre-wrap font-normal">
+                    <bdi>{data.reliefSought}</bdi>
+                  </span>
+                </Detail>
               </dl>
             </CardContent>
           </Card>

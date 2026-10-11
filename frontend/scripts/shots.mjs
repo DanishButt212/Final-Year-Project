@@ -3,11 +3,12 @@
 /**
  * Quick visual check against a running dev stack (vite on 5173 by default).
  *   node scripts/shots.mjs <name> <path> [--w=375] [--lang=ur] [--scale=1.25] [--wait=ms] [--full]
- *     [--frames=500,1200] [--login=email:password] [--intro] [--role=ROLE] [--click=sel] [--tour[=n]]
+ *     [--frames=500,1200] [--login=email:password] [--intro] [--role=ROLE] [--click=sel] [--tour[=n]] [--axe]
  * Writes e2e/artifacts/shots/<name>[-<frame>].png (git-ignored). Never prints credentials.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import AxeBuilder from '@axe-core/playwright';
 import { chromium } from '@playwright/test';
 
 const [name, path = '/', ...rest] = process.argv.slice(2);
@@ -133,10 +134,37 @@ if (opt.frames) {
     });
   }
   await page.waitForTimeout(Number(opt.wait ?? 900));
+  if (opt.axe) {
+    // --axe: WCAG 2.1 A/AA scan; prints serious and critical violations only.
+    const result = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    const bad = result.violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+    console.log(`AXE ${bad.length ? 'FAIL' : 'OK'} ${name}`);
+    for (const v of bad)
+      console.log(
+        `  ${v.impact} ${v.id}: ${v.help} (${v.nodes.length}) ${v.nodes[0]?.target.join(' ')}`,
+      );
+  }
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - window.innerWidth,
   );
   if (overflow > 0) console.log(`HORIZONTAL OVERFLOW: ${overflow}px`);
+  if (overflow > 0 && opt.debug)
+    console.log(
+      await page.evaluate(() =>
+        Array.from(document.querySelectorAll('body *'))
+          .map((el) => ({ el, r: el.getBoundingClientRect() }))
+          .filter(({ el }) => !el.closest('#portal-sidebar'))
+          .filter(({ r }) => r.right > window.innerWidth + 1 || r.left < -1)
+          .slice(0, 8)
+          .map(
+            ({ el, r }) =>
+              `${el.tagName.toLowerCase()}.${String(el.className).slice(0, 80)} [${Math.round(r.left)},${Math.round(r.right)}]`,
+          )
+          .join('\n'),
+      ),
+    );
   await page.screenshot({ path: join(out, `${name}.png`), fullPage: Boolean(opt.full) });
 }
 console.log(`saved ${name}`);

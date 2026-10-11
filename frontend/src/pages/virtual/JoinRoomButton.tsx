@@ -8,6 +8,9 @@ import { virtualApi } from '@/lib/virtual-api';
 import { useTranslation } from 'react-i18next';
 
 /** Small "Virtual" marker for hearing rows and cards. */
+/** The label is long (and longer in Urdu or at 125 % text): let it wrap instead of overflowing on phones. */
+const WRAP = 'h-auto min-h-9 whitespace-normal py-1.5 text-start';
+
 export function VirtualBadge() {
   const { t } = useTranslation();
   return (
@@ -30,7 +33,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
   });
   if (isPending || !data) {
     return (
-      <Button size="sm" variant="secondary" disabled>
+      <Button size="sm" variant="secondary" disabled className={WRAP}>
         <Video aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
       </Button>
     );
@@ -42,7 +45,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
     const id = `room-msg-${hearingId}`;
     return (
       <div className="max-w-64 space-y-1">
-        <Button size="sm" variant="secondary" disabled aria-describedby={id}>
+        <Button size="sm" variant="secondary" disabled aria-describedby={id} className={WRAP}>
           <Lock aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
         </Button>
         <p id={id} className="whitespace-normal text-xs text-text-muted">
@@ -52,7 +55,7 @@ export function JoinRoomButton({ hearingId }: { hearingId: string }) {
     );
   }
   return (
-    <Button size="sm" asChild>
+    <Button size="sm" asChild className={WRAP}>
       <Link to={`/courtroom/${hearingId}`}>
         <Video aria-hidden="true" /> {t('Join Remote Hearing Video Room')}
       </Link>

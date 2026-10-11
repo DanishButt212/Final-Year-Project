@@ -93,6 +93,13 @@ export function TourController() {
       stageRadius: 8,
       animate: !reduced,
       smoothScroll: !reduced,
+      // driver.js marks the highlighted element (or its placeholder for centred steps) as a popup trigger;
+      // on a plain container those ARIA attributes are invalid (axe), and the popover is a dialog anyway.
+      onHighlighted: () => {
+        for (const el of document.querySelectorAll('[aria-controls="driver-popover-content"]'))
+          for (const a of ['aria-haspopup', 'aria-expanded', 'aria-controls'])
+            el.removeAttribute(a);
+      },
       onPopoverRender: (popover) => {
         popover.wrapper.dir = i18n.dir();
         popover.wrapper.lang = i18n.language;

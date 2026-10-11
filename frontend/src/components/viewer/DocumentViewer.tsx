@@ -247,6 +247,7 @@ export default function DocumentViewer({
             onTouchStart={onTouchStart}
             onTouchEnd={onTouchEnd}
             tabIndex={0}
+            role="region"
             aria-label={t('Document')}
           >
             {/* react-pdf suspends while it loads; keep the toolbar visible meanwhile. */}

@@ -12,7 +12,6 @@
   "{{count}} exhibits locked by order of the bench. Reason: {{reason}}": "{{count}} exhibits locked by order of the bench. Reason: {{reason}}",
   "{{count}} future hearings cancelled because the case was decided.": "{{count}} future hearings cancelled because the case was decided.",
   "{{count}} hearing(s) scheduled.": "{{count}} hearing(s) scheduled.",
-  "{{date}} at {{time}}": "{{date}} at {{time}}",
   "{{recipient}} ({{ucn}}) was cancelled because the case was decided.": "{{recipient}} ({{ucn}}) was cancelled because the case was decided.",
   "{{recipient}} ({{ucn}}) was cancelled by the registry.": "{{recipient}} ({{ucn}}) was cancelled by the registry.",
   "{{recipient}} ({{ucn}}) was moved to another process server.": "{{recipient}} ({{ucn}}) was moved to another process server.",

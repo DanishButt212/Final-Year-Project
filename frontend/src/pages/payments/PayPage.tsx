@@ -89,7 +89,7 @@ export default function PayPage() {
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (pay.isPending || !session.data) return;
+    if (pay.isPending || session.isFetching || !session.data) return;
     const form = formRef.current;
     if (!form) return;
     const data = new FormData(form);
@@ -108,10 +108,12 @@ export default function PayPage() {
     form.reset();
   }
 
+  // The card form comes back only once the fresh payment session has arrived, so a quick resubmit
+  // never reuses the closed one.
   async function retry() {
-    setFailure(null);
     pay.reset();
     await session.refetch();
+    setFailure(null);
   }
 
   return (
