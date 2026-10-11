@@ -8,6 +8,7 @@ import { NextHearingCard } from '@/components/hearing/NextHearingCard';
 import { MyAllocatedCases } from '../judge/JudgeCasesPage';
 import { RecentOrdersPanel, TodayHearingsPanel } from '../judge/JudgeDashboardPanels';
 import CaseOverview from './CaseOverview';
+import { AdminInsightsPanel, JudgeInsightsPanel, PartyInsightsPanel } from './InsightsPanels';
 import { ChamberIdCard } from '../chamber/ChamberIdCard';
 import { useTranslation } from 'react-i18next';
 
@@ -16,6 +17,7 @@ export function LitigantDashboard() {
   return (
     <DashboardFrame description={t('Your cases, hearings and payments at a glance.')}>
       <CaseOverview />
+      <PartyInsightsPanel />
       <PanelGrid>
         <NextHearingCard />
         <EmptyPanel
@@ -52,6 +54,7 @@ export function LawyerDashboard() {
       )}
       {status === 'VERIFIED' && <ChamberIdCard />}
       <CaseOverview />
+      <PartyInsightsPanel />
       {status === 'REJECTED' && (
         <Alert variant="error" title={t('Verification rejected')} className="mb-6">
           {t('Your Bar Council registration could not be verified. Please contact the registrar.')}
@@ -103,6 +106,7 @@ export function JudgeDashboard() {
         <NextHearingCard />
         <TodayHearingsPanel />
       </div>
+      <JudgeInsightsPanel />
       <div className="mb-6">
         <RecentOrdersPanel />
       </div>
@@ -116,6 +120,9 @@ export function AdminDashboard() {
   return (
     <DashboardFrame description={t('Live metrics for the whole court system.')}>
       <AnalyticsBoard />
+      <div className="mt-6">
+        <AdminInsightsPanel />
+      </div>
     </DashboardFrame>
   );
 }

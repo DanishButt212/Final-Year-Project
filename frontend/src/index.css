@@ -13,6 +13,15 @@
  * Design tokens. Source of truth: design-system/digitaladaalat/MASTER.md.
  * Light mode only; no gradients, blur or glow.
  */
+/* Chart colours are read at runtime by the dashboard charts (var(--color-chart-n)), so they are always emitted. */
+@theme static {
+  --color-chart-1: #01411c;
+  --color-chart-2: #0b5d2e;
+  --color-chart-3: #3e8a5a;
+  --color-chart-4: #7fb596;
+  --color-chart-5: #bfd9c8;
+}
+
 @theme {
   /* Brand */
   --color-primary: #01411c;
@@ -47,11 +56,6 @@
   --color-status-hearing-border: #b9c6d3;
 
   /* Chart palette (admin dashboard, later phase) */
-  --color-chart-1: #01411c;
-  --color-chart-2: #0b5d2e;
-  --color-chart-3: #3e8a5a;
-  --color-chart-4: #7fb596;
-  --color-chart-5: #bfd9c8;
 
   /* Typography */
   /* Inter and Merriweather cover Latin only, so Urdu characters fall through to Nastaliq per glyph. */
