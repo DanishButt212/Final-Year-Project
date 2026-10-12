@@ -49,3 +49,5 @@ frontend tests 115/115; backend e2e 207/207.
 - Note: during Phase B a command printed the dev-account passwords from docs/DEV_ACCOUNTS.md to the session output
   (nothing was committed); the screenshot helper now reads that file internally and never prints it. Consider
   rotating those development passwords.
+- Follow-up (12-10-2026): the open item is closed. The seed now adds a case with a past hearing and no outcome
+  for the demo judge and keeps a hearing on the next working day; browser suite 25/25.
