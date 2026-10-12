@@ -2611,6 +2611,228 @@ async function seedPhase4E(ids: Record<string, string>, lawyers: Record<string, 
  * initialized ACTIVE session (and participant rows) and one still locked. They are re-created on every run so the
  * demo always falls on the day the seed runs; run it during court hours to see an open room.
  */
+/** The most recent working day (Monday to Friday) strictly before today, Pakistan time. */
+function workingDayBeforeToday(): Date {
+  let d = utcDate(-1);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d = new Date(d.getTime() - 86_400_000);
+  return d;
+}
+
+/**
+ * Decision demo: a case of the litigant Muhammad Ali allocated to the demo judge, with a paid challan (added by
+ * seedConsistency for every allocated case) and a hearing on the most recent working day that has no outcome yet,
+ * so the judge can record the outcome and then decide the case. Dates are relative to the day the seed runs; on a
+ * re-run the open hearing is moved to the new previous working day. A case that was already decided is left alone.
+ */
+async function seedDecisionDemo(ids: Record<string, string>, lawyers: Record<string, string>) {
+  const TITLE = 'Muhammad Ali vs. Multan Electric Power Company';
+  const MARKER = 'Decision demo';
+  const judge = await prisma.user.findUniqueOrThrow({
+    where: { id: ids.judge },
+    select: { id: true, firstName: true, lastName: true, courtId: true, courtroomId: true },
+  });
+  const room = judge.courtroomId
+    ? await prisma.courtroom.findUnique({
+        where: { id: judge.courtroomId },
+        include: { court: true },
+      })
+    : await prisma.courtroom.findFirst({
+        where: { courtId: judge.courtId ?? undefined },
+        include: { court: true },
+      });
+  if (!room) {
+    console.log('Decision demo: the demo judge has no courtroom, skipping.');
+    return;
+  }
+
+  let c = await prisma.case.findFirst({
+    where: { title: TITLE },
+    select: { id: true, ucn: true, decidedAt: true },
+  });
+  if (c?.decidedAt) {
+    console.log(`Decision demo: ${c.ucn} is already decided, left as it is.`);
+    return;
+  }
+  if (!c) {
+    const filingDate = utcDate(-21);
+    const allocatedAt = utcDate(-18);
+    c = await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, 'WRIT_PETITION', filingDate.getUTCFullYear());
+      const created = await tx.case.create({
+        data: {
+          ucn,
+          caseType: 'WRIT_PETITION',
+          status: 'HEARING_FIXED',
+          title: TITLE,
+          reliefSought:
+            'Direction to restore the domestic electricity connection disconnected without notice and to withdraw the detection bill.',
+          filingDate,
+          filedById: ids.litigant,
+          courtId: room.courtId,
+          courtroomId: room.id,
+          judgeId: judge.id,
+          allocatedAt,
+          parties: {
+            create: [
+              { role: 'PETITIONER', name: 'Muhammad Ali', lawyerId: lawyers.lawyer ?? null },
+              { role: 'RESPONDENT', name: 'Multan Electric Power Company' },
+            ],
+          },
+        },
+        select: { id: true, ucn: true, decidedAt: true },
+      });
+      await tx.caseEvent.createMany({
+        data: [
+          {
+            caseId: created.id,
+            type: 'CASE_SUBMITTED',
+            description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+            actorId: ids.litigant,
+            createdAt: filingDate,
+          },
+          {
+            caseId: created.id,
+            type: 'CASE_ALLOCATED',
+            description: `Case allocated to ${judge.firstName} ${judge.lastName}, ${room.court.name}, ${room.name}.`,
+            actorId: ids.admin,
+            createdAt: allocatedAt,
+          },
+        ],
+      });
+      return created;
+    });
+  }
+
+  // Replace any open demo hearing with one on the previous working day.
+  const open = await prisma.hearing.findMany({
+    where: { caseId: c.id, purpose: { startsWith: MARKER }, outcomeAt: null },
+    select: { id: true },
+  });
+  if (open.length > 0) {
+    const openIds = open.map((h) => h.id);
+    await prisma.causeListEntry.deleteMany({ where: { hearingId: { in: openIds } } });
+    await prisma.hearingReminder.deleteMany({ where: { hearingId: { in: openIds } } });
+    await prisma.hearing.deleteMany({ where: { id: { in: openIds } } });
+  }
+
+  const setting = async (key: string, fallback: string) =>
+    (await prisma.systemSetting.findUnique({ where: { key } }))?.value ?? fallback;
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const dayStart = toMin(await setting('court_day_start', '09:00'));
+  const dayEnd = toMin(await setting('court_day_end', '14:00'));
+  const slotMin = Number(await setting('hearing_slot_minutes', '30')) || 30;
+  const slotCount = Math.max(1, Math.floor((dayEnd - dayStart) / slotMin));
+  const date = workingDayBeforeToday();
+  const taken = new Set(
+    (
+      await prisma.hearing.findMany({
+        where: {
+          date,
+          status: { not: 'CANCELLED' },
+          OR: [{ judgeId: judge.id }, { courtroomId: room.id }],
+        },
+        select: { timeSlot: true },
+      })
+    ).map((h) => h.timeSlot),
+  );
+  const slot = Array.from({ length: slotCount }, (_, i) => i + 1).find((n) => !taken.has(n));
+  if (!slot) {
+    console.log('Decision demo: no free slot on the previous working day, skipping the hearing.');
+    return;
+  }
+  const m = dayStart + (slot - 1) * slotMin;
+  const startTime = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  await prisma.hearing.create({
+    data: {
+      caseId: c.id,
+      judgeId: judge.id,
+      courtroomId: room.id,
+      date,
+      timeSlot: slot,
+      startTime,
+      status: 'SCHEDULED',
+      purpose: `${MARKER}: arguments on the writ petition`,
+    },
+  });
+  await prisma.case.update({ where: { id: c.id }, data: { status: 'HEARING_FIXED' } });
+  const iso = date.toISOString();
+  await prisma.caseEvent.create({
+    data: {
+      caseId: c.id,
+      type: 'HEARING_SCHEDULED',
+      description: `Hearing scheduled for ${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)} at ${startTime} in ${room.name}.`,
+      actorId: ids.admin,
+      createdAt: utcDate(-10),
+    },
+  });
+  console.log(
+    `Decision demo: ${c.ucn} has an open hearing on ${iso.slice(0, 10)} at ${startTime}.`,
+  );
+
+  // Upcoming demo: the scheduling sample's hearings are dated when they are first created, so on later runs make
+  // sure the judge still has a hearing on the next working day (reminders card, countdown, add to calendar).
+  const UPCOMING = 'Upcoming demo';
+  const next = workingDayAfterToday(1);
+  const stale = await prisma.hearing.findMany({
+    where: { purpose: { startsWith: UPCOMING }, outcomeAt: null, NOT: { date: next } },
+    select: { id: true },
+  });
+  if (stale.length > 0) {
+    const staleIds = stale.map((h) => h.id);
+    await prisma.causeListEntry.deleteMany({ where: { hearingId: { in: staleIds } } });
+    await prisma.hearingReminder.deleteMany({ where: { hearingId: { in: staleIds } } });
+    await prisma.hearing.deleteMany({ where: { id: { in: staleIds } } });
+  }
+  const already = await prisma.hearing.count({
+    where: { judgeId: judge.id, date: next, status: 'SCHEDULED' },
+  });
+  if (already > 0) return;
+  const target = await prisma.case.findFirst({
+    where: {
+      filedById: ids.litigant,
+      judgeId: judge.id,
+      decidedAt: null,
+      status: { notIn: ['DECIDED', 'REJECTED', 'DISMISSED'] },
+      title: { notIn: [TITLE, 'Muhammad Ali vs. The State'] },
+    },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    select: { id: true, ucn: true },
+  });
+  if (!target) return;
+  const busy = new Set(
+    (
+      await prisma.hearing.findMany({
+        where: {
+          date: next,
+          status: { not: 'CANCELLED' },
+          OR: [{ judgeId: judge.id }, { courtroomId: room.id }],
+        },
+        select: { timeSlot: true },
+      })
+    ).map((h) => h.timeSlot),
+  );
+  const nextSlot = Array.from({ length: slotCount }, (_, i) => i + 1).find((n) => !busy.has(n));
+  if (!nextSlot) return;
+  const nm = dayStart + (nextSlot - 1) * slotMin;
+  const nextTime = `${String(Math.floor(nm / 60)).padStart(2, '0')}:${String(nm % 60).padStart(2, '0')}`;
+  await prisma.hearing.create({
+    data: {
+      caseId: target.id,
+      judgeId: judge.id,
+      courtroomId: room.id,
+      date: next,
+      timeSlot: nextSlot,
+      startTime: nextTime,
+      status: 'SCHEDULED',
+      purpose: `${UPCOMING}: arguments`,
+    },
+  });
+  await prisma.case.update({ where: { id: target.id }, data: { status: 'HEARING_FIXED' } });
+  console.log(
+    `Upcoming demo: ${target.ucn} has a hearing on ${next.toISOString().slice(0, 10)} at ${nextTime}.`,
+  );
+}
+
 async function seedPhase4F(ids: Record<string, string>, courtrooms: Record<string, string>) {
   const MARKER = 'Phase 4F virtual demo';
   const old = (
@@ -2947,6 +3169,7 @@ async function main() {
   await seedPhase4B(ids, lawyerProfileIds);
   await seedPhase4C(ids);
   await seedPhase4E(ids, lawyerProfileIds);
+  await seedDecisionDemo(ids, lawyerProfileIds);
   await seedPhase4F(ids, reference.courtrooms);
   await seedConsistency();
   if (DEMO_PASSWORD) {
