@@ -47,6 +47,12 @@ test('admin opens a session, the litigant joins, the control list shows the atte
     const now = new Date(Date.now() + 5 * 3600_000); // Pakistan wall clock
     const slot = Math.min(Math.floor((now.getUTCHours() * 60 + now.getUTCMinutes()) / 30) + 1, 47);
     const date = now.toISOString().slice(0, 10);
+    // Other virtual hearings today (the seed adds some in the morning slots) would be listed first.
+    await c.query(
+      `UPDATE "Hearing" SET status = 'CANCELLED' WHERE date = $1 AND "isVirtual" = true AND status = 'SCHEDULED'
+         AND id NOT IN (SELECT "hearingId" FROM "CourtSession")`,
+      [date],
+    );
     await c.query(
       `UPDATE "Hearing" SET status = 'CANCELLED' WHERE date = $1 AND "timeSlot" = $2 AND ("judgeId" = $3 OR "courtroomId" = $4)`,
       [date, slot, k.judgeId, k.courtroomId],

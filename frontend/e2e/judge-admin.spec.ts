@@ -48,7 +48,7 @@ test.describe('judge', () => {
     }
     await decide.click();
     await page.getByLabel('Decision type').selectOption({ index: 1 });
-    await page.getByLabel('Order', { exact: true }).fill('Bail granted subject to surety bonds of PKR 100,000.');
+    await page.getByRole('textbox', { name: 'Order', exact: true }).fill('Bail granted subject to surety bonds of PKR 100,000.');
     await page.getByRole('button', { name: 'Review decision' }).click();
     await page.getByRole('button', { name: /record final decision/i }).click();
     await expect(page.getByText(/decision/i).first()).toBeVisible();
