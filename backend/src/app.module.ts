@@ -30,7 +30,11 @@ import { InsightsModule } from './insights/insights.module';
 import { SettingsModule } from './settings/settings.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
-import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.module';
+import { TranscriptsController } from './transcripts/transcripts.controller';
+import { TranscriptsService } from './transcripts/transcripts.service';
+import { DeliveriesModule } from './deliveries/deliveries.module';
+import { CoverageController } from './hearing-coverage/coverage.controller';
+import { CoverageService } from './hearing-coverage/coverage.service';
 
 @Module({
   imports: [
@@ -64,15 +68,18 @@ import { VirtualCourtroomModule } from './virtual-courtroom/virtual-courtroom.mo
     FeedbackModule,
     ChamberModule,
     SummonsModule,
+    DeliveriesModule,
     ReportsModule,
-    VirtualCourtroomModule,
     PublicModule,
     RemindersModule,
     SearchModule,
     InsightsModule,
     HealthModule,
   ],
+  controllers: [TranscriptsController, CoverageController],
   providers: [
+    TranscriptsService,
+    CoverageService,
     // Order matters: throttle first, then authenticate, then authorise by role.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },

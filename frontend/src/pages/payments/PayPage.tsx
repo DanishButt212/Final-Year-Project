@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { NativeSelect } from '@/components/ui/native-select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/toaster';
 import { parseApiError } from '@/lib/api';
@@ -52,6 +53,9 @@ export default function PayPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const formRef = useRef<HTMLFormElement>(null);
+  const [method, setMethod] = useState<
+    'MOCK_CARD' | 'MOCK_JAZZCASH' | 'MOCK_EASYPAISA' | 'MOCK_BANK_TRANSFER'
+  >('MOCK_CARD');
   const [failure, setFailure] = useState<string | null>(null);
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [done, setDone] = useState<{ receiptNo: string; paymentId: string; amount: string } | null>(
@@ -93,6 +97,34 @@ export default function PayPage() {
     const form = formRef.current;
     if (!form) return;
     const data = new FormData(form);
+    if (method === 'MOCK_BANK_TRANSFER') {
+      const transferReference = String(data.get('transferReference') ?? '')
+        .trim()
+        .toUpperCase();
+      if (!/^[A-Z0-9-]{6,40}$/.test(transferReference)) {
+        setFieldError(
+          t('Enter a bank transfer reference (6 to 40 uppercase letters, digits or hyphens).'),
+        );
+        return;
+      }
+      setFieldError(null);
+      setFailure(null);
+      pay.mutate({ paymentId: session.data.paymentId, method, transferReference });
+      form.reset();
+      return;
+    }
+    if (method !== 'MOCK_CARD') {
+      const mobileNumber = String(data.get('mobileNumber') ?? '').trim();
+      if (!/^03\d{9}$/.test(mobileNumber)) {
+        setFieldError(t('Enter an 11 digit wallet mobile number starting with 03.'));
+        return;
+      }
+      setFieldError(null);
+      setFailure(null);
+      pay.mutate({ paymentId: session.data.paymentId, method, mobileNumber });
+      form.reset();
+      return;
+    }
     const cardholderName = String(data.get('cardholderName') ?? '').trim();
     const cardNumber = String(data.get('cardNumber') ?? '');
     const expiry = String(data.get('expiry') ?? '');
@@ -135,19 +167,37 @@ export default function PayPage() {
         >
           <ShieldAlert className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden="true" />
           <div className="space-y-2">
-            <p className="font-bold">{t('Simulated gateway. Do not enter real card details.')}</p>
-            <p className="text-sm">
-              {t(
-                'No real payment is made and nothing you type here is stored. Use one of these test cards (any name, a future expiry such as 12/30, any 3 digit code):',
-              )}
+            <p className="font-bold">
+              {t('Simulated gateway. Do not enter real card or wallet details.')}
             </p>
-            <ul className="text-sm">
-              {TEST_CARDS.map(([n, r]) => (
-                <li key={n}>
-                  <span className="font-mono">{n}</span> · {r}
-                </li>
-              ))}
-            </ul>
+            {method === 'MOCK_CARD' ? (
+              <>
+                <p className="text-sm">
+                  {t(
+                    'No real payment is made and nothing you type here is stored. Use one of these test cards (any name, a future expiry such as 12/30, any 3 digit code):',
+                  )}
+                </p>
+                <ul className="text-sm">
+                  {TEST_CARDS.map(([n, r]) => (
+                    <li key={n}>
+                      <span className="font-mono">{n}</span> · {r}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : method === 'MOCK_BANK_TRANSFER' ? (
+              <p className="text-sm">
+                {t(
+                  'Bank transfer demo: use DEMO-BANK-APPROVED for success or DEMO-BANK-DECLINED for insufficient funds. Other references are declined. Do not send money or enter real banking details.',
+                )}
+              </p>
+            ) : (
+              <p className="text-sm">
+                {t(
+                  'Wallet demo: use 03000000000 for success or 03000000001 for insufficient funds. Other numbers are declined. No PIN or OTP is required; no real payment is made.',
+                )}
+              </p>
+            )}
           </div>
         </div>
 
@@ -220,58 +270,118 @@ export default function PayPage() {
                   className="space-y-4"
                 >
                   {fieldError && <Alert variant="error">{fieldError}</Alert>}
-                  <Field label={t('Cardholder name')} required>
+                  <Field label={t('Payment method')} required>
                     {(p) => (
-                      <Input name="cardholderName" autoComplete="off" maxLength={80} {...p} />
-                    )}
-                  </Field>
-                  <Field label={t('Card number')} required>
-                    {(p) => (
-                      <Input
-                        name="cardNumber"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="4242 4242 4242 4242"
-                        maxLength={23}
-                        onInput={(e) => {
-                          e.currentTarget.value = formatCard(e.currentTarget.value);
-                        }}
+                      <NativeSelect
                         {...p}
-                      />
+                        value={method}
+                        disabled={pay.isPending}
+                        onChange={(e) => {
+                          const selected = e.target.value as
+                            'MOCK_CARD' | 'MOCK_JAZZCASH' | 'MOCK_EASYPAISA' | 'MOCK_BANK_TRANSFER';
+                          formRef.current?.reset();
+                          setMethod(selected);
+                          setFieldError(null);
+                        }}
+                      >
+                        <option value="MOCK_CARD">{t('Stripe card demo')}</option>
+                        <option value="MOCK_JAZZCASH">{t('JazzCash')}</option>
+                        <option value="MOCK_EASYPAISA">{t('Easypaisa')}</option>
+                        <option value="MOCK_BANK_TRANSFER">{t('Bank transfer')}</option>
+                      </NativeSelect>
                     )}
                   </Field>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label={t('Expiry (MM/YY)')} required>
+                  {method === 'MOCK_BANK_TRANSFER' ? (
+                    <Field label={t('Transfer reference')} required>
                       {(p) => (
                         <Input
-                          name="expiry"
-                          inputMode="numeric"
-                          autoComplete="off"
-                          placeholder="12/30"
-                          maxLength={5}
-                          onInput={(e) => {
-                            e.currentTarget.value = formatExpiry(e.currentTarget.value);
-                          }}
                           {...p}
+                          name="transferReference"
+                          autoComplete="off"
+                          placeholder="DEMO-BANK-APPROVED"
+                          maxLength={40}
+                          disabled={pay.isPending}
                         />
                       )}
                     </Field>
-                    <Field label="CVV" required>
+                  ) : method !== 'MOCK_CARD' ? (
+                    <Field
+                      label={
+                        method === 'MOCK_EASYPAISA'
+                          ? t('Easypaisa mobile number')
+                          : t('JazzCash mobile number')
+                      }
+                      required
+                    >
                       {(p) => (
                         <Input
-                          name="cvv"
-                          type="password"
+                          {...p}
+                          name="mobileNumber"
+                          type="tel"
                           inputMode="numeric"
                           autoComplete="off"
-                          maxLength={4}
-                          onInput={(e) => {
-                            e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '');
-                          }}
-                          {...p}
+                          placeholder="03000000000"
+                          maxLength={11}
+                          disabled={pay.isPending}
                         />
                       )}
                     </Field>
-                  </div>
+                  ) : (
+                    <>
+                      <Field label={t('Cardholder name')} required>
+                        {(p) => (
+                          <Input name="cardholderName" autoComplete="off" maxLength={80} {...p} />
+                        )}
+                      </Field>
+                      <Field label={t('Card number')} required>
+                        {(p) => (
+                          <Input
+                            name="cardNumber"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="4242 4242 4242 4242"
+                            maxLength={23}
+                            onInput={(e) => {
+                              e.currentTarget.value = formatCard(e.currentTarget.value);
+                            }}
+                            {...p}
+                          />
+                        )}
+                      </Field>
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label={t('Expiry (MM/YY)')} required>
+                          {(p) => (
+                            <Input
+                              name="expiry"
+                              inputMode="numeric"
+                              autoComplete="off"
+                              placeholder="12/30"
+                              maxLength={5}
+                              onInput={(e) => {
+                                e.currentTarget.value = formatExpiry(e.currentTarget.value);
+                              }}
+                              {...p}
+                            />
+                          )}
+                        </Field>
+                        <Field label="CVV" required>
+                          {(p) => (
+                            <Input
+                              name="cvv"
+                              type="password"
+                              inputMode="numeric"
+                              autoComplete="off"
+                              maxLength={4}
+                              onInput={(e) => {
+                                e.currentTarget.value = e.currentTarget.value.replace(/\D/g, '');
+                              }}
+                              {...p}
+                            />
+                          )}
+                        </Field>
+                      </div>
+                    </>
+                  )}
                   <Button type="submit" size="lg" loading={pay.isPending} disabled={pay.isPending}>
                     {t('Pay {{pkr}}', { pkr: formatPkr(session.data.amount) })}
                   </Button>

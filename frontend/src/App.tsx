@@ -35,8 +35,14 @@ const SummonsRegistryPage = lazy(() => import('@/pages/admin/SummonsRegistryPage
 const AuditVaultPage = lazy(() => import('@/pages/admin/AuditVaultPage'));
 const PerformancePage = lazy(() => import('@/pages/admin/PerformancePage'));
 const SecurityAlertsPage = lazy(() => import('@/pages/admin/SecurityAlertsPage'));
-const RoomPage = lazy(() => import('@/pages/virtual/RoomPage'));
 const ChamberDashboardPage = lazy(() => import('@/pages/chamber/ChamberDashboardPage'));
+const CoveragePage = lazy(() => import('@/pages/hearing-coverage/CoveragePage'));
+const JudgeTranscriptsPage = lazy(() =>
+  import('@/pages/transcripts/TranscriptsPage').then((m) => ({ default: m.JudgeTranscriptsPage })),
+);
+const TranscriptAssignmentsPage = lazy(() =>
+  import('@/pages/transcripts/TranscriptsPage').then((m) => ({ default: m.TranscriptAssignmentsPage })),
+);
 const BillablePage = lazy(() => import('@/pages/chamber/BillablePage'));
 const RetainerPage = lazy(() => import('@/pages/chamber/RetainerPage'));
 const ExpensesPage = lazy(() => import('@/pages/chamber/ExpensesPage'));
@@ -63,18 +69,11 @@ const CaseDetailPage = lazy(() => import('@/pages/cases/CaseDetailPage'));
 const NewCasePage = lazy(() => import('@/pages/cases/NewCasePage'));
 const PortfolioPage = lazy(() => import('@/pages/cases/PortfolioPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
-const VirtualCourtroomControlPage = lazy(() =>
-  import('@/pages/admin/VirtualCourtroomPages').then((m) => ({
-    default: m.VirtualCourtroomControlPage,
-  })),
-);
-const VirtualCourtroomListPage = lazy(() =>
-  import('@/pages/admin/VirtualCourtroomPages').then((m) => ({
-    default: m.VirtualCourtroomListPage,
-  })),
-);
 const RosterPage = lazy(() =>
   import('@/pages/server/ServerPages').then((m) => ({ default: m.RosterPage })),
+);
+const OfficerDeliveriesPage = lazy(() =>
+  import('@/pages/deliveries/DeliveryPanels').then((m) => ({ default: m.OfficerDeliveriesPage })),
 );
 const ServerProfilePage = lazy(() =>
   import('@/pages/server/ServerPages').then((m) => ({ default: m.ServerProfilePage })),
@@ -144,10 +143,10 @@ export default function App() {
           </Route>
 
           <Route element={<RequireAuth />}>
-            <Route path="courtroom/:hearingId" element={<RoomPage />} />
             <Route element={<RequireRole role="PROCESS_SERVER" />}>
               <Route element={<ServerShell />}>
                 <Route path="process-server" element={<RosterPage />} />
+                <Route path="process-server/deliveries" element={<OfficerDeliveriesPage />} />
                 <Route path="process-server/profile" element={<ServerProfilePage />} />
                 <Route path="process-server/summons/:summonsId" element={<SummonsPage />} />
                 <Route path="process-server/summons/:summonsId/attempt" element={<AttemptPage />} />
@@ -167,6 +166,7 @@ export default function App() {
               <Route path="profile/feedback" element={<FeedbackPage />} />
               <Route element={<RequireRole role="ADMIN" />}>
                 <Route path="admin/accounts" element={<AccountsPage />} />
+                <Route path="admin/hearing-clashes" element={<CoveragePage />} />
                 <Route path="admin/lawyer-verification" element={<LawyerVerificationPage />} />
                 <Route path="admin/cases" element={<AdminCasesPage />} />
                 <Route path="admin/cases/:caseId" element={<AdminCaseDetailPage />} />
@@ -177,13 +177,12 @@ export default function App() {
                 <Route path="admin/audit-logs" element={<AuditVaultPage />} />
                 <Route path="admin/security" element={<SecurityAlertsPage />} />
                 <Route path="admin/reports" element={<PerformancePage />} />
-                <Route path="admin/virtual-courtroom" element={<VirtualCourtroomListPage />} />
-                <Route
-                  path="admin/virtual-courtroom/:sessionId"
-                  element={<VirtualCourtroomControlPage />}
-                />
+                <Route path="admin/transcript-assignments" element={<TranscriptAssignmentsPage />} />
               </Route>
               <Route element={<RequireRole role="LAWYER" />}>
+                <Route path="lawyer/hearing-clashes" element={<CoveragePage />} />
+                <Route path="lawyer/chamber-portal" element={<Navigate to="/chamber" replace />} />
+                <Route path="chamber" element={<CoveragePage chamber />} />
                 <Route element={<ChamberGate />}>
                   <Route path="lawyer/chamber" element={<ChamberDashboardPage />} />
                   <Route path="lawyer/chamber/clients" element={<ClientsPage />} />
@@ -207,6 +206,8 @@ export default function App() {
                 <Route path="judge/cases" element={<JudgeCasesPage />} />
                 <Route path="judge/cases/:caseId" element={<JudgeCaseDetailPage />} />
                 <Route path="judge/orders" element={<JudgeOrdersPage />} />
+                <Route path="judge/hearing-clashes" element={<CoveragePage />} />
+                <Route path="judge/transcripts" element={<JudgeTranscriptsPage />} />
               </Route>
               <Route path=":portal" element={<PortalHome />} />
               <Route

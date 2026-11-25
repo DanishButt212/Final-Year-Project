@@ -22,6 +22,7 @@ import { formatDate, formatDateTime, formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import FeesPanel from './FeesPanel';
+import { TranscriptList } from '@/pages/transcripts/TranscriptsPage';
 import VaultPanel from './VaultPanel';
 import { useTranslation } from 'react-i18next';
 
@@ -141,6 +142,7 @@ export default function CaseDetailPage() {
           <TabsTrigger value="documents">{t('Evidence Vault')}</TabsTrigger>
           <TabsTrigger value="summons">{t('Summons')}</TabsTrigger>
           <TabsTrigger value="lifecycle">{t('Lifecycle')}</TabsTrigger>
+          {user.role === 'LAWYER' && <TabsTrigger value="transcripts">{t('Hearing transcripts')}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -208,13 +210,19 @@ export default function CaseDetailPage() {
         </TabsContent>
 
         <TabsContent value="fees">
-          <FeesPanel caseId={data.id} claim={data.claimAmountPkr} />
+          <FeesPanel caseId={data.id} claim={data.claimAmountPkr} coverageReadOnly={data.coverageReadOnly} />
         </TabsContent>
+
+        {user.role === 'LAWYER' && (
+          <TabsContent value="transcripts">
+            <TranscriptList mode="lawyer" caseId={data.id} />
+          </TabsContent>
+        )}
 
         <TabsContent value="documents">
           <VaultPanel
             caseId={data.id}
-            canAttachPleadings={!CLOSED_STATUSES.includes(data.status)}
+            canAttachPleadings={user.role === 'LAWYER' && !data.coverageReadOnly && !CLOSED_STATUSES.includes(data.status)}
           />
         </TabsContent>
 

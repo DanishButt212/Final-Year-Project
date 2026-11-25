@@ -135,9 +135,6 @@ const DEFINITIONS: Record<string, string> = {
   vakalatnama: msg(
     'The document by which a party authorises an advocate to act for them in a case.',
   ),
-  'virtual-hearing': msg(
-    'A hearing held by video in the virtual courtroom. The join button opens shortly before the hearing time.',
-  ),
   'writ-petition': msg(
     'A petition to the High Court to enforce fundamental rights or to correct unlawful action by a public authority.',
   ),

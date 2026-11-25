@@ -15,13 +15,14 @@ vi.mock('@/components/ui/toaster', () => ({
 let restore: (() => void) | undefined;
 afterEach(() => restore?.());
 
-const auth = makeAuth({ user: sampleUser({ role: 'LITIGANT' }) });
-const render = () =>
-  renderPage(<CaseDetailPage />, {
-    auth,
-    path: '/litigant/cases/:caseId',
-    route: '/litigant/cases/c1',
+const render = (role: 'LITIGANT' | 'LAWYER' = 'LITIGANT') => {
+  const portal = role.toLowerCase();
+  return renderPage(<CaseDetailPage />, {
+    auth: makeAuth({ user: sampleUser({ role }) }),
+    path: `/${portal}/cases/:caseId`,
+    route: `/${portal}/cases/c1`,
   });
+};
 
 const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   id: 'c1',
@@ -185,7 +186,7 @@ describe('CaseDetailPage', () => {
         : routes(req),
     );
     restore = mock;
-    render();
+    render('LAWYER');
     await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
 
     const attach = await screen.findByRole('button', { name: /attach document/i });
@@ -208,7 +209,7 @@ describe('CaseDetailPage', () => {
     const user = userEvent.setup();
     const mock = mockApi((req) => routes(req));
     restore = mock;
-    render();
+    render('LAWYER');
     await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
     fireEvent.change(await screen.findByTestId('pdf-input'), {
       target: { files: [new File(['x'], 'virus.exe', { type: 'application/octet-stream' })] },
@@ -223,7 +224,7 @@ describe('CaseDetailPage', () => {
   it('offers no pleading upload on a closed case', async () => {
     const user = userEvent.setup();
     restore = mockApi((req) => routes(req, detail({ status: 'DECIDED' })));
-    render();
+    render('LAWYER');
     await user.click(await screen.findByRole('tab', { name: /evidence vault/i }));
     await screen.findByRole('table', { name: 'Pleadings' });
     expect(screen.queryByText('Attach more pleadings')).not.toBeInTheDocument();

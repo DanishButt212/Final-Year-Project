@@ -14,7 +14,7 @@ const CASE_SEARCH_ROLES = new Set(['LITIGANT', 'LAWYER', 'JUDGE', 'ADMIN']);
 /**
  * Global search (command palette). Matches the UCN (prefix or exact, case-insensitive), party names and the
  * case title, strictly inside the cases the user may already open (common/case-access.ts): litigants what they
- * filed, lawyers what they filed or appear in, judges what is allocated to them, administrators everything.
+ * filed, lawyers what they filed or appear in, judges what is allocated to them, readers everything.
  */
 @Injectable()
 export class SearchService {

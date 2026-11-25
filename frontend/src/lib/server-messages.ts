@@ -194,13 +194,6 @@ const PATTERNS: Pattern[] = [
     'recipient',
   ),
   p(
-    /^Virtual hearing scheduled for (.+) in (.+) before (.+)\.$/,
-    msg('Virtual hearing scheduled for {{when}} in {{courtroom}} before {{judge}}.'),
-    'when',
-    'courtroom',
-    'judge',
-  ),
-  p(
     /^Hearing scheduled for (.+) in (.+) before (.+)\.$/,
     msg('Hearing scheduled for {{when}} in {{courtroom}} before {{judge}}.'),
     'when',
@@ -226,24 +219,6 @@ const PATTERNS: Pattern[] = [
     'judge',
   ),
   p(/^(\d+) hearing\(s\) scheduled\.$/, msg('{{count}} hearing(s) scheduled.'), 'count'),
-  p(
-    /^Virtual courtroom session opened for the hearing on (.+)\.$/,
-    msg('Virtual courtroom session opened for the hearing on {{when}}.'),
-    'when',
-  ),
-  p(
-    /^Virtual courtroom session for the hearing on (\S+) ended\.$/,
-    msg('Virtual courtroom session for the hearing on {{date}} ended.'),
-    'date',
-  ),
-  p(/^Audio input muted: (.+)\.$/, msg('Audio input muted: {{name}}.'), 'name'),
-  p(/^Video broadcast disabled: (.+)\.$/, msg('Video broadcast disabled: {{name}}.'), 'name'),
-  p(
-    /^Participant moved to the lobby: (.+)\.$/,
-    msg('Participant moved to the lobby: {{name}}.'),
-    'name',
-  ),
-  p(/^Participant readmitted: (.+)\.$/, msg('Participant readmitted: {{name}}.'), 'name'),
   p(
     /^(\S+) FAILED verification: the file or its seal does not match the record\.$/,
     msg('{{code}} FAILED verification: the file or its seal does not match the record.'),

@@ -25,6 +25,7 @@ import {
   AdminListCasesQueryDto,
   AdminListUsersQueryDto,
   AllocateCaseDto,
+  AssignCaseCounselDto,
   CreateCourtroomDto,
   UpdateCourtGeofenceDto,
   CreateStaffDto,
@@ -157,6 +158,17 @@ export class AdminController {
   @Get('cases/:id')
   caseDetail(@Param('id', ParseIdPipe) id: string) {
     return this.cases.detail(id);
+  }
+
+  @Patch('cases/:id/parties/:partyId/counsel')
+  assignCounsel(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIdPipe) id: string,
+    @Param('partyId', ParseIdPipe) partyId: string,
+    @Body() dto: AssignCaseCounselDto,
+    @Req() req: Request,
+  ) {
+    return this.cases.assignCounsel(user, id, partyId, dto.barNumber, meta(req));
   }
 
   @Get('cases/:id/documents/:docId/download')

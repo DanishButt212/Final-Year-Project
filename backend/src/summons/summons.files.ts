@@ -107,5 +107,10 @@ export const ProfileUploadInterceptor = makeInterceptor(
   MAX_PROFILE_PHOTO_BYTES,
 );
 
+export const DeliveryAcknowledgmentInterceptor = makeInterceptor(
+  [{ name: 'acknowledgment', maxCount: 1 }],
+  MAX_PROFILE_PHOTO_BYTES,
+);
+
 export const uploaded = (req: Request, field: string): Express.Multer.File | undefined =>
   ((req.files ?? {}) as Record<string, Express.Multer.File[]>)[field]?.[0];

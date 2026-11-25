@@ -31,8 +31,12 @@ describe('QA judge and evidence vault (e2e)', () => {
 
   let seq = 0;
   /** An allocated case with a hearing dated today (written directly, bypassing the "no past slot" rule). */
-  const caseWithHearing = async (filer: Api = litigant, title = 'QA vs. State') => {
-    const { case: c } = await fileCase(filer, { title });
+  const caseWithHearing = async (title = 'QA vs. State') => {
+    const party = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    const { case: c } = await fileCase(lawyer, {
+      title,
+      petitioners: [{ name: `${party.firstName} ${party.lastName}`, cnic: party.cnic }],
+    });
     await allocateDirect(ctx.prisma, c.id, w);
     // A distinct slot each time (today, then earlier days): the partial unique indexes forbid double booking.
     const n = seq++;
@@ -126,7 +130,7 @@ describe('QA judge and evidence vault (e2e)', () => {
     const content = pdfBuffer('confidential-exhibit-content');
 
     beforeAll(async () => {
-      ({ caseId } = await caseWithHearing(lawyer, 'Vault vs. State'));
+      ({ caseId } = await caseWithHearing('Vault vs. State'));
     });
 
     it('stores uploads encrypted and decrypts them on download', async () => {
@@ -161,6 +165,20 @@ describe('QA judge and evidence vault (e2e)', () => {
         .field('description', 'Disguised file')
         .attach('files', Buffer.concat([Buffer.from('MZ'), Buffer.alloc(100)]), 'scan.pdf');
       expect(bad.status).toBe(400);
+    });
+
+    it('lets a represented litigant add an exhibit to their existing case', async () => {
+      const submit = (actor: Api) => actor
+        .post(`/api/cases/${caseId}/evidence`)
+        .field('category', 'SCANNED_DOCUMENT')
+        .field('description', 'Exhibit from the represented litigant')
+        .attach('files', pdfBuffer('represented litigant exhibit'), 'litigant.pdf');
+      await submit(litigant2).expect(404);
+      await submit(litigant).expect(201);
+      const vault = await judge.get(`/api/cases/${caseId}/vault`).expect(200);
+      expect(vault.body.exhibits).toEqual(expect.arrayContaining([
+        expect.objectContaining({ description: 'Exhibit from the represented litigant' }),
+      ]));
     });
 
     it('lets only the uploader edit or delete, and nobody once locked by the judge', async () => {

@@ -132,7 +132,7 @@ export class SecurityService {
         createdAt: now,
       },
     });
-    // Admin accounts are never auto-terminated or alerted on.
+    // Reader accounts are never auto-terminated or alerted on.
     if (role === 'ADMIN') return;
 
     const threshold = await this.settings.securityEscalationThreshold();
@@ -206,22 +206,22 @@ export class SecurityService {
         metadata: { ip, attempts: count, code: input.code, route },
         ipAddress: ip ?? undefined,
       });
-      const admins = await tx.user.findMany({
+      const readers = await tx.user.findMany({
         where: { role: 'ADMIN', status: 'ACTIVE' },
         select: { id: true },
       });
       await this.notifications.notifyMany(
-        admins.map((a) => a.id),
+        readers.map((a) => a.id),
         notice(
           'SECURITY_ALERT',
           'Privilege escalation alert',
           user?.email
             ? ip
-              ? '{{account}} from {{ip}} was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.'
-              : '{{account}} from an unknown address was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.'
+              ? '{{account}} from {{ip}} was refused {{count}} times on reader routes ({{code}}). Review it under Security Alerts.'
+              : '{{account}} from an unknown address was refused {{count}} times on reader routes ({{code}}). Review it under Security Alerts.'
             : ip
-              ? 'An unidentified client from {{ip}} was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.'
-              : 'An unidentified client from an unknown address was refused {{count}} times on admin routes ({{code}}). Review it under Security Alerts.',
+              ? 'An unidentified client from {{ip}} was refused {{count}} times on reader routes ({{code}}). Review it under Security Alerts.'
+              : 'An unidentified client from an unknown address was refused {{count}} times on reader routes ({{code}}). Review it under Security Alerts.',
           { account: user?.email, ip, count, code: input.code },
         ),
         tx,

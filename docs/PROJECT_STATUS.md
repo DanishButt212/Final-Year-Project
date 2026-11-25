@@ -2,6 +2,8 @@
 
 Read-only audit of the code on `main`, updated after the Phase 5C QA fixes (full QA run with API scripts, Playwright journeys and axe; every QA issue is listed in `docs/CHANGES.md`, section Phase 5C). The full project report is not in the repo, so section 5 checks the rules in `docs/PROJECT_BRIEF.md`, `docs/CHANGES.md` and the exact strings in the code.
 
+Virtual Courtroom was removed on 16-11-2026, including session controls, join pages, API endpoints, provider configuration and demo data. The removal migration retains hearings and case history. The counts below describe the earlier audit.
+
 ## 1. Overview
 | Item | Value |
 |---|---|
@@ -10,7 +12,7 @@ Read-only audit of the code on `main`, updated after the Phase 5C QA fixes (full
 | Backend | 26 Nest modules (21 feature + app, prisma, health, settings, integrations), 20 controller files, 165 route handlers |
 | Frontend | 72 page/component files under `pages/`, 61 routes, 6 role portals |
 | Roles | LITIGANT, LAWYER, INTERN, PROCESS_SERVER, JUDGE, ADMIN |
-| Tests | 2 backend unit specs, 14 backend e2e suites (auth, users, cases, RBAC matrix, filing/fees/allocation, scheduling, judge/evidence, summons, chamber, virtual, platform, public case status, global search), 11 frontend test files, Playwright browser specs in `frontend/e2e` |
+| Tests | 2 backend unit specs, 14 backend e2e suites (auth, users, cases, RBAC matrix, filing/fees/allocation, scheduling, judge/evidence, summons, chamber, platform, public case status, global search), 11 frontend test files, Playwright browser specs in `frontend/e2e` |
 
 ### UX upgrade (11-10-2026)
 Eight phases on top of Phase 5C, details in `docs/CHANGES.md` (section "UX Upgrade") and `docs/UX_PROGRESS.md`:
@@ -50,9 +52,7 @@ role and a 49-term legal glossary. New fields: `User.preferredLanguage`, `User.f
 **JUDGE**
 - My Schedule (week view), Daily Cause Lists, My Allocated Cases, read-only case detail: C
 - Record hearing outcome (completed/adjourned), decide a case (final, immutable), lock evidence: C
-- Join virtual hearing from My Schedule: C (only API-tested)
 - Orders page (hearing orders and final decisions, search, outcome filter, link to case): C
-- Dashboard "Today's cause list" (with Join for open virtual rooms) and "Recent orders" (last 5): C
 
 **ADMIN**
 - Operations & Analytics dashboard: C
@@ -66,7 +66,6 @@ role and a 49-term legal glossary. New fields: `User.preferredLanguage`, `User.f
 - Audit vault (filters, event hashes, integrity verification): C
 - Security alerts (escalation detection, session kill, host blacklist): C
 - Reports (performance engine, sealed PDF/Excel export, history, verify): C
-- Virtual Courtroom Control (initialize, attendee list, mute/video/eject/readmit, end): C in code; moderation needs JaaS keys; only API-tested
 - Admin hardware token / MFA from the report: not built (logged in CHANGES)
 
 ## 3. Backend modules
@@ -88,7 +87,6 @@ role and a 49-term legal glossary. New fields: `User.preferredLanguage`, `User.f
 | notifications | In-app list/read + mock email/SMS/push | `/notifications` |
 | feedback | Submit and review feedback | `/feedback, /admin/feedback` |
 | settings | Policies (fees, slots, sizes, geo-fence, thresholds) | `/settings/public, /admin/settings` |
-| virtual-courtroom | Jitsi sessions (JaaS or public), join window, events, moderation | `/admin/virtual-sessions/*, /hearings/:id/virtual-session/*, /sessions/:id/*` |
 | public | Public case status by UCN (no login, 10/min, probe detection) | `/public/cases/status` |
 | search | Command palette search inside the caller's case scope | `/search` |
 | insights | Role-scoped dashboard chart data, cached 60 s per user | `/insights` |
@@ -111,7 +109,6 @@ Implemented (found in code):
 - Mock gateway: 4242.../5555... approved, 4000 0000 0000 0002 declined, others "Payment Unsuccessful: Gateway rejected request details."
 - PDF only, 25 MB (policy), max 10 files, magic-byte check; CNIC, phone, PKR, DD-MM-YYYY formats.
 - Slots (always Pakistan time, independent of the server zone): working days only, 09:00-14:00 × 30 min (policy), no past slots; judge/courtroom unique per slot (partial unique indexes), lawyer clash in app; "Clear/Valid", "Schedule overlap resolved manually.", "Roster details not yet published. Check back later."
-- Virtual room opens 15 min before and closes 60 min after the slot; "Court Session Lobby is currently locked by the Admin Bench."; "The virtual courtroom for your hearing is open."
 - "Attendance logged successfully. Location verified.", "Privilege escalation neutralized. Host blocked.", "Invalid username or password.", "Case registration is currently closed.", "Only PDF format files under 25MB are allowed."
 Different or missing:
 - Brief says a lawyer/judge must never be double-booked **on the same day**; code blocks the same **slot** only (several hearings per day allowed). Logged as a deliberate deviation in Phase 5B.
@@ -131,7 +128,6 @@ Different or missing:
 - Judge outcome/decision rules, decided cases immutable, open summons cancelled on decision.
 - Audit metadata sanitizer; escalation threshold 3 in 10 min; loopback never blocked.
 - Report disposal-rate definition, 50,000-row export cap.
-- Virtual courtroom: Hearing.isVirtual alongside unused `type`; one session per hearing; per-participant mute by the target's own client (no `muteEveryone`); READMIT command; moderation only with JaaS.
 - Deployment: migrations in the Render build (free plan), DIRECT_URL via prisma.config.ts, FRONTEND_URL, TRUST_PROXY=2, S3 driver, seed:demo guard.
 - Phase 5B: Pakistan time computed explicitly (TZ only a safety net, warning not failure); anti-clash per slot; certificate rules (one per intern, needs an approved log, seal keyed with REPORT_SEAL_SECRET, verify only for lawyer and intern).
 
@@ -142,16 +138,13 @@ Noticed in code, not in CHANGES: none left after Phase 5B (the per-slot rule, th
 - QR biometric bridge: not started (brief: last priority).
 - Admin MFA / hardware token: not built.
 - Real NADRA, Bar Council, payment gateway, email/SMS: mocks only (by design).
-- Virtual courtroom moderation on public Jitsi: disabled without JaaS keys.
 - Deployment: prepared, not executed.
 
 ## 8. Known issues and risks
 - No TODO/FIXME comments in the code (the only "XXX" hits are the phone format).
-- QA (10-10-2026) covered every role in the browser, including the virtual courtroom up to the meet.jit.si iframe; a live Jitsi call with moderation still needs JaaS keys (public meet.jit.si waits for a logged-in moderator).
 - Deployment files (render.yaml, vercel.json, S3 driver) were never run against Render, Vercel, Neon or a real bucket.
-- External/env dependencies: JaaS keys (moderation), public meet.jit.si limits embedded meetings; S3 credentials (prod files); Neon pooled + direct URLs; 4 secrets that must never change (`EVIDENCE_ENCRYPTION_KEY`, seal secrets, JWT).
 - Security: browser GPS can be spoofed; TRUST_PROXY must match the real proxy chain or the blacklist could block Vercel's address; blocked-host cache is in-memory (single instance only); throttling is in-memory (per instance).
-- Performance: notification/attendee polling; the virtual status endpoint is called once per virtual row; report export capped at 50,000 rows; Render free plan sleeps (~1 min cold start).
+- Performance: notification polling; report export capped at 50,000 rows; Render free plan sleeps (~1 min cold start).
 - Vercel rewrite limits for large uploads (25 MB PDFs, evidence) are untested.
 - Server clock: fixed in Phase 5B (Pakistan time computed explicitly; `TZ=Asia/Karachi` in render.yaml with a startup warning).
 - Phase 5C: 35 QA issues addressed (34 fixed, QA-033 kept by decision); npm audit still reports 4 high and 22 moderate advisories in dev/build tooling (Prisma CLI 7.10.0 is the latest 7.x).
@@ -161,8 +154,5 @@ You still do by hand: create Neon (pooled + direct URLs), R2/Supabase bucket and
 
 ## 10. Suggested order of remaining work
 1. Deploy following DEPLOYMENT.md and run the smoke test (Neon, bucket, Render, Vercel).
-2. Virtual courtroom with JaaS keys and two real devices (moderation commands on a live call).
 3. Expo process-server app (reuses `/server/*` with Bearer token).
 4. Defense prep: demo script, seed:demo on the morning, backups.
-
-Estimate: backend ~96%, frontend ~94%, whole project ~85%. Every web use case in the brief has a working, browser-tested screen. What remains is the Expo app, a live JaaS test and the first real deployment.

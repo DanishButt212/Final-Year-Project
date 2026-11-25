@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
+import { caseAudience } from '../common/case-access';
 import { Messages } from '../common/messages';
 import { CaseEventType, CaseStatus, Prisma } from '../generated/prisma/client';
 import {
@@ -68,8 +69,6 @@ export function hearingView(h: ScanHearing, slots: Slot[], conflicts: Conflict[]
     endTime: slot?.end ?? null,
     status: h.status,
     purpose: h.purpose,
-    isVirtual: h.isVirtual,
-    virtualSession: h.session ? { id: h.session.id, status: h.session.status } : null,
     courtroom: h.courtroom ? { id: h.courtroom.id, name: h.courtroom.name } : null,
     judge: { id: h.judge.id, name: fullName(h.judge) },
     lawyers: lawyerNamesOf(h),
@@ -133,9 +132,7 @@ export class SchedulingService {
       lawyerIds: [
         ...new Set(c.parties.map((p) => p.lawyerId).filter((x): x is string => Boolean(x))),
       ],
-      audience: [
-        ...new Set([c.filedById, ...c.parties.flatMap((p) => (p.lawyer ? [p.lawyer.userId] : []))]),
-      ],
+      audience: await caseAudience(db, caseId),
     };
   }
 
@@ -270,6 +267,7 @@ export class SchedulingService {
 
           const created = await tx.hearing.create({
             data: {
+              readerId: actor.id,
               caseId: c.id,
               courtroomId: dto.courtroomId,
               judgeId,
@@ -277,8 +275,7 @@ export class SchedulingService {
               timeSlot: dto.slot,
               startTime: slotInfo.start,
               purpose: dto.purpose,
-              isVirtual: dto.isVirtual ?? false,
-              type: dto.isVirtual ? 'VIRTUAL' : 'PHYSICAL',
+              type: 'PHYSICAL',
             },
             select: { id: true },
           });
@@ -291,7 +288,7 @@ export class SchedulingService {
             data: {
               caseId: c.id,
               type: CaseEventType.HEARING_SCHEDULED,
-              description: `${h.isVirtual ? 'Virtual hearing' : 'Hearing'} scheduled for ${when} in ${h.courtroom?.name ?? 'the court'} before ${fullName(h.judge)}.`,
+              description: `Hearing scheduled for ${when} in ${h.courtroom?.name ?? 'the court'} before ${fullName(h.judge)}.`,
               actorId: actor.id,
             },
           });
@@ -357,6 +354,10 @@ export class SchedulingService {
           const courtroomId = dto.courtroomId ?? old.courtroomId;
           const judgeId = dto.judgeId ?? old.judgeId;
           if (!courtroomId) throw bad('courtroomId', 'Choose a courtroom.');
+          if (old.lastSummons && old.date.getTime() === date.getTime()) {
+            const waiting = await tx.hearingCoverage.count({ where: { hearingId: id, status: 'RESCHEDULE_REQUIRED' } });
+            if (waiting) throw bad('date', 'Choose a new date for this last-summons hearing.');
+          }
           if (
             isoDate(old.date) === dto.date &&
             old.timeSlot === dto.slot &&
@@ -379,6 +380,7 @@ export class SchedulingService {
           await tx.hearing.update({
             where: { id },
             data: {
+              readerId: old.readerId ?? actor.id,
               date,
               timeSlot: dto.slot,
               startTime: slotInfo.start,
@@ -389,6 +391,16 @@ export class SchedulingService {
           });
           const h = await this.hearingFull(tx, id);
           const when = `${ddmmyyyy(date)} at ${slotInfo.start}`;
+          if (old.date.getTime() !== date.getTime()) {
+            await tx.hearingCoverage.updateMany({
+              where: { hearingId: id, status: 'RESCHEDULE_REQUIRED' },
+              data: { status: 'RESCHEDULED', decisionNote: `Hearing moved to ${when}.` },
+            });
+          }
+          await tx.hearingCoverage.updateMany({
+            where: { hearingId: id, status: { in: ['NEEDS_NOMINEE', 'CHAMBER_PENDING', 'NOMINEE_PENDING', 'READER_PENDING', 'JUDGE_PENDING', 'APPROVED'] } },
+            data: { status: 'SUPERSEDED', decisionNote: 'The hearing schedule changed.' },
+          });
           await tx.caseEvent.create({
             data: {
               caseId: c.id,
@@ -464,6 +476,10 @@ export class SchedulingService {
         }
         const c = await this.loadCase(tx, h0.caseId);
         await tx.hearing.update({ where: { id }, data: { status: 'CANCELLED' } });
+        await tx.hearingCoverage.updateMany({
+          where: { hearingId: id, status: { in: ['NEEDS_NOMINEE', 'CHAMBER_PENDING', 'NOMINEE_PENDING', 'READER_PENDING', 'JUDGE_PENDING', 'APPROVED', 'RESCHEDULE_REQUIRED'] } },
+          data: { status: 'SUPERSEDED', decisionNote: 'The hearing was cancelled.' },
+        });
         const others = await tx.hearing.count({
           where: {
             caseId: c.id,
@@ -769,6 +785,7 @@ export class SchedulingService {
                 if (conflicts.length > 0) continue;
                 const created = await tx.hearing.create({
                   data: {
+                    readerId: actor.id,
                     caseId,
                     courtroomId: room.id,
                     judgeId: c.judgeId,
@@ -875,8 +892,7 @@ export class SchedulingService {
           const people = new Map<string, string[]>();
           for (const h of mine) {
             const users = new Set([
-              h.case.filedById,
-              ...h.case.parties.flatMap((p) => (p.lawyer ? [p.lawyer.userId] : [])),
+              ...(await caseAudience(tx, h.case.id)),
               h.judgeId,
             ]);
             for (const u of users) {

@@ -45,7 +45,7 @@ function RosterCard({ s }: { s: ServerSummons }) {
         <div className="flex flex-wrap items-center gap-2">
           <PriorityBadge priority={s.priority} />
           <OverdueBadge overdue={s.overdue} />
-          <SummonsStatusBadge status={s.status} />
+          <SummonsStatusBadge status={s.status} serviceMode={s.serviceMode} />
         </div>
         <p className="mt-2 text-lg font-bold text-text">{s.recipientName}</p>
         <p className="flex items-start gap-1.5 text-text">
@@ -160,7 +160,7 @@ export function SummonsPage() {
       <div className="flex flex-wrap items-center gap-2">
         <PriorityBadge priority={data.priority} />
         <OverdueBadge overdue={data.overdue} />
-        <SummonsStatusBadge status={data.status} />
+        <SummonsStatusBadge status={data.status} serviceMode={data.serviceMode} />
       </div>
       <h1 className="mt-2 text-2xl font-bold">{data.recipientName}</h1>
       <Card className="mt-3">

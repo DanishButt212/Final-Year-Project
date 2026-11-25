@@ -436,7 +436,7 @@ export default function PoliciesPage() {
               <CardTitle>{t('Security')}</CardTitle>
               <p className="text-sm text-text-muted">
                 {t(
-                  'An account or address refused this many times on admin routes within 10 minutes raises a Security Alert and its sessions are ended.',
+                  'An account or address refused this many times on reader routes within 10 minutes raises a Security Alert and its sessions are ended.',
                 )}
               </p>
             </CardHeader>

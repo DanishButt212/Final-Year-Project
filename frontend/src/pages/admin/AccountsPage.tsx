@@ -72,7 +72,7 @@ import { useTranslation } from 'react-i18next';
 import { msg } from '@/i18n';
 
 const PAGE_SIZE = 10;
-const STAFF_ROLES: CreateStaffPayload['role'][] = ['JUDGE', 'INTERN', 'PROCESS_SERVER', 'ADMIN'];
+const STAFF_ROLES: CreateStaffPayload['role'][] = ['JUDGE', 'INTERN', 'PROCESS_SERVER', 'STENOGRAPHER', 'ADMIN'];
 
 const ACTIONS: Record<
   StatusAction,
@@ -142,7 +142,7 @@ const ACTION_ICON = {
 
 const staffSchema = z
   .object({
-    role: z.enum(['INTERN', 'PROCESS_SERVER', 'JUDGE', 'ADMIN']),
+    role: z.enum(['INTERN', 'PROCESS_SERVER', 'STENOGRAPHER', 'JUDGE', 'ADMIN']),
     firstName: z
       .string()
       .trim()

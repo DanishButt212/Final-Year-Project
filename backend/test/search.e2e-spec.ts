@@ -20,8 +20,8 @@ describe('Global search (e2e)', () => {
   let server: Api;
   const ucn: Record<'a' | 'b' | 'c', string> = { a: '', b: '', c: '' };
 
-  const party = (name: string) => ({
-    petitioners: [{ name, address: 'House 1, Multan' }],
+  const party = (name: string, cnic: string) => ({
+    petitioners: [{ name, cnic, address: 'House 1, Multan' }],
     respondents: [{ name: 'Common Respondent Qx' }],
   });
   const find = async (api: Api, q: string) => {
@@ -47,9 +47,11 @@ describe('Global search (e2e)', () => {
           'server',
         ].map((k) => login(ctx, w.emails[k])),
       );
-    const a = await fileCase(litigant, party('Uniqueperson Alpha'));
-    const b = await fileCase(litigant2, party('Uniqueperson Beta'));
-    const c = await fileCase(lawyer, party('Uniqueperson Gamma'));
+    const first = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    const second = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant2 } });
+    const a = await fileCase(lawyer2, party('Uniqueperson Alpha', first.cnic));
+    const b = await fileCase(lawyer2, party('Uniqueperson Beta', second.cnic));
+    const c = await fileCase(lawyer, party('Uniqueperson Gamma', '36302-1999555-5'));
     ucn.a = a.case.ucn;
     ucn.b = b.case.ucn;
     ucn.c = c.case.ucn;
@@ -58,7 +60,7 @@ describe('Global search (e2e)', () => {
   });
   afterAll(() => ctx.app.close());
 
-  it('litigants find only the cases they filed', async () => {
+  it('litigants find only the cases filed for them', async () => {
     expect(await find(litigant, 'Uniqueperson')).toEqual([ucn.a]);
     expect(await find(litigant2, 'Uniqueperson')).toEqual([ucn.b]);
     expect(await find(litigant, 'Common Respondent')).toEqual([ucn.a]);
@@ -73,7 +75,7 @@ describe('Global search (e2e)', () => {
 
   it('lawyers find the cases they filed or appear in, nothing else', async () => {
     expect(await find(lawyer, 'Uniqueperson')).toEqual([ucn.c]);
-    expect(await find(lawyer2, 'Uniqueperson')).toEqual([]);
+    expect((await find(lawyer2, 'Uniqueperson')).sort()).toEqual([ucn.a, ucn.b].sort());
   });
 
   it('judges find only the cases allocated to them', async () => {
@@ -82,7 +84,7 @@ describe('Global search (e2e)', () => {
     expect(await find(judge, ucn.b)).toEqual([]);
   });
 
-  it('administrators find every case', async () => {
+  it('readers find every case', async () => {
     expect((await find(admin, 'Uniqueperson')).sort()).toEqual([ucn.a, ucn.b, ucn.c].sort());
   });
 
@@ -92,7 +94,8 @@ describe('Global search (e2e)', () => {
   });
 
   it('returns only the whitelisted fields and at most 8 results', async () => {
-    for (let i = 0; i < 9; i++) await fileCase(litigant, party(`Bulkname Person ${i}`));
+    const litigantAccount = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    for (let i = 0; i < 9; i++) await fileCase(lawyer2, party(`Bulkname Person ${i}`, litigantAccount.cnic));
     const res = await litigant.get('/api/search?q=Bulkname').expect(200);
     expect(res.body.cases).toHaveLength(8);
     for (const c of res.body.cases) expect(Object.keys(c).sort()).toEqual(KEYS);

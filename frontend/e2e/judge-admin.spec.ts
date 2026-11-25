@@ -72,6 +72,38 @@ test.describe('judge', () => {
 });
 
 test.describe('admin', () => {
+  test('Reader provisions a stenographer who sets their first password and signs in', async ({ page, browser }) => {
+    await login(page, 'ADMIN');
+    await page.goto('/admin/accounts');
+    await page.getByRole('button', { name: /add staff account/i }).click();
+    const dialog = page.getByRole('dialog');
+    const email = `steno.${Date.now()}@example.test`;
+    await dialog.getByLabel('Role').selectOption('STENOGRAPHER');
+    await dialog.getByLabel('First name').fill('Sara');
+    await dialog.getByLabel('Last name').fill('Writer');
+    await dialog.getByLabel('CNIC').fill(`36302-${String(Date.now()).slice(-7)}-7`);
+    await dialog.getByLabel(/phone|mobile/i).fill('+92 301 2345678');
+    await dialog.getByLabel(/email/i).fill(email);
+    await dialog.getByRole('button', { name: /create account/i }).click();
+    const setupUrl = new URL(await dialog.getByLabel('One-time password setup link').inputValue(), page.url());
+    const steno = await browser.newPage({ baseURL: test.info().project.use.baseURL });
+    try {
+      await steno.goto(setupUrl.pathname + setupUrl.search);
+      await steno.getByLabel(/^New password/).fill('PortalSetup1Test');
+      await steno.getByLabel('Confirm new password').fill('PortalSetup1Test');
+      await steno.getByRole('button', { name: 'Update password' }).click();
+      await expect(steno).toHaveURL(/\/login$/);
+      await steno.getByLabel('Email or username').fill(email);
+      await steno.getByLabel(/^Password/).first().fill('PortalSetup1Test');
+      await steno.getByRole('button', { name: 'Log in', exact: true }).click();
+      await expect(steno).toHaveURL(/\/stenographer/);
+      await steno.reload();
+      await expect(steno.getByRole('heading', { name: 'Assigned hearings' })).toBeVisible();
+    } finally {
+      await steno.close();
+    }
+  });
+
   test('dashboard, provisioning and lawyer verification', async ({ page }) => {
     const errors = watchConsole(page);
     await login(page, 'ADMIN');
@@ -101,7 +133,7 @@ test.describe('admin', () => {
     expect(errors).toEqual([]);
   });
 
-  test('policies, audit integrity, security, reports and the virtual courtroom page', async ({ page }) => {
+  test('policies, audit integrity, security and reports', async ({ page }) => {
     await login(page, 'ADMIN');
     await page.goto('/admin/policies');
     await heading(page);
@@ -123,9 +155,6 @@ test.describe('admin', () => {
 
     await page.goto('/admin/summons');
     await heading(page);
-    await page.goto('/admin/virtual-courtroom');
-    expect(await heading(page)).toBe('Virtual Courtroom Control');
-    await expect(page.getByText(/Running on public Jitsi/)).toBeVisible();
 
     await page.goto('/admin/hearings');
     await heading(page);

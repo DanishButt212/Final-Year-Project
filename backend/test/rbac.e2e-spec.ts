@@ -1,6 +1,6 @@
 /**
  * RBAC matrix: every route of every controller is discovered from Nest metadata and called anonymously and as
- * each of the six roles. Expectations: anonymous -> 401 (unless @Public), a role outside @Roles -> 403, an
+ * each application role. Expectations: anonymous -> 401 (unless @Public), a role outside @Roles -> 403, an
  * allowed role never gets 401/role-403/500; a malformed id gives 404 (or 400 for invalid bodies), never 500.
  */
 import { RequestMethod } from '@nestjs/common';
@@ -9,8 +9,8 @@ import { ModulesContainer } from '@nestjs/core';
 import { randomUUID } from 'node:crypto';
 import { IS_PUBLIC_KEY, ROLES_KEY } from '../src/common/decorators';
 import { Role } from '../src/generated/prisma/client';
-import { Api, anon, buildWorld, login, World } from './fixtures';
-import { createTestApp, resetDatabase, TestContext } from './helpers';
+import { Api, anon, buildWorld, login, PASSWORD, World } from './fixtures';
+import { createTestApp, createUser, resetDatabase, TestContext } from './helpers';
 
 interface RouteInfo {
   method: 'get' | 'post' | 'patch' | 'put' | 'delete';
@@ -72,7 +72,7 @@ const fill = (path: string, id: string) =>
 /** Routes whose side effects would end the test sessions or are covered elsewhere. */
 const SKIP = new Set(['post /api/auth/logout']);
 
-const ROLES: Role[] = ['LITIGANT', 'LAWYER', 'INTERN', 'PROCESS_SERVER', 'JUDGE', 'ADMIN'];
+const ROLES: Role[] = ['LITIGANT', 'LAWYER', 'INTERN', 'PROCESS_SERVER', 'JUDGE', 'ADMIN', 'STENOGRAPHER'];
 
 describe('RBAC matrix (e2e)', () => {
   let ctx: TestContext;
@@ -91,6 +91,13 @@ describe('RBAC matrix (e2e)', () => {
     as.PROCESS_SERVER = await login(ctx, w.emails.server);
     as.JUDGE = await login(ctx, w.emails.judge);
     as.ADMIN = await login(ctx, w.emails.admin);
+    const steno = await createUser(ctx.prisma, {
+      role: 'STENOGRAPHER',
+      email: 'stenographer@qa.test',
+      cnic: '36302-1999888-8',
+      password: PASSWORD,
+    });
+    as.STENOGRAPHER = await login(ctx, steno.email);
     routes = discover(ctx).filter((r) => !SKIP.has(`${r.method} ${r.path}`));
   });
 
@@ -98,7 +105,7 @@ describe('RBAC matrix (e2e)', () => {
     await ctx.app.close();
   });
 
-  /** Refused admin-route calls are recorded as security events; clear them so no test session is killed. */
+  /** Refused reader-route calls are recorded as security events; clear them so no test session is killed. */
   const calm = () => ctx.prisma.securityEvent.deleteMany();
 
   it('discovers the whole API surface', () => {

@@ -145,13 +145,13 @@ export class JudgeDecisionsService {
         ...meta,
       });
       if (adjourned) {
-        const admins = await tx.user.findMany({
+        const readers = await tx.user.findMany({
           where: { role: 'ADMIN', status: 'ACTIVE' },
           select: { id: true },
         });
         const parties = await caseAudience(tx, h.caseId);
         await this.notifications.notifyMany(
-          [...parties, ...admins.map((a) => a.id)],
+          [...parties, ...readers.map((a) => a.id)],
           notice(
             'HEARING_ADJOURNED',
             'Hearing adjourned',

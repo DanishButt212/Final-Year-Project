@@ -7,7 +7,7 @@ import { translateText } from '@/lib/server-messages';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Gavel } from 'lucide-react';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { Link, useParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,11 +22,13 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { api, parseApiError } from '@/lib/api';
 import type { CaseDetail } from '@/lib/cases-api';
 import { caseTypeLabel } from '@/lib/case-status';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDate, formatDateTime, formatPkr } from '@/lib/format';
+import { absenceLabels, caseAbsences } from '@/lib/hearing-absences';
 import { evidenceApi } from '@/lib/phase4-api';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { DecisionBlock } from '@/pages/cases/DecisionBlock';
 import SummonsPanel from '@/pages/cases/SummonsPanel';
+import { DeliveryPanel } from '@/pages/deliveries/DeliveryPanels';
 import { DecideDialog, OutcomeDialog } from './JudgeActions';
 import { vaultKey } from '@/lib/query-keys';
 import VaultPanel from '@/pages/cases/VaultPanel';
@@ -68,6 +70,11 @@ export default function JudgeCaseDetailPage() {
     retry: false,
   });
   useRecordRecentCase(data);
+  const absences = useQuery({
+    queryKey: ['hearing-coverage', 'case-absences', caseId],
+    queryFn: () => caseAbsences(caseId!),
+    enabled: Boolean(data && caseId),
+  });
 
   const lock = useMutation({
     mutationFn: () =>
@@ -153,6 +160,7 @@ export default function JudgeCaseDetailPage() {
           <TabsTrigger value="parties">{t('Parties')}</TabsTrigger>
           <TabsTrigger value="hearings">{t('Hearings')}</TabsTrigger>
           <TabsTrigger value="summons">{t('Summons')}</TabsTrigger>
+          <TabsTrigger value="deliveries">{t('Deliveries')}</TabsTrigger>
           <TabsTrigger value="vault">{t('Vault')}</TabsTrigger>
         </TabsList>
 
@@ -265,6 +273,11 @@ export default function JudgeCaseDetailPage() {
                               {t('Record outcome')}
                             </Button>
                           )}
+                          {h.status !== 'CANCELLED' && h.date <= todayIso && (
+                            <Button asChild size="sm" variant="secondary">
+                              <Link to={`/judge/hearing-clashes?hearing=${h.id}`}>{t('Record lawyer absence')}</Link>
+                            </Button>
+                          )}
                         </span>
                       </div>
                       {h.orderNotes && (
@@ -272,6 +285,12 @@ export default function JudgeCaseDetailPage() {
                           {t('Order notes: {{orderNotes}}', { orderNotes: h.orderNotes })}
                         </p>
                       )}
+                      {absences.data?.filter((absence) => absence.hearing.id === h.id).map((absence) => (
+                        <p className="text-sm" key={absence.id}>
+                          {absence.lawyer} · {t(absenceLabels[absence.status])}
+                          {absence.amount && ` · ${formatPkr(absence.amount)}`}
+                        </p>
+                      ))}
                     </li>
                   ))}
                 </ul>
@@ -290,6 +309,9 @@ export default function JudgeCaseDetailPage() {
 
         <TabsContent value="summons">
           <SummonsPanel caseId={data.id} ucn={data.ucn} judge />
+        </TabsContent>
+        <TabsContent value="deliveries">
+          <DeliveryPanel mode="judge" caseId={data.id} />
         </TabsContent>
 
         <TabsContent value="vault" className="space-y-6">

@@ -23,6 +23,7 @@ const CASE_TYPE_LABEL: Record<string, string> = {
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 /** Today in Pakistan time (UTC midnight, as stored in @db.Date). */
 const todayUtc = () => pkToday();
+const FIXED_FILING_PREFIX = 'fixed-filing:';
 
 const challanInclude = {
   case: { select: { id: true, ucn: true, title: true, caseType: true } },
@@ -64,10 +65,17 @@ export class ChallansService {
     private readonly audit: AuditService,
   ) {}
 
-  private async ownCase(user: AuthUser, caseId: string) {
+  private async ownCase(user: AuthUser, caseId: string, readCoverage = false) {
     const c = await this.prisma.case.findFirst({
-      where: { AND: [{ id: caseId }, await caseScopeFor(this.prisma, user)] },
-      select: { id: true, ucn: true, status: true, caseType: true, claimAmountPkr: true },
+      where: { AND: [{ id: caseId }, await caseScopeFor(this.prisma, user, readCoverage)] },
+      select: {
+        id: true,
+        ucn: true,
+        status: true,
+        caseType: true,
+        claimAmountPkr: true,
+        filedBy: { select: { role: true } },
+      },
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
     return c;
@@ -89,13 +97,80 @@ export class ChallansService {
   }
 
   async get(user: AuthUser, caseId: string) {
-    await this.ownCase(user, caseId);
+    await this.ownCase(user, caseId, true);
     const c = await this.prisma.challan.findFirst({
       where: { caseId, status: { in: ['UNPAID', 'PAID'] } },
       orderBy: { issuedAt: 'desc' },
       include: challanInclude,
     });
     return { challan: c ? challanView(c) : null };
+  }
+
+  async fixedFee(caseType: FeeInputs['caseType']) {
+    const [baseFee, policy] = await Promise.all([
+      this.settings.baseFee(caseType),
+      this.settings.feePolicy(),
+    ]);
+    const inputs: FeeInputs = {
+      caseType,
+      baseFee,
+      adValoremPercent: 0,
+      adValoremCapPkr: 0,
+      rateModifierPercent: 0,
+    };
+    const { total, lines } = calculateLedger(inputs);
+    return {
+      total,
+      lines: lines.filter((line) => line.code !== 'MODIFIER'),
+      hash: feeInputHash(inputs),
+      dueDays: policy.challanDueDays,
+    };
+  }
+
+  /** The caller supplies the case transaction when issuing on filing. */
+  async issue(
+    tx: Prisma.TransactionClient,
+    user: AuthUser,
+    c: { id: string; ucn: string },
+    fee: { total: Prisma.Decimal; lines: LedgerLine[]; hash: string; dueDays: number },
+    meta: RequestMeta,
+    payerId = user.id,
+  ) {
+    const created = await tx.challan.create({
+      data: {
+        challanNo: await nextChallanNo(tx),
+        caseId: c.id,
+        payerId,
+        amount: fee.total,
+        dueDate: new Date(todayUtc().getTime() + fee.dueDays * 86_400_000),
+        ledger: fee.lines as unknown as Prisma.InputJsonValue,
+        inputHash: fee.hash,
+      },
+    });
+    await this.audit.logWithin(tx, {
+      action: AuditAction.CHALLAN_GENERATED,
+      actorId: user.id,
+      actorRole: user.role,
+      entity: 'Challan',
+      entityId: created.id,
+      metadata: { ucn: c.ucn, challanNo: created.challanNo, total: fee.total.toFixed(2) },
+      ...meta,
+    });
+    return created;
+  }
+
+  async issueOnFiling(
+    tx: Prisma.TransactionClient,
+    user: AuthUser,
+    c: { id: string; ucn: string; title: string; caseType: FeeInputs['caseType'] },
+    fee: Awaited<ReturnType<ChallansService['fixedFee']>>,
+    payerId: string | undefined,
+    meta: RequestMeta,
+  ) {
+    const created = await this.issue(
+      tx, user, c, { ...fee, hash: FIXED_FILING_PREFIX + fee.hash }, meta, payerId,
+    );
+    return challanView({ ...created, case: c, payments: [] });
   }
 
   /** Calculates and generates the challan. Idempotent: one active challan per case; paid challans never change. */
@@ -107,10 +182,9 @@ export class ChallansService {
         message: 'Submit the case before calculating its fees.',
       });
     }
-    const inputs = await this.inputsFor(c);
-    const hash = feeInputHash(inputs);
-    const { lines, total } = calculateLedger(inputs);
-    const dueDays = (await this.settings.feePolicy()).challanDueDays;
+    const fixed = c.filedBy.role === 'LITIGANT';
+    const fee = fixed ? await this.fixedFee(c.caseType) : await this.variableFee(c);
+    const { total, lines, hash } = fee;
 
     const result = await this.prisma.$transaction(async (tx) => {
       // One challan per case even when two requests arrive together.
@@ -119,7 +193,10 @@ export class ChallansService {
         where: { caseId, status: { in: ['UNPAID', 'PAID'] } },
         orderBy: { issuedAt: 'desc' },
       });
-      if (existing && (existing.status === 'PAID' || existing.inputHash === hash)) {
+      if (existing && (
+        fixed || existing.status === 'PAID' || existing.inputHash === hash ||
+        existing.inputHash.startsWith(FIXED_FILING_PREFIX)
+      )) {
         return { id: existing.id, message: 'Your challan is ready.' };
       }
       if (existing) {
@@ -155,27 +232,7 @@ export class ChallansService {
         });
         return { id: existing.id, message: 'Fees recalculated.' };
       }
-      const due = new Date(todayUtc().getTime() + dueDays * 86_400_000);
-      const created = await tx.challan.create({
-        data: {
-          challanNo: await nextChallanNo(tx),
-          caseId,
-          payerId: user.id,
-          amount: total,
-          dueDate: due,
-          ledger: lines as unknown as Prisma.InputJsonValue,
-          inputHash: hash,
-        },
-      });
-      await this.audit.logWithin(tx, {
-        action: AuditAction.CHALLAN_GENERATED,
-        actorId: user.id,
-        actorRole: user.role,
-        entity: 'Challan',
-        entityId: created.id,
-        metadata: { ucn: c.ucn, challanNo: created.challanNo, total: total.toFixed(2) },
-        ...meta,
-      });
+      const created = await this.issue(tx, user, c, fee, meta);
       return { id: created.id, message: 'Challan generated.' };
     });
 
@@ -186,9 +243,21 @@ export class ChallansService {
     return { message: result.message, challan: challanView(challan) };
   }
 
+  private async variableFee(c: {
+    caseType: FeeInputs['caseType'];
+    claimAmountPkr: Prisma.Decimal | null;
+  }) {
+    const inputs = await this.inputsFor(c);
+    return {
+      ...calculateLedger(inputs),
+      hash: feeInputHash(inputs),
+      dueDays: (await this.settings.feePolicy()).challanDueDays,
+    };
+  }
+
   async pdf(user: AuthUser, challanId: string) {
     const c = await this.prisma.challan.findFirst({
-      where: { id: challanId, case: await caseScopeFor(this.prisma, user) },
+      where: { id: challanId, case: await caseScopeFor(this.prisma, user, true) },
       include: challanInclude,
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);

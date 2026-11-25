@@ -14,6 +14,9 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
   let litigant2: Api;
   let admin: Api;
   let judge: Api;
+  let lawyer: Api;
+  let lawyer2: Api;
+  let petitioner: { name: string; cnic: string };
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -23,8 +26,15 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
     litigant2 = await login(ctx, w.emails.litigant2);
     admin = await login(ctx, w.emails.admin);
     judge = await login(ctx, w.emails.judge);
+    lawyer = await login(ctx, w.emails.lawyer);
+    lawyer2 = await login(ctx, w.emails.lawyer2);
+    const party = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    petitioner = { name: [party.firstName, party.lastName].join(' '), cnic: party.cnic };
   });
   afterAll(() => ctx.app.close());
+
+  const fileForLitigant = (overrides: Record<string, unknown> = {}, files: { name: string; content: Buffer }[] = []) =>
+    fileCase(lawyer, { petitioners: [petitioner], ...overrides }, files);
 
   const submit = (api: Api, data: unknown, files: { name: string; content: Buffer }[] = []) => {
     let req = api.post('/api/cases').field('data', JSON.stringify(data));
@@ -34,21 +44,24 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
 
   describe('filing', () => {
     it('gives every case type its UCN code', async () => {
-      const codes: Record<string, string> = {
-        CIVIL_SUIT: 'CIV',
-        CRIMINAL_APPEAL: 'CRA',
-        WRIT_PETITION: 'WRT',
-        BAIL_APPLICATION: 'BAL',
+      const cases = {
+        CIVIL_SUIT: ['CIV', '2500.00'],
+        CRIMINAL_APPEAL: ['CRA', '1000.00'],
+        WRIT_PETITION: ['WRT', '500.00'],
+        BAIL_APPLICATION: ['BAL', '300.00'],
       };
-      for (const [caseType, code] of Object.entries(codes)) {
-        const res = await fileCase(litigant, { caseType });
+      const settings = await litigant.get('/api/settings/public').expect(200);
+      for (const [caseType, [code, amount]] of Object.entries(cases)) {
+        const res = await fileForLitigant({ caseType });
         expect(res.case.ucn).toMatch(new RegExp(`^DA-${year()}-${code}-\\d{6}$`));
+        expect(res.challan?.amount).toBe(amount);
+        expect(settings.body.filingFees[caseType]).toBe(amount);
       }
     });
 
     it('keeps UCNs unique and sequential under 10 parallel filings', async () => {
       const results = await Promise.all(
-        Array.from({ length: 10 }, (_, i) => fileCase(litigant, { caseType: 'WRIT_PETITION', title: `Parallel ${i}` })),
+        Array.from({ length: 10 }, (_, i) => fileForLitigant({ caseType: 'WRIT_PETITION', title: `Parallel ${i}` })),
       );
       const seqs = results.map((r) => Number(r.case.ucn.slice(-6))).sort((a, b) => a - b);
       expect(new Set(seqs).size).toBe(10);
@@ -57,22 +70,22 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
 
     it('accepts up to 10 PDFs and refuses an 11th', async () => {
       const ten = Array.from({ length: 10 }, (_, i) => ({ name: `p${i}.pdf`, content: pdfBuffer(`ten-${i}`) }));
-      await submit(litigant, validCase(), ten).expect(201);
+      await submit(lawyer, validCase(), ten).expect(201);
       const eleven = [...ten, { name: 'p10.pdf', content: pdfBuffer('eleven') }];
-      const res = await submit(litigant, validCase(), eleven);
+      const res = await submit(lawyer, validCase(), eleven);
       expect(res.status).toBe(400);
     });
 
     it('accepts a ~20 MB PDF and refuses one over 25 MB with the exact message', async () => {
-      await submit(litigant, validCase(), [{ name: 'big.pdf', content: pdfOfSize(20 * 1024 * 1024) }]).expect(201);
-      const res = await submit(litigant, validCase(), [{ name: 'huge.pdf', content: pdfOfSize(26 * 1024 * 1024) }]);
+      await submit(lawyer, validCase(), [{ name: 'big.pdf', content: pdfOfSize(20 * 1024 * 1024) }]).expect(201);
+      const res = await submit(lawyer, validCase(), [{ name: 'huge.pdf', content: pdfOfSize(26 * 1024 * 1024) }]);
       expect(res.status).toBe(400);
       expect(res.body.message).toBe('Only PDF format files under 25MB are allowed.');
     });
 
     it('refuses a renamed non-PDF (magic bytes) and a non-PDF extension', async () => {
       for (const f of [{ name: 'evil.pdf', content: fakePdf() }, { name: 'notes.txt', content: Buffer.from('%PDF-1.4 hi') }]) {
-        const res = await submit(litigant, validCase(), [f]);
+        const res = await submit(lawyer, validCase(), [f]);
         expect(res.status).toBe(400);
         expect(res.body.message).toBe('Only PDF format files under 25MB are allowed.');
       }
@@ -80,15 +93,15 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
 
     it('says "Case registration is currently closed." when filing is switched off', async () => {
       await admin.put('/api/admin/settings').send({ caseRegistrationOpen: false }).expect(200);
-      const res = await submit(litigant, validCase());
+      const res = await submit(lawyer, validCase());
       expect(res.status).toBe(403);
       expect(res.body.message).toBe('Case registration is currently closed.');
       await admin.put('/api/admin/settings').send({ caseRegistrationOpen: true }).expect(200);
     });
 
-    it('lets only parties attach and download documents (others get 404)', async () => {
-      const { case: c } = await fileCase(litigant, {}, [{ name: 'petition.pdf', content: pdfBuffer('party') }]);
-      const extra = await litigant
+    it('lets only the lawyer attach and both counsel and the represented party download', async () => {
+      const { case: c } = await fileForLitigant({}, [{ name: 'petition.pdf', content: pdfBuffer('party') }]);
+      const extra = await lawyer
         .post(`/api/cases/${c.id}/documents`)
         .attach('files', pdfBuffer('extra'), 'annex.pdf');
       expect(extra.status).toBe(201);
@@ -98,13 +111,14 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
       await litigant.get(`/api/cases/${c.id}/documents/${docs[0].id}/download`).expect(200);
       await litigant2.get(`/api/cases/${c.id}/documents/${docs[0].id}/download`).expect(404);
       await litigant2.get(`/api/cases/${c.id}`).expect(404);
-      await litigant2.post(`/api/cases/${c.id}/documents`).attach('files', pdfBuffer('x'), 'x.pdf').expect(404);
+      await litigant2.post(`/api/cases/${c.id}/documents`).attach('files', pdfBuffer('x'), 'x.pdf').expect(403);
+      await lawyer2.post(`/api/cases/${c.id}/documents`).attach('files', pdfBuffer('x'), 'x.pdf').expect(404);
       await judge.get(`/api/judge/cases/${c.id}`).expect(404); // not allocated to this judge yet
     });
 
     it('keeps uploaded pleadings on disk byte-for-byte (pleadings are not encrypted)', async () => {
       const content = pdfBuffer('bytes-check');
-      const { case: c } = await fileCase(litigant, {}, [{ name: 'b.pdf', content }]);
+      const { case: c } = await fileForLitigant({}, [{ name: 'b.pdf', content }]);
       const doc = await ctx.prisma.caseDocument.findFirstOrThrow({ where: { caseId: c.id } });
       expect(readFileSync(join(TEST_UPLOAD_DIR, doc.filePath))).toEqual(content);
     });
@@ -115,19 +129,19 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
     let challanId: string;
 
     beforeAll(async () => {
-      const { case: c } = await fileCase(litigant, { claimAmountPkr: '1000000' });
+      const { case: c } = await fileForLitigant({ claimAmountPkr: '1000000' });
       caseId = c.id;
     });
 
-    it('computes base + ad valorem for a civil suit and numbers the challan CH-YYYY-000001', async () => {
-      const gen = await litigant.post(`/api/cases/${caseId}/challan`).expect(200);
+    it('issues an unpaid fixed-fee civil challan on filing and shows it to the Reader', async () => {
       const res = await litigant.get(`/api/cases/${caseId}/challan`).expect(200);
       challanId = res.body.challan.id;
-      expect(gen.body.challan.id).toBe(challanId);
-      expect(gen.body.message).toBe('Challan generated.');
       expect(res.body.challan.challanNo).toMatch(new RegExp(`^CH-${year()}-\\d{6}$`));
-      // 2,500 base + 1% of 1,000,000 (cap 50,000) = 12,500.
-      expect(res.body.challan.amount).toBe('12500.00');
+      expect(res.body.challan).toMatchObject({ amount: '2500.00', status: 'UNPAID' });
+      const reader = await admin.get(`/api/cases/${caseId}/challan`).expect(200);
+      expect(reader.body.challan).toEqual(res.body.challan);
+      await admin.get(`/api/challans/${challanId}/pdf`).expect(200);
+      await admin.post('/api/payments/checkout').send({ challanId }).expect(403);
     });
 
     it('keeps one active challan per case', async () => {
@@ -168,13 +182,19 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
       expect(res.body.message).toBe('Payment successful.');
       expect(res.body.receiptNo).toMatch(new RegExp(`^RCPT-${year()}-\\d{6}$`));
       await litigant.get(`/api/payments/${res.body.paymentId}/receipt`).expect(200);
+      await admin.get(`/api/payments/${res.body.paymentId}/receipt`).expect(200);
+      const reader = await admin.get(`/api/cases/${caseId}/challan`).expect(200);
+      expect(reader.body.challan).toMatchObject({
+        status: 'PAID',
+        payment: { receiptNo: res.body.receiptNo },
+      });
       const again = await pay(litigant, '5555 5555 5555 4444');
       expect(again.status).toBe(409);
       expect(again.body.message).toBe('This challan is already paid.');
     });
 
     it('approves 5555 5555 5555 4444 on another case', async () => {
-      const { case: c } = await fileCase(litigant, { caseType: 'BAIL_APPLICATION' });
+      const { case: c } = await fileForLitigant({ caseType: 'BAIL_APPLICATION' });
       await litigant.post(`/api/cases/${c.id}/challan`).expect(200);
       const ch = (await litigant.get(`/api/cases/${c.id}/challan`)).body.challan;
       const co = await litigant.post('/api/payments/checkout').send({ challanId: ch.id });
@@ -187,6 +207,29 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
       });
       expect(res.status).toBe(200);
       expect(ch.amount).toBe('300.00');
+    });
+
+    it.each([
+      ['MOCK_BANK_TRANSFER', { transferReference: 'DEMO-BANK-APPROVED' }],
+      ['MOCK_JAZZCASH', { mobileNumber: '03000000000' }],
+      ['MOCK_EASYPAISA', { mobileNumber: '03000000000' }],
+    ])('marks an automatically issued challan paid through %s', async (method, details) => {
+      const { case: c } = await fileForLitigant({ caseType: 'BAIL_APPLICATION' });
+      const path = `/api/cases/${c.id}/challan`;
+      const { challan } = (await litigant.get(path).expect(200)).body;
+      const checkout = await litigant.post('/api/payments/checkout')
+        .send({ challanId: challan.id })
+        .expect(200);
+      const paid = await litigant.post('/api/mock-gateway/authorize')
+        .send({ paymentId: checkout.body.paymentId, method, ...details })
+        .expect(200);
+      const reader = await admin.get(path).expect(200);
+      expect(reader.body.challan).toMatchObject({
+        id: challan.id,
+        amount: '300.00',
+        status: 'PAID',
+        payment: { receiptNo: paid.body.receiptNo },
+      });
     });
 
     it('never stores a card number or CVV anywhere in the database', async () => {
@@ -212,7 +255,7 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
 
   describe('allocation', () => {
     it('requires a paid challan', async () => {
-      const { case: c } = await fileCase(litigant);
+      const { case: c } = await fileForLitigant();
       const res = await admin
         .post(`/api/admin/cases/${c.id}/allocate`)
         .send({ mode: 'MANUAL', courtId: w.courtId, judgeId: w.ids.judge });
@@ -221,18 +264,10 @@ describe('QA filing, fees, payments and allocation (e2e)', () => {
     });
 
     const paidCase = async () => {
-      const { case: c } = await fileCase(litigant, { caseType: 'WRIT_PETITION' });
-      await ctx.prisma.challan.create({
-        data: {
-          caseId: c.id,
-          challanNo: `CH-TEST-${c.id.slice(0, 6)}`,
-          amount: '500.00',
-          status: 'PAID',
-          dueDate: new Date(),
-          payerId: w.ids.litigant,
-          ledger: [],
-          inputHash: c.id,
-        } as never,
+      const { case: c } = await fileForLitigant({ caseType: 'WRIT_PETITION' });
+      await ctx.prisma.challan.updateMany({
+        where: { caseId: c.id },
+        data: { status: 'PAID' },
       });
       return c;
     };

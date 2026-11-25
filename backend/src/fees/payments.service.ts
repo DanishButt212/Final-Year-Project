@@ -12,56 +12,13 @@ import { NotificationsService, notice } from '../notifications/notifications.ser
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthorizeDto, CheckoutDto } from './fees.dto';
 import { receiptPdf } from './pdf';
-import { pkParts } from '../common/pk-time';
+import { decide } from './payment-gateway';
 
 /** A PENDING payment session older than this is abandoned (cancelled when the challan is recalculated). */
 export const PAYMENT_SESSION_MINUTES = 30;
 export const AMOUNT_CHANGED_MESSAGE =
   'The challan amount has changed. Please start the payment again.';
 export const PAYMENT_REJECTED_MESSAGE = 'Payment Unsuccessful: Gateway rejected request details.';
-
-/** Strict gateway: only the documented test numbers are approved. Everything else is declined. */
-const APPROVE_CARDS = ['4242424242424242', '5555555555554444'];
-const INSUFFICIENT_FUNDS_CARD = '4000000000000002';
-
-function brandOf(digits: string): string {
-  if (digits.startsWith('4')) return 'VISA';
-  if (/^5[1-5]/.test(digits)) return 'MASTERCARD';
-  if (/^3[47]/.test(digits)) return 'AMEX';
-  return 'CARD';
-}
-
-interface Decision {
-  approved: boolean;
-  reason: 'APPROVED' | 'INSUFFICIENT_FUNDS' | 'INVALID_CARD' | 'EXPIRED_CARD' | 'INVALID_DETAILS';
-  brand: string;
-  last4: string;
-}
-
-/**
- * The simulated gateway decides in memory. The card number, expiry and CVV are read once here and never stored,
- * logged or put in an audit entry; only the brand and the last four digits leave this function.
- */
-function decide(dto: AuthorizeDto): Decision {
-  const digits = dto.cardNumber.replace(/\s+/g, '');
-  const last4 = digits.slice(-4);
-  const brand = brandOf(digits);
-  const [mm, yy] = dto.expiry.split('/').map(Number);
-  const now = pkParts();
-  const expired = 2000 + yy < now.year || (2000 + yy === now.year && mm < now.month);
-  const fail = (reason: Decision['reason']): Decision => ({
-    approved: false,
-    reason,
-    brand,
-    last4,
-  });
-  if (!/^\d{12,19}$/.test(digits) || dto.cardholderName.trim().length < 2)
-    return fail('INVALID_DETAILS');
-  if (expired) return fail('EXPIRED_CARD');
-  if (digits === INSUFFICIENT_FUNDS_CARD) return fail('INSUFFICIENT_FUNDS');
-  if (!APPROVE_CARDS.includes(digits)) return fail('INVALID_CARD');
-  return { approved: true, reason: 'APPROVED', brand, last4 };
-}
 
 /** UC-4.2 Complete Online Payment (simulated gateway), UC-4.3 transaction log and receipts. */
 @Injectable()
@@ -137,6 +94,7 @@ export class PaymentsService {
       });
     }
 
+    const method = dto.method ?? 'MOCK_CARD';
     const decision = decide(dto);
 
     if (!decision.approved) {
@@ -144,6 +102,7 @@ export class PaymentsService {
         where: { id: payment.id },
         data: {
           status: 'FAILED',
+          method,
           failureReason: decision.reason,
           cardBrand: decision.brand,
           cardLast4: decision.last4,
@@ -156,7 +115,7 @@ export class PaymentsService {
         entity: 'Payment',
         entityId: payment.id,
         success: false,
-        metadata: { challanNo: payment.challan.challanNo, reason: decision.reason },
+        metadata: { challanNo: payment.challan.challanNo, method, reason: decision.reason },
         ...meta,
       });
       throw new HttpException({ code: 'PAYMENT_REJECTED', message: PAYMENT_REJECTED_MESSAGE }, 402);
@@ -208,9 +167,10 @@ export class PaymentsService {
         where: { id: payment.id },
         data: {
           status: 'SUCCESS',
+          method,
           receiptNo,
           paidAt,
-          gatewayRef: `MOCK-${randomBytes(6).toString('hex').toUpperCase()}`,
+          gatewayRef: `MOCK-${method === 'MOCK_JAZZCASH' ? 'JAZZCASH-' : method === 'MOCK_EASYPAISA' ? 'EASYPAISA-' : method === 'MOCK_BANK_TRANSFER' ? 'BANK-' : ''}${randomBytes(6).toString('hex').toUpperCase()}`,
           cardBrand: decision.brand,
           cardLast4: decision.last4,
         },
@@ -233,6 +193,7 @@ export class PaymentsService {
           challanNo: payment.challan.challanNo,
           receiptNo,
           amount: payment.amount.toFixed(2),
+          method,
           cardBrand: decision.brand,
           cardLast4: decision.last4,
         },
@@ -290,6 +251,7 @@ export class PaymentsService {
         ucn: p.challan.case.ucn,
         challanNo: p.challan.challanNo,
         amount: p.amount.toFixed(2),
+        method: p.method,
         status: p.status,
         receiptNo: p.receiptNo,
       })),
@@ -302,7 +264,7 @@ export class PaymentsService {
       where: {
         id: paymentId,
         status: 'SUCCESS',
-        challan: { case: await caseScopeFor(this.prisma, user) },
+        challan: { case: await caseScopeFor(this.prisma, user, true) },
       },
       include: {
         payer: { select: { firstName: true, lastName: true } },
@@ -318,7 +280,14 @@ export class PaymentsService {
       payerName: `${p.payer.firstName} ${p.payer.lastName}`,
       amount: p.amount.toFixed(2),
       paidAt: p.paidAt,
-      method: `Demo gateway${p.cardBrand ? ` (${p.cardBrand} ending ${p.cardLast4})` : ''}, simulated`,
+      method:
+        p.method === 'MOCK_JAZZCASH'
+          ? 'JazzCash, simulated'
+          : p.method === 'MOCK_EASYPAISA'
+            ? 'Easypaisa, simulated'
+            : p.method === 'MOCK_BANK_TRANSFER'
+              ? 'Bank transfer, simulated'
+              : `Demo gateway${p.cardBrand ? ` (${p.cardBrand} ending ${p.cardLast4})` : ''}, simulated`,
       gatewayRef: p.gatewayRef,
     });
   }

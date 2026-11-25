@@ -2,7 +2,7 @@ import { SearchTrigger } from '@/components/search/SearchTrigger';
 import { LanguageToggle } from '@/components/preferences/PreferenceControls';
 import { lazy, Suspense } from 'react';
 import { TableSkeleton } from '@/components/ui/skeleton';
-import { ClipboardList, LogOut, UserCircle } from 'lucide-react';
+import { ClipboardList, FileText, LogOut, UserCircle } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { Logo } from '@/components/layout/Logo';
@@ -79,6 +79,10 @@ export function ServerShell() {
           <NavLink to="/process-server" end className={tab}>
             <ClipboardList className="size-6" aria-hidden="true" />
             {t('Duty Roster')}
+          </NavLink>
+          <NavLink to="/process-server/deliveries" className={tab}>
+            <FileText className="size-6" aria-hidden="true" />
+            {t('Deliveries')}
           </NavLink>
           <NavLink to="/process-server/profile" className={tab}>
             <UserCircle className="size-6" aria-hidden="true" />

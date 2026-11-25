@@ -129,7 +129,7 @@ export class AdminLawyersService {
       });
     }
     await this.prisma.$transaction(async (tx) => {
-      // Conditional update: two admins clicking at once cannot both succeed.
+      // Conditional update: two readers clicking at once cannot both succeed.
       const done = await tx.lawyerProfile.updateMany({
         where: { id, verificationStatus: { not: 'VERIFIED' } },
         data: {

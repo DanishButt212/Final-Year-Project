@@ -92,7 +92,8 @@ const PARTY: TourStep[] = [
 ];
 
 const STEPS: Record<Role, TourStep[]> = {
-  LITIGANT: PARTY,
+  STENOGRAPHER: [],
+  LITIGANT: PARTY.filter((step) => step.target !== 'new-case'),
   LAWYER: [
     {
       target: 'chamber-id',

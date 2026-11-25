@@ -180,7 +180,7 @@ export default function AuditVaultPage() {
       <Alert variant="info" className="mb-4">
         <Lock className="me-1 inline size-4" aria-hidden="true" />
         {t(
-          'This vault is read-only. Entries cannot be edited or deleted, even by an administrator: the database itself rejects any change.',
+          'This vault is read-only. Entries cannot be edited or deleted, even by a reader: the database itself rejects any change.',
         )}
       </Alert>
 

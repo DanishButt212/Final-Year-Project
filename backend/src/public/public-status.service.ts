@@ -63,7 +63,6 @@ export class PublicStatusService {
           endTime: published ? progress.nextHearing.endTime : null,
           timeSlot: published ? progress.nextHearing.timeSlot : null,
           courtroom: published ? progress.nextHearing.courtroom : null,
-          isVirtual: progress.nextHearing.isVirtual,
         }
       : null;
     const detail =

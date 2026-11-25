@@ -5,7 +5,6 @@
   "Accuracy ±{{round}} m (needs {{maxAccuracyM}} m or better).": "Accuracy ±{{round}} m (needs {{maxAccuracyM}} m or better).",
   "After submitting, the proof is sealed and cannot be changed.": "After submitting, the proof is sealed and cannot be changed.",
   "Allow location access in the browser and try again.": "Allow location access in the browser and try again.",
-  "Assigned": "Assigned",
   "Attempt in progress": "Attempt in progress",
   "Attempt in Progress": "Attempt in Progress",
   "Attempts timeline": "Attempts timeline",

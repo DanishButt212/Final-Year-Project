@@ -2,12 +2,15 @@
 import { Api, anon, buildWorld, fileCase, login, PASSWORD, pdfOfSize, World } from './fixtures';
 import { createTestApp, mailer, resetDatabase, TestContext, validRegistration } from './helpers';
 import { NotificationsService } from '../src/notifications/notifications.service';
+import { openTestPortals } from './browser-fixture';
 
 describe('QA platform, security, audit and reports (e2e)', () => {
   let ctx: TestContext;
   let w: World;
   let admin: Api;
   let litigant: Api;
+  let lawyer: Api;
+  let petitioner: { name: string; cnic: string };
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -15,6 +18,9 @@ describe('QA platform, security, audit and reports (e2e)', () => {
     w = await buildWorld(ctx.prisma);
     admin = await login(ctx, w.emails.admin);
     litigant = await login(ctx, w.emails.litigant);
+    lawyer = await login(ctx, w.emails.lawyer);
+    const party = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    petitioner = { name: `${party.firstName} ${party.lastName}`, cnic: party.cnic };
   });
   afterAll(() => ctx.app.close());
 
@@ -65,7 +71,7 @@ describe('QA platform, security, audit and reports (e2e)', () => {
         .send({ sms: false, mobilePush: false, email: false })
         .expect(200);
       mailer.send.mockClear();
-      const { case: c } = await fileCase(litigant);
+      const { case: c } = await fileCase(lawyer, { petitioners: [petitioner] });
       await ctx.prisma.case.update({ where: { id: c.id }, data: { status: 'DECIDED' } });
       // Trigger a notification through a real flow: a staff-side notice to this user.
       await ctx.app.get(NotificationsService).notify(w.ids.litigant, {
@@ -115,14 +121,14 @@ describe('QA platform, security, audit and reports (e2e)', () => {
 
     it('changes the maximum attachment size for filing', async () => {
       await admin.put('/api/admin/settings').send({ maxAttachmentMb: 1 }).expect(200);
-      const res = await litigant
+      const res = await lawyer
         .post('/api/cases')
         .field(
           'data',
           JSON.stringify({
             caseType: 'CIVIL_SUIT',
             reliefSought: 'Recovery of money under the agreement.',
-            petitioners: [{ name: 'Ayesha Siddiqui' }],
+            petitioners: [petitioner],
             respondents: [{ name: 'Bilal Ahmed' }],
           }),
         )
@@ -136,7 +142,7 @@ describe('QA platform, security, audit and reports (e2e)', () => {
         .put('/api/admin/settings')
         .send({ fees: [{ caseType: 'WRIT_PETITION', amount: '750.00' }] })
         .expect(200);
-      const { case: c } = await fileCase(litigant, { caseType: 'WRIT_PETITION' });
+      const { case: c } = await fileCase(lawyer, { caseType: 'WRIT_PETITION', petitioners: [petitioner] });
       const ch = await litigant.post(`/api/cases/${c.id}/challan`).expect(200);
       expect(ch.body.challan.amount).toBe('750.00');
     });
@@ -287,4 +293,72 @@ describe('QA platform, security, audit and reports (e2e)', () => {
       );
     }, 120_000);
   });
+
+  const browserTest = process.env.COVERAGE_BROWSER_URL ? it : it.skip;
+  browserTest('persists notification preferences, reviews the same feedback and downloads both report formats', async () => {
+    const web = process.env.COVERAGE_BROWSER_URL!;
+    const { browser, signIn } = await openTestPortals(ctx, web);
+    try {
+      const partyPage = await signIn(w.emails.litigant);
+      const readerPage = await signIn(w.emails.admin);
+      await partyPage.goto(`${web}/litigant/notifications`);
+      const email = partyPage.getByRole('switch', { name: 'Email', exact: true });
+      await email.waitFor();
+      expect(await email.getAttribute('aria-checked')).toBe('true');
+      await email.click();
+      const saved = partyPage.waitForResponse((res) =>
+        res.url().endsWith('/notification-preferences') && res.request().method() === 'PUT');
+      await partyPage.getByRole('button', { name: 'Save preferences' }).click();
+      expect((await saved).ok()).toBe(true);
+      await partyPage.reload();
+      await email.waitFor();
+      expect(await email.getAttribute('aria-checked')).toBe('false');
+      expect(await partyPage.getByRole('switch', { name: 'In-app notifications' }).isEnabled()).toBe(false);
+
+      const sample = 'Please include the courtroom number next to the hearing date.';
+      await partyPage.goto(`${web}/litigant/feedback`);
+      await partyPage.getByLabel('Category').selectOption('SUGGESTION');
+      await partyPage.getByLabel('Narrative notes').fill(sample);
+      const submitted = partyPage.waitForResponse((res) =>
+        res.url().endsWith('/api/feedback') && res.request().method() === 'POST');
+      await partyPage.getByRole('button', { name: /transmit feedback data log/i }).click();
+      expect((await submitted).status()).toBe(201);
+
+      await readerPage.goto(`${web}/admin/feedback`);
+      const search = async () => {
+        const filters = readerPage.getByRole('form', { name: 'Search and filter feedback' });
+        await filters.getByRole('searchbox').fill('courtroom number');
+        await filters.getByRole('button', { name: 'Search', exact: true }).click();
+        const row = readerPage.getByRole('row').filter({ hasText: 'courtroom number' });
+        await row.waitFor();
+        return row;
+      };
+      const row = await search();
+      await row.getByRole('button', { name: /review feedback/i }).click();
+      const dialog = readerPage.getByRole('dialog');
+      await dialog.getByText(sample, { exact: true }).waitFor();
+      await dialog.getByLabel('Status').selectOption('PROCESSED');
+      const reviewed = readerPage.waitForResponse((res) =>
+        res.url().includes('/api/admin/feedback/') && res.request().method() === 'PATCH');
+      await dialog.getByRole('button', { name: 'Save changes' }).click();
+      expect((await reviewed).ok()).toBe(true);
+      await readerPage.reload();
+      await (await search()).getByText('Processed', { exact: true }).waitFor();
+
+      await readerPage.goto(`${web}/admin/reports`);
+      await readerPage.getByRole('button', { name: /compile report profile/i }).click();
+      const exportButton = readerPage.getByRole('button', { name: /execute data export/i });
+      for (const [label, extension] of [['PDF document', '.pdf'], ['Excel workbook', '.xlsx']]) {
+        await readerPage.getByRole('radio', { name: new RegExp(label) }).check();
+        const downloaded = readerPage.waitForEvent('download');
+        await exportButton.click();
+        const file = await downloaded;
+        expect(file.suggestedFilename().toLowerCase().endsWith(extension)).toBe(true);
+      }
+      await readerPage.reload();
+      await readerPage.getByText(/RPT-\d{4}-\d{6}/).first().waitFor();
+    } finally {
+      await browser.close();
+    }
+  }, 160_000);
 });

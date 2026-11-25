@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuthUser } from '../common/decorators';
+import { activeHearingCoverage, caseScopeFor } from '../common/case-access';
 import { pageMeta } from '../common/pagination';
 import { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,15 +23,7 @@ export class HearingsService {
 
   /** Cases the user is party to: filed by them, or they are counsel on a party. */
   private async mineWhere(user: AuthUser): Promise<Prisma.CaseWhereInput> {
-    const or: Prisma.CaseWhereInput[] = [{ filedById: user.id }];
-    if (user.role === 'LAWYER') {
-      const profile = await this.prisma.lawyerProfile.findUnique({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (profile) or.push({ parties: { some: { lawyerId: profile.id } } });
-    }
-    return { OR: or };
+    return caseScopeFor(this.prisma, user);
   }
 
   /** UC-3.1 View Upcoming Hearing Schedule. */
@@ -39,7 +32,12 @@ export class HearingsService {
     const today = todayUtc();
     const upcoming = q.when === 'upcoming';
     const where: Prisma.HearingWhereInput = {
-      case: await this.mineWhere(user),
+      AND: [{
+        OR: [
+          { case: await this.mineWhere(user) },
+          ...(user.role === 'LAWYER' ? [{ coverageRequests: { some: activeHearingCoverage(user.id) } }] : []),
+        ],
+      }],
       ...(upcoming
         ? { date: { gte: today }, status: { in: ['SCHEDULED', 'ADJOURNED'] } }
         : { OR: [{ date: { lt: today } }, { status: { in: ['HELD', 'CANCELLED'] } }] }),
@@ -57,7 +55,10 @@ export class HearingsService {
       }),
     ]);
     return {
-      data: rows.map((h) => hearingView(h, slots)),
+      data: rows.map((h) => ({
+        ...hearingView(h, slots),
+        canReportClash: user.role === 'LAWYER' && h.case.parties.some((p) => p.lawyer?.userId === user.id),
+      })),
       meta: pageMeta(q.page, q.limit, total),
     };
   }
@@ -101,6 +102,9 @@ export class HearingsService {
     }
     const slots = buildSlots(await this.settings.schedulePolicy());
     let myLawyerId: string | null = null;
+    const litigantCnic = user.role === 'LITIGANT'
+      ? (await this.prisma.user.findUnique({ where: { id: user.id }, select: { cnic: true } }))?.cnic
+      : undefined;
     if (user.role === 'LAWYER') {
       myLawyerId =
         (
@@ -126,7 +130,6 @@ export class HearingsService {
             const v = hearingView(h, slots);
             return {
               hearingId: h.id,
-              isVirtual: h.isVirtual,
               serialNo: e.serialNo,
               time: v.startTime,
               courtroom: v.courtroom?.name ?? null,
@@ -138,6 +141,7 @@ export class HearingsService {
               isMine:
                 h.case.filedById === user.id ||
                 h.judgeId === user.id ||
+                Boolean(litigantCnic && h.case.parties.some((p) => p.role === 'PETITIONER' && p.lawyerId && p.cnic === litigantCnic)) ||
                 (myLawyerId !== null && h.case.parties.some((p) => p.lawyerId === myLawyerId)),
             };
           }),

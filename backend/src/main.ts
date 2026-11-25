@@ -10,7 +10,7 @@ import { setupApp } from './setup-app';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   setupApp(app);
-  // Slots and the virtual courtroom window use Pakistan time explicitly (common/pk-time.ts). TZ=Asia/Karachi
+  // Slots use Pakistan time explicitly (common/pk-time.ts). TZ=Asia/Karachi
   // (checked after ConfigModule has loaded .env) keeps library local-time formatting in Pakistan time too.
   if (process.env.TZ !== PK_TZ) {
     new Logger('Bootstrap').warn(

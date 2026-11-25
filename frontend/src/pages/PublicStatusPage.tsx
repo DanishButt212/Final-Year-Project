@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CalendarClock, LogIn, RotateCcw, Video } from 'lucide-react';
+import { ArrowLeft, CalendarClock, LogIn, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { CaseProgress } from '@/components/case/CaseProgress';
@@ -185,12 +185,6 @@ export default function PublicStatusPage() {
                     </p>
                   )}
                 </dl>
-                {data.nextHearing.isVirtual && (
-                  <p className="mt-3 flex items-center gap-2 text-sm text-text-muted">
-                    <Video className="size-4" aria-hidden="true" />
-                    {t('This is a virtual hearing. Parties join from their portal.')}
-                  </p>
-                )}
               </section>
             )}
           </>

@@ -342,7 +342,9 @@ export class ServerService {
           data: {
             caseId: s.caseId,
             type: CaseEventType.SUMMONS_EXECUTED,
-            description: `Summons to ${s.recipientName} executed (${personal ? 'delivered in person' : 'refused, affixed to gate'}).`,
+            description: personal
+              ? `Summons to ${s.recipientName} executed (delivered in person).`
+              : `Summons to ${s.recipientName} refused. The officer affixed the notice to the gate.`,
           },
         });
         await this.audit.logWithin(tx, {
@@ -359,8 +361,10 @@ export class ServerService {
           audience,
           notice(
             'SUMMONS_EXECUTED',
-            'Summons executed',
-            'The summons to {{recipient}} in {{ucn}} was served.',
+            personal ? 'Summons executed' : 'Summons refused',
+            personal
+              ? 'The summons to {{recipient}} in {{ucn}} was served.'
+              : 'The summons to {{recipient}} in {{ucn}} was refused. The officer affixed the notice to the gate.',
             { recipient: s.recipientName, ucn: s.case.ucn },
           ),
           tx,

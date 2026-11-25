@@ -143,7 +143,7 @@ function FeedbackDetail({ item, onClose }: { item: FeedbackItem; onClose: () => 
   );
 }
 
-/** Admin: "User Feedback Analysis & Quality Control". */
+/** Reader: "User Feedback Analysis & Quality Control". */
 export default function FeedbackAnalysisPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);

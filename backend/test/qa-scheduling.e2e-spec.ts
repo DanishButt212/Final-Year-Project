@@ -10,6 +10,8 @@ describe('QA scheduling and cause lists (e2e)', () => {
   let admin: Api;
   let lawyer: Api;
   let litigant: Api;
+  let representative: Api;
+  let representedPetitioner: { name: string; cnic: string };
   const day = workingDay(2);
   const saturday = (() => {
     const d = new Date(`${day}T00:00:00Z`);
@@ -24,12 +26,19 @@ describe('QA scheduling and cause lists (e2e)', () => {
     admin = await login(ctx, w.emails.admin);
     lawyer = await login(ctx, w.emails.lawyer);
     litigant = await login(ctx, w.emails.litigant);
+    representative = await login(ctx, w.emails.lawyer2);
+    const client = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    representedPetitioner = { name: `${client.firstName} ${client.lastName}`, cnic: client.cnic };
   });
   afterAll(() => ctx.app.close());
 
   /** A case filed by `who` and allocated straight to a judge/courtroom. */
   const allocated = async (who: Api, judgeId = w.ids.judge, room = w.rooms.r1) => {
-    const { case: c } = await fileCase(who, { caseType: 'WRIT_PETITION' });
+    const onBehalf = who === litigant;
+    const { case: c } = await fileCase(onBehalf ? representative : who, {
+      caseType: 'WRIT_PETITION',
+      ...(onBehalf ? { petitioners: [representedPetitioner] } : {}),
+    });
     await allocateDirect(ctx.prisma, c.id, w, judgeId, room);
     return c.id;
   };

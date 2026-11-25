@@ -19,7 +19,7 @@ DigitalAdaalat is a web-based Judicial ERP for Pakistan's court system. It digit
 - **Legal Intern Portal:** daily diary, geo-fenced attendance, completion certificate.
 - **Process Server mobile app:** pending summons, GPS location, delivery photo, recipient signature.
 - **Judge Portal:** cause list, case status, orders.
-- **Admin Portal:** analytics dashboard, user management, lawyer verification, case allocation, cause list builder, anti-clash scheduling, virtual courtroom control, immutable audit logs, PDF/Excel reports, system settings.
+- **Admin Portal:** analytics dashboard, user management, lawyer verification, case allocation, cause list builder, anti-clash scheduling, immutable audit logs, PDF/Excel reports, system settings.
 
 ## Key rules
 - A lawyer or judge must never be double-booked on the same day (anti-clash).
@@ -34,7 +34,7 @@ DigitalAdaalat is a web-based Judicial ERP for Pakistan's court system. It digit
 - Mocked external systems: NADRA CNIC verification, payment gateway, email/SMS, Bar Council verification.
 - Virtual hearings via Jitsi, later.
 - Out of scope: blockchain, AI judgment writing.
-- Last priority: QR biometric bridge, virtual courtroom.
+- Last priority: QR biometric bridge.
 
 ## Tech stack
 Monorepo:

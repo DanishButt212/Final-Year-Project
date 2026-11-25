@@ -47,11 +47,13 @@ export interface PaymentRow {
   ucn: string;
   challanNo: string;
   amount: string;
+  method: 'MOCK_CARD' | 'MOCK_JAZZCASH' | 'MOCK_EASYPAISA' | 'MOCK_WALLET' | 'MOCK_BANK_TRANSFER';
   status: 'SUCCESS' | 'FAILED';
   receiptNo: string | null;
 }
 
 export interface CardForm {
+  method?: 'MOCK_CARD';
   paymentId: string;
   cardholderName: string;
   cardNumber: string;
@@ -75,7 +77,12 @@ export const feesApi = {
     ).data;
   },
   /** Card data goes straight to the simulated gateway and is not kept anywhere on the client. */
-  async authorize(form: CardForm) {
+  async authorize(
+    form:
+      | CardForm
+      | { paymentId: string; method: 'MOCK_JAZZCASH' | 'MOCK_EASYPAISA'; mobileNumber: string }
+      | { paymentId: string; method: 'MOCK_BANK_TRANSFER'; transferReference: string },
+  ) {
     return (
       await api.post<{
         message: string;

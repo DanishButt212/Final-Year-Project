@@ -2,7 +2,7 @@ import { ROLE_LABEL } from '@/lib/navigation';
 import type { Role } from '@/lib/types';
 import i18n, { msg } from '@/i18n';
 
-/** Readable names for event and action codes shown to administrators (audit vault, security, notifications). */
+/** Readable names for event and action codes shown to readers (audit vault, security, notifications). */
 const CODE_LABEL: Record<string, string> = {
   AUTH_LOGIN_SUCCESS: msg('Login succeeded'),
   AUTH_LOGIN_FAILURE: msg('Login failed'),
@@ -12,8 +12,8 @@ const CODE_LABEL: Record<string, string> = {
   AUTH_REGISTER: msg('Account registered'),
   AUTH_PASSWORD_RESET_REQUESTED: msg('Password reset requested'),
   AUTH_PASSWORD_RESET_COMPLETED: msg('Password reset completed'),
-  ADMIN_ROUTE_FORBIDDEN: msg('Refused access to an admin page'),
-  ADMIN_ROUTE_INVALID_TOKEN: msg('Forged or invalid token on an admin page'),
+  ADMIN_ROUTE_FORBIDDEN: msg('Refused access to a reader page'),
+  ADMIN_ROUTE_INVALID_TOKEN: msg('Forged or invalid token on a reader page'),
   ADMIN_CASE_ALLOCATED: msg('Case allocated'),
   ADMIN_USER_PROVISIONED: msg('Staff account created'),
   ADMIN_USER_STATUS_CHANGED: msg('Account status changed'),
@@ -34,10 +34,6 @@ const CODE_LABEL: Record<string, string> = {
   FILE_INTEGRITY_FAILED: msg('File failed its integrity check'),
   SECURITY_ESCALATION_ALERT: msg('Privilege escalation alert'),
   SECURITY_SESSION_TERMINATED: msg('Session ended by the security engine'),
-  VIRTUAL_SESSION_INITIALIZED: msg('Virtual courtroom opened'),
-  VIRTUAL_SESSION_ENDED: msg('Virtual courtroom ended'),
-  VIRTUAL_SESSION_JOINED: msg('Joined the virtual courtroom'),
-  VIRTUAL_SESSION_COMMAND: msg('Courtroom moderation command'),
   USER_PROFILE_UPDATED: msg('User profile updated'),
   CASE_DOCUMENT_ATTACHED: msg('Case document attached'),
   CASE_DOCUMENT_DOWNLOADED: msg('Case document downloaded'),

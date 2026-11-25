@@ -9,6 +9,7 @@ import type { Paginated, Role, UserStatus, VerificationStatus } from './types';
 export interface PublicSettings {
   maxAttachmentMb: number;
   caseRegistrationOpen: boolean;
+  filingFees?: Partial<Record<CaseType, string>>;
 }
 
 export interface FeeRow {
@@ -168,7 +169,7 @@ export interface AdminUser {
 export type StatusAction = 'suspend' | 'block' | 'reactivate' | 'delete';
 
 export interface CreateStaffPayload {
-  role: 'INTERN' | 'PROCESS_SERVER' | 'JUDGE' | 'ADMIN';
+  role: 'INTERN' | 'PROCESS_SERVER' | 'STENOGRAPHER' | 'JUDGE' | 'ADMIN';
   firstName: string;
   lastName: string;
   cnic: string;
@@ -372,6 +373,9 @@ export const adminApi = {
   },
   async caseDetail(id: string) {
     return (await api.get<CaseDetail>(`/admin/cases/${id}`)).data;
+  },
+  async assignCaseCounsel(caseId: string, partyId: string, barNumber: string) {
+    await api.patch(`/admin/cases/${caseId}/parties/${partyId}/counsel`, { barNumber });
   },
   async allocate(id: string, payload: AllocatePayload) {
     return (await api.post<AllocateResult>(`/admin/cases/${id}/allocate`, payload)).data;

@@ -28,7 +28,6 @@ export interface ProgressHearing {
   endTime: string | null; // HH:mm
   timeSlot: number;
   courtroom: string | null;
-  isVirtual: boolean;
 }
 
 export type ProgressDetail =
@@ -67,7 +66,6 @@ export interface ProgressSource {
     startTime: string | null;
     timeSlot: number;
     status: HearingStatus;
-    isVirtual: boolean;
     courtroom: { name: string } | null;
   }[];
 }
@@ -94,7 +92,6 @@ export const progressSelect = {
       startTime: true,
       timeSlot: true,
       status: true,
-      isVirtual: true,
       courtroom: { select: { name: true } },
     },
   },
@@ -125,7 +122,6 @@ export function computeProgress(
     endTime: addMinutes(h.startTime, slotMinutes),
     timeSlot: h.timeSlot,
     courtroom: h.courtroom?.name ?? null,
-    isVirtual: h.isVirtual,
   });
 
   const hearings = c.hearings.filter((h) => h.status !== 'CANCELLED');

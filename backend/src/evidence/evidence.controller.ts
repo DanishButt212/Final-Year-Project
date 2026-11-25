@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -27,8 +28,8 @@ import { EvidenceService } from './evidence.service';
 const meta = (req: Request): RequestMeta => ({ ip: req.ip, userAgent: req.headers['user-agent'] });
 
 /**
- * Evidence vault. The filer, the lawyers on the case, the case's judge and admins can read and download;
- * only the filer and the lawyers upload. Anyone else gets 404. Role checks live in the service.
+ * Evidence vault. The parties, lawyers, assigned judge and Readers can read and download.
+ * Parties and assigned lawyers can upload. Role and case checks live in the service.
  */
 @ApiTags('evidence')
 @ApiCookieAuth()
@@ -37,6 +38,7 @@ const meta = (req: Request): RequestMeta => ({ ip: req.ip, userAgent: req.header
 export class EvidenceController {
   constructor(private readonly evidence: EvidenceService) {}
 
+  @Header('Cache-Control', 'private, no-store')
   @Get(':id/vault')
   vault(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
     return this.evidence.vault(user, id);
@@ -80,6 +82,7 @@ export class EvidenceController {
     return this.evidence.remove(user, id, eid, meta(req));
   }
 
+  @Header('Cache-Control', 'private, no-store')
   @Get(':id/evidence/:eid/download')
   download(
     @CurrentUser() user: AuthUser,
@@ -90,6 +93,7 @@ export class EvidenceController {
     return this.evidence.download(user, id, eid, meta(req));
   }
 
+  @Header('Cache-Control', 'private, no-store')
   @Get(':id/pleadings/:docId/download')
   pleading(
     @CurrentUser() user: AuthUser,

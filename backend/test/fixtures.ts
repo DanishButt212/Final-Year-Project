@@ -238,7 +238,11 @@ export async function fileCase(
   for (const f of files) req = req.attach('files', f.content, f.name);
   const res = await req;
   if (res.status !== 201) throw new Error(`fileCase failed: ${res.status} ${res.body?.message}`);
-  return res.body as { case: { id: string; ucn: string }; message: string };
+  return res.body as {
+    case: { id: string; ucn: string };
+    message: string;
+    challan: { amount: string; challanNo: string } | null;
+  };
 }
 
 /** Puts a case straight into the allocated state (no API), for flows that start after allocation. */

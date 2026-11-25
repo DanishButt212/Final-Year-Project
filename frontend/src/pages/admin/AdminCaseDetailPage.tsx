@@ -4,12 +4,15 @@ import { useRecordRecentCase } from '@/hooks/use-record-recent';
 import { CopyButton } from '@/components/ui/copy-button';
 import { CaseProgressPanel } from '@/components/case/CaseProgressPanel';
 import { translateText } from '@/lib/server-messages';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, FileText, ScrollText, Shuffle } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
+import { Alert } from '@/components/ui/alert';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +34,8 @@ import { caseTypeLabel, judgeBench } from '@/lib/case-status';
 import { formatDate, formatDateTime, formatFileSize } from '@/lib/format';
 import { NotFoundPage } from '@/pages/ErrorPages';
 import { DecisionBlock } from '@/pages/cases/DecisionBlock';
+import FeesPanel from '@/pages/cases/FeesPanel';
+import { DeliveryPanel } from '@/pages/deliveries/DeliveryPanels';
 import { AllocateDialog } from './AllocateDialog';
 import { useTranslation } from 'react-i18next';
 
@@ -51,7 +56,34 @@ function Detail({
   );
 }
 
-function Parties({ title, parties }: { title: string; parties: CaseDetail['parties'] }) {
+function AssignCounselForm({ caseId, partyId }: { caseId: string; partyId: string }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const [barNumber, setBarNumber] = useState('');
+  const assignment = useMutation({
+    mutationFn: () => adminApi.assignCaseCounsel(caseId, partyId, barNumber.trim()),
+    onSuccess: async () => {
+      toast.success(t('Counsel assigned.'));
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'cases', 'detail', caseId] });
+    },
+  });
+  return (
+    <form className="mt-3 space-y-2" onSubmit={(event) => {
+      event.preventDefault();
+      assignment.mutate();
+    }}>
+      <Field label={t('Bar number')} required>
+        {(props) => <Input {...props} maxLength={40} value={barNumber} onChange={(event) => setBarNumber(event.target.value)} />}
+      </Field>
+      <Button type="submit" size="sm" variant="secondary" disabled={!barNumber.trim()} loading={assignment.isPending}>
+        {t('Assign counsel')}
+      </Button>
+      {assignment.error && <Alert variant="error">{parseApiError(assignment.error).message}</Alert>}
+    </form>
+  );
+}
+
+function Parties({ title, parties, caseId }: { title: string; parties: CaseDetail['parties']; caseId: string }) {
   const { t } = useTranslation();
   return (
     <div>
@@ -66,8 +98,10 @@ function Parties({ title, parties }: { title: string; parties: CaseDetail['parti
               {[p.cnic, p.phone, p.address].filter(Boolean).join(' · ') ||
                 t('No further details given')}
             </p>
-            {p.hasCounsel && (
+            {p.hasCounsel ? (
               <p className="text-sm text-text-muted">{t('Represented by counsel')}</p>
+            ) : (
+              <AssignCounselForm caseId={caseId} partyId={p.id} />
             )}
           </li>
         ))}
@@ -76,7 +110,7 @@ function Parties({ title, parties }: { title: string; parties: CaseDetail['parti
   );
 }
 
-/** Admin view of one case: overview, parties, documents (download) and lifecycle, with allocation. */
+/** Reader view of one case: overview, parties, documents (download) and lifecycle, with allocation. */
 export default function AdminCaseDetailPage() {
   const { t } = useTranslation();
   const { caseId } = useParams();
@@ -170,6 +204,8 @@ export default function AdminCaseDetailPage() {
             {t('Documents ({{length}})', { length: data.documents.length })}
           </TabsTrigger>
           <TabsTrigger value="lifecycle">{t('Lifecycle')}</TabsTrigger>
+          <TabsTrigger value="fees">{t('Fees & Payment')}</TabsTrigger>
+          <TabsTrigger value="deliveries">{t('Deliveries')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -201,8 +237,8 @@ export default function AdminCaseDetailPage() {
 
         <TabsContent value="parties">
           <div className="grid gap-6 md:grid-cols-2">
-            <Parties title={t('Petitioners')} parties={petitioners} />
-            <Parties title={t('Opposing parties')} parties={others} />
+            <Parties title={t('Petitioners')} parties={petitioners} caseId={data.id} />
+            <Parties title={t('Opposing parties')} parties={others} caseId={data.id} />
           </div>
         </TabsContent>
 
@@ -260,6 +296,14 @@ export default function AdminCaseDetailPage() {
               </div>
             )}
           </Card>
+        </TabsContent>
+
+        <TabsContent value="fees">
+          <FeesPanel caseId={data.id} />
+        </TabsContent>
+
+        <TabsContent value="deliveries">
+          <DeliveryPanel mode="admin" caseId={data.id} />
         </TabsContent>
 
         <TabsContent value="lifecycle">

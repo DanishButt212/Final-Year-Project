@@ -239,7 +239,7 @@ function AlertsTab() {
           <EmptyState
             icon={ShieldCheck}
             title={t('No alerts here')}
-            description={t('Alerts appear when an account is refused repeatedly on admin routes.')}
+            description={t('Alerts appear when an account is refused repeatedly on reader routes.')}
           />
         </Card>
       ) : (
@@ -384,14 +384,14 @@ export default function SecurityAlertsPage() {
       <PageHeader
         title={t('Security Alerts')}
         description={t(
-          'Accounts refused repeatedly on admin routes. Their sessions are ended automatically; you decide whether to block the host.',
+          'Accounts refused repeatedly on reader routes. Their sessions are ended automatically; you decide whether to block the host.',
         )}
         crumbs={[{ label: t('Dashboard'), to: '/admin' }, { label: t('Security Alerts') }]}
       />
       <Alert variant="info" className="mb-4">
         <ShieldAlert className="me-1 inline size-4" aria-hidden="true" />
         {t(
-          'Administrator accounts are never ended or blocked automatically. Loopback addresses (this machine) are never blocked.',
+          'Reader accounts are never ended or blocked automatically. Loopback addresses (this machine) are never blocked.',
         )}
       </Alert>
       <Tabs defaultValue="alerts">

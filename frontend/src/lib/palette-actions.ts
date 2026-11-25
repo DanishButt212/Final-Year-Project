@@ -26,14 +26,16 @@ export interface PaletteAction {
 
 /** Role-specific quick actions offered by the command palette (labels are translation keys). */
 export const PALETTE_ACTIONS: Record<Role, PaletteAction[]> = {
+  STENOGRAPHER: [
+    { label: msg('Assigned hearings'), path: '/stenographer', icon: CalendarDays },
+  ],
   LITIGANT: [
-    { label: msg('File a new case'), path: '/litigant/new-case', icon: FilePlus2 },
     { label: msg('Pay court fee'), path: '/litigant/payments', icon: Receipt },
     { label: msg('Open cause list'), path: '/litigant/cause-lists', icon: ClipboardList },
     { label: msg('View hearing schedule'), path: '/litigant/hearings', icon: CalendarDays },
   ],
   LAWYER: [
-    { label: msg('File a new case'), path: '/lawyer/new-case', icon: FilePlus2 },
+    { label: msg('File a Case'), path: '/lawyer/new-case', icon: FilePlus2 },
     { label: msg('Register a new client'), path: '/lawyer/chamber/clients/new', icon: UserPlus },
     { label: msg('Record billable time'), path: '/lawyer/chamber/billable', icon: Clock },
     { label: msg('Pay court fee'), path: '/lawyer/payments', icon: Receipt },

@@ -7,6 +7,7 @@ import {
 import { randomInt } from 'node:crypto';
 import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
+import { caseAudience } from '../common/case-access';
 import { Messages } from '../common/messages';
 import { pageMeta } from '../common/pagination';
 import { CaseEventType, Prisma } from '../generated/prisma/client';
@@ -58,6 +59,34 @@ export class AdminCasesService {
 
   private async slotMinutes() {
     return (await this.settings.schedulePolicy()).hearingSlotMinutes;
+  }
+
+  async assignCounsel(user: AuthUser, caseId: string, partyId: string, barNumber: string, meta: RequestMeta) {
+    await this.prisma.$transaction(async (tx) => {
+      const lawyer = await tx.lawyerProfile.findFirst({
+        where: {
+          barNumber: { equals: barNumber, mode: 'insensitive' },
+          verificationStatus: 'VERIFIED',
+          user: { status: 'ACTIVE' },
+        },
+        select: { id: true },
+      });
+      if (!lawyer) throw bad('barNumber', 'No active verified lawyer has that bar number.');
+      const changed = await tx.caseParty.updateMany({
+        where: { id: partyId, caseId, lawyerId: null },
+        data: { lawyerId: lawyer.id },
+      });
+      if (!changed.count) {
+        const party = await tx.caseParty.findFirst({ where: { id: partyId, caseId }, select: { id: true } });
+        if (!party) throw new NotFoundException(Messages.NOT_FOUND);
+        throw new ConflictException('This party already has assigned counsel.');
+      }
+      await this.audit.logWithin(tx, {
+        action: 'CASE_COUNSEL_ASSIGNED', actorId: user.id, actorRole: user.role,
+        entity: 'Case', entityId: caseId, metadata: { partyId, lawyerProfileId: lawyer.id }, ...meta,
+      });
+    });
+    return { message: 'Counsel assigned.' };
   }
 
   async list(q: AdminListCasesQueryDto) {
@@ -226,8 +255,8 @@ export class AdminCasesService {
         },
         ...meta,
       });
-      await this.notifications.notify(
-        target.filedById,
+      await this.notifications.notifyMany(
+        await caseAudience(tx, caseId),
         courtroom
           ? notice(
               'CASE_ALLOCATED',

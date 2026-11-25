@@ -358,7 +358,7 @@ export async function renderExcel(path: string, data: ReportData, s: WaterStamp)
         r.time,
         r.userHash,
         r.actorEmail,
-        r.role,
+        r.role === 'ADMIN' ? 'Reader' : r.role,
         r.action,
         r.entity,
         r.entityId,

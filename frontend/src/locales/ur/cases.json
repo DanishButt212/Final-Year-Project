@@ -1,4 +1,5 @@
 {
+  "Represented litigant CNIC": "زیرِ نمائندگی فریق کا شناختی کارڈ نمبر",
   "(completed)": "(مکمل)",
   "(current stage)": "(موجودہ مرحلہ)",
   "(upcoming)": "(آئندہ)",
@@ -55,7 +56,7 @@
   "Fees & Payment": "فیس اور ادائیگی",
   "File category": "فائل کا زمرہ",
   "Files are encrypted and sealed with a SHA-256 hash. Video: mp4, webm. Audio: mp3, wav, m4a. Scanned records: pdf, jpg, png. Up to 5 files at a time.": "فائلیں خفیہ کر کے SHA-256 ہیش سے مہر بند کی جاتی ہیں۔ ویڈیو: mp4، webm۔ آڈیو: mp3، wav، m4a۔ اسکین شدہ ریکارڈ: pdf، jpg، png۔ ایک وقت میں زیادہ سے زیادہ 5 فائلیں۔",
-  "Fill in the four steps below. Nothing is saved until you submit on the last step.": "نیچے دیے گئے چار مراحل مکمل کریں۔ آخری مرحلے پر جمع کرانے تک کچھ محفوظ نہیں ہوگا۔",
+  "Complete each step and review your case before submitting it.": "ہر مرحلہ مکمل کریں اور مقدمہ جمع کرانے سے پہلے اس کی تفصیلات کا جائزہ لیں۔",
   "Full name": "پورا نام",
   "Hearing Fixed": "سماعت مقرر",
   "Issued {{issued}} · Due {{due}}": "اجراء {{issued}} · ادائیگی کی آخری تاریخ {{due}}",

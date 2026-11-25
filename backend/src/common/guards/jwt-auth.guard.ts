@@ -25,7 +25,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     try {
       return (await super.canActivate(context)) as boolean;
     } catch (error) {
-      // A forged or malformed token on an /admin route is a possible privilege escalation attempt
+      // A forged or malformed token on an /reader route is a possible privilege escalation attempt
       // (expired tokens are normal and are not counted).
       const req = context.switchToHttp().getRequest<Request & { jwtInvalid?: boolean }>();
       if (req.jwtInvalid && req.originalUrl.startsWith('/api/admin')) {

@@ -115,7 +115,7 @@ describe('Cases (e2e)', () => {
     it('submits a case with two PDFs, generates the UCN and records everything', async () => {
       const a = pdfBuffer('petition');
       const b = pdfBuffer('affidavit');
-      const res = await submit(litigant, validCase({ title: 'Ayesha vs. Bilal' }), [
+      const res = await submit(lawyer, validCase({ title: 'Ayesha vs. Bilal' }), [
         { name: 'Petition.pdf', content: a },
         { name: 'Affidavit.PDF', content: b },
       ]).expect(201);
@@ -154,7 +154,7 @@ describe('Cases (e2e)', () => {
     });
 
     it('stores files under random names, never the client file name', async () => {
-      const res = await submit(litigant, validCase(), [
+      const res = await submit(lawyer, validCase(), [
         { name: '../../evil name.pdf', content: pdfBuffer() },
       ]).expect(201);
       const doc = await ctx.prisma.caseDocument.findFirstOrThrow({
@@ -166,32 +166,29 @@ describe('Cases (e2e)', () => {
     });
 
     it('generates "<Petitioner> vs. <Respondent>" when no title is given, and keeps a given title', async () => {
-      const auto = await submit(litigant, validCase()).expect(201);
+      const auto = await submit(lawyer, validCase()).expect(201);
       expect(auto.body.case.title).toBe('Ayesha Siddiqui vs. Bilal Ahmed');
       const many = await submit(
-        litigant,
+        lawyer,
         validCase({
-          petitioners: [{ name: 'A One' }, { name: 'B Two' }],
+          petitioners: [{ name: 'A One', cnic: '36302-1111111-1' }, { name: 'B Two' }],
           respondents: [{ name: 'The State' }],
         }),
       ).expect(201);
       expect(many.body.case.title).toBe('A One & others vs. The State');
-      const given = await submit(litigant, validCase({ title: 'Custom title' })).expect(201);
+      const given = await submit(lawyer, validCase({ title: 'Custom title' })).expect(201);
       expect(given.body.case.title).toBe('Custom title');
     });
 
     it('works without any files', async () => {
-      const res = await submit(litigant, validCase()).expect(201);
+      const res = await submit(lawyer, validCase()).expect(201);
       expect(res.body.case.documentCount).toBe(0);
     });
 
-    it("fills a litigant's own CNIC and phone on the first petitioner when it is them", async () => {
-      const res = await submit(litigant, validCase()).expect(201);
-      const p = await ctx.prisma.caseParty.findFirstOrThrow({
-        where: { caseId: res.body.case.id, role: 'PETITIONER' },
-      });
-      expect(p.cnic).toBe('36302-1111111-1');
-      expect(p.lawyerId).toBeNull();
+    it('denies litigant filing and requires the represented petitioner CNIC from counsel', async () => {
+      await submit(litigant, validCase()).expect(403);
+      await submit(lawyer, validCase({ petitioners: [{ name: 'Ayesha Siddiqui' }] })).expect(400);
+      expect(await ctx.prisma.case.count()).toBe(0);
     });
 
     it('records the lawyer as counsel on petitioner parties only', async () => {
@@ -210,7 +207,7 @@ describe('Cases (e2e)', () => {
 
     describe('validation', () => {
       it('answers "Incomplete case details." when mandatory fields are missing, with per-field errors', async () => {
-        const res = await submit(litigant, { caseType: 'CIVIL_SUIT' }).expect(400);
+        const res = await submit(lawyer, { caseType: 'CIVIL_SUIT' }).expect(400);
         expect(res.body.message).toBe(Messages.CASE_INCOMPLETE);
         const fields = res.body.details.map((d: { field: string }) => d.field);
         expect(fields).toEqual(
@@ -229,20 +226,20 @@ describe('Cases (e2e)', () => {
         ['a respondent without a name', validCase({ respondents: [{ name: '  ' }] })],
         ['no respondents', validCase({ respondents: [] })],
       ])('rejects %s with "Incomplete case details."', async (_name, data) => {
-        const res = await submit(litigant, data as never).expect(400);
+        const res = await submit(lawyer, data as never).expect(400);
         expect(res.body.message).toBe(Messages.CASE_INCOMPLETE);
         expect(await ctx.prisma.case.count()).toBe(0);
       });
 
       it('rejects relief sought over 5000 characters and unknown case types', async () => {
-        await submit(litigant, validCase({ reliefSought: 'x'.repeat(5001) })).expect(400);
-        const res = await submit(litigant, validCase({ caseType: 'MURDER_TRIAL' })).expect(400);
+        await submit(lawyer, validCase({ reliefSought: 'x'.repeat(5001) })).expect(400);
+        const res = await submit(lawyer, validCase({ caseType: 'MURDER_TRIAL' })).expect(400);
         expect(res.body.message).toBe(Messages.INVALID_FIELDS);
       });
 
       it('rejects invalid CNIC and phone formats on parties', async () => {
         const res = await submit(
-          litigant,
+          lawyer,
           validCase({
             respondents: [{ name: 'Bilal', cnic: '3630222222222', phone: '03217654321' }],
           }),
@@ -256,13 +253,13 @@ describe('Cases (e2e)', () => {
 
       it('treats blank optional CNIC, phone and address as absent', async () => {
         await submit(
-          litigant,
+          lawyer,
           validCase({ respondents: [{ name: 'Bilal', cnic: '', phone: '', address: '' }] }),
         ).expect(201);
       });
 
       it('rejects unknown properties', async () => {
-        await submit(litigant, validCase({ status: 'DECIDED', judgeId: 'x' })).expect(400);
+        await submit(lawyer, validCase({ status: 'DECIDED', judgeId: 'x' })).expect(400);
       });
     });
 
@@ -271,7 +268,7 @@ describe('Cases (e2e)', () => {
         await ctx.prisma.systemSetting.create({
           data: { key: 'case_registration_open', value: 'false' },
         });
-        const res = await submit(litigant, validCase()).expect(403);
+        const res = await submit(lawyer, validCase()).expect(403);
         expect(res.body.message).toBe(Messages.CASE_REGISTRATION_CLOSED);
         expect(res.body.code).toBe('REGISTRATION_CLOSED');
         expect(await ctx.prisma.case.count()).toBe(0);
@@ -280,14 +277,14 @@ describe('Cases (e2e)', () => {
           where: { key: 'case_registration_open' },
           data: { value: 'true' },
         });
-        await submit(litigant, validCase()).expect(201);
+        await submit(lawyer, validCase()).expect(201);
       });
     });
 
     describe('UCN', () => {
       it('is unique and sequential across 20 parallel submissions', async () => {
         const results = await Promise.all(
-          Array.from({ length: 20 }, () => submit(litigant, validCase())),
+          Array.from({ length: 20 }, () => submit(lawyer, validCase())),
         );
         expect(results.map((r) => r.status)).toEqual(Array(20).fill(201));
         const ucns = results.map((r) => r.body.case.ucn as string);
@@ -298,15 +295,15 @@ describe('Cases (e2e)', () => {
       });
 
       it('keeps a separate sequence per case type, using the type code', async () => {
-        const civil1 = await submit(litigant, validCase()).expect(201);
-        const bail1 = await submit(litigant, validCase({ caseType: 'BAIL_APPLICATION' })).expect(
+        const civil1 = await submit(lawyer, validCase()).expect(201);
+        const bail1 = await submit(lawyer, validCase({ caseType: 'BAIL_APPLICATION' })).expect(
           201,
         );
-        const writ1 = await submit(litigant, validCase({ caseType: 'WRIT_PETITION' })).expect(201);
-        const crim1 = await submit(litigant, validCase({ caseType: 'CRIMINAL_APPEAL' })).expect(
+        const writ1 = await submit(lawyer, validCase({ caseType: 'WRIT_PETITION' })).expect(201);
+        const crim1 = await submit(lawyer, validCase({ caseType: 'CRIMINAL_APPEAL' })).expect(
           201,
         );
-        const civil2 = await submit(litigant, validCase()).expect(201);
+        const civil2 = await submit(lawyer, validCase()).expect(201);
         const year = new Date().getUTCFullYear();
         expect(civil1.body.case.ucn).toBe(`DA-${year}-CIV-000001`);
         expect(bail1.body.case.ucn).toBe(`DA-${year}-BAL-000001`);
@@ -316,8 +313,8 @@ describe('Cases (e2e)', () => {
       });
 
       it('does not burn a number when a submission fails validation', async () => {
-        await submit(litigant, validCase({ reliefSought: 'short' })).expect(400);
-        const ok = await submit(litigant, validCase()).expect(201);
+        await submit(lawyer, validCase({ reliefSought: 'short' })).expect(400);
+        const ok = await submit(lawyer, validCase()).expect(201);
         expect(ok.body.case.ucn.endsWith('-000001')).toBe(true);
       });
     });
@@ -337,7 +334,7 @@ describe('Cases (e2e)', () => {
         ['a file with no extension', 'document', pdfBuffer()],
         ['a double extension', 'plea.pdf.exe', pdfBuffer()],
       ])('rejects %s', async (_n, name, content) => {
-        const res = await submit(litigant, validCase(), [{ name, content }]).expect(400);
+        const res = await submit(lawyer, validCase(), [{ name, content }]).expect(400);
         expect(res.body.message).toBe(Messages.INVALID_FILE);
         await expectNothingSaved();
       });
@@ -347,7 +344,7 @@ describe('Cases (e2e)', () => {
           Buffer.from('MZ\x90\x00\x03 this is a Windows program'),
           Buffer.from('just text, not a pdf'),
         ]) {
-          const res = await submit(litigant, validCase(), [
+          const res = await submit(lawyer, validCase(), [
             { name: 'looks-legit.pdf', content },
           ]).expect(400);
           expect(res.body.message).toBe(Messages.INVALID_FILE);
@@ -356,14 +353,14 @@ describe('Cases (e2e)', () => {
       });
 
       it('rejects a PDF whose signature is not at the very start', async () => {
-        const res = await submit(litigant, validCase(), [
+        const res = await submit(lawyer, validCase(), [
           { name: 'late.pdf', content: Buffer.concat([Buffer.from('junk'), pdfBuffer()]) },
         ]).expect(400);
         expect(res.body.message).toBe(Messages.INVALID_FILE);
       });
 
       it('rejects an empty file', async () => {
-        await submit(litigant, validCase(), [
+        await submit(lawyer, validCase(), [
           { name: 'empty.pdf', content: Buffer.alloc(0) },
         ]).expect(400);
         await expectNothingSaved();
@@ -372,18 +369,18 @@ describe('Cases (e2e)', () => {
       it('rejects a file over 25 MB, and accepts one just under it', async () => {
         const header = Buffer.from('%PDF-1.4\n');
         const tooBig = Buffer.concat([header, Buffer.alloc(25 * 1024 * 1024 + 1 - header.length)]);
-        const res = await submit(litigant, validCase(), [
+        const res = await submit(lawyer, validCase(), [
           { name: 'huge.pdf', content: tooBig },
         ]).expect(400);
         expect(res.body.message).toBe(Messages.INVALID_FILE);
         await expectNothingSaved();
 
         const justUnder = Buffer.concat([header, Buffer.alloc(25 * 1024 * 1024 - header.length)]);
-        await submit(litigant, validCase(), [{ name: 'big.pdf', content: justUnder }]).expect(201);
+        await submit(lawyer, validCase(), [{ name: 'big.pdf', content: justUnder }]).expect(201);
       });
 
       it('saves nothing at all when only one of several files is invalid', async () => {
-        const res = await submit(litigant, validCase(), [
+        const res = await submit(lawyer, validCase(), [
           { name: 'one.pdf', content: pdfBuffer('1') },
           { name: 'two.pdf', content: pdfBuffer('2') },
           { name: 'fake.pdf', content: Buffer.from('not a pdf at all') },
@@ -393,7 +390,7 @@ describe('Cases (e2e)', () => {
       });
 
       it('saves nothing when a valid file is followed by a wrong extension', async () => {
-        await submit(litigant, validCase(), [
+        await submit(lawyer, validCase(), [
           { name: 'one.pdf', content: pdfBuffer('1') },
           { name: 'two.txt', content: pdfBuffer('2') },
         ]).expect(400);
@@ -406,8 +403,8 @@ describe('Cases (e2e)', () => {
             name: `f${i}.pdf`,
             content: pdfBuffer(String(i)),
           }));
-        await submit(litigant, validCase(), files(10)).expect(201);
-        const res = await submit(litigant, validCase(), files(11)).expect(400);
+        await submit(lawyer, validCase(), files(10)).expect(201);
+        const res = await submit(lawyer, validCase(), files(11)).expect(400);
         expect(res.body.message).toBe(Messages.TOO_MANY_FILES);
         expect(await ctx.prisma.case.count()).toBe(1);
         expect(await tempLeftovers()).toEqual([]);
@@ -418,7 +415,7 @@ describe('Cases (e2e)', () => {
           .spyOn(ctx.app.get(AuditService), 'logWithin')
           .mockRejectedValue(new Error('simulated audit failure'));
         try {
-          const res = await submit(litigant, validCase(), [
+          const res = await submit(lawyer, validCase(), [
             { name: 'a.pdf', content: pdfBuffer() },
           ]);
           expect(res.status).toBe(500);
@@ -480,10 +477,10 @@ describe('Cases (e2e)', () => {
     });
 
     it("lists only the caller's own cases, newest first", async () => {
-      const first = await submit(litigant, validCase({ title: 'First case' })).expect(201);
+      const first = await submit(lawyer, validCase({ title: 'First case' })).expect(201);
       await new Promise((r) => setTimeout(r, 15));
-      const second = await submit(litigant, validCase({ title: 'Second case' })).expect(201);
-      await submit(litigantB, validCase({ title: 'Bilal private case' })).expect(201);
+      const second = await submit(lawyer, validCase({ title: 'Second case' })).expect(201);
+      await submit(lawyer, validCase({ title: 'Bilal private case', petitioners: [{ name: 'Bilal Other', cnic: '36302-3333333-3' }] })).expect(201);
 
       const mine = await litigant.get('/api/cases').expect(200);
       expect(mine.body.data.map((c: { id: string }) => c.id)).toEqual([
@@ -502,12 +499,12 @@ describe('Cases (e2e)', () => {
     });
 
     it('searches by UCN or title, filters by status and paginates', async () => {
-      const a = await submit(litigant, validCase({ title: 'Land dispute Multan' })).expect(201);
+      const a = await submit(lawyer, validCase({ title: 'Land dispute Multan' })).expect(201);
       await submit(
-        litigant,
+        lawyer,
         validCase({ caseType: 'BAIL_APPLICATION', title: 'Bail for Imran' }),
       ).expect(201);
-      await submit(litigant, validCase({ title: 'Another civil matter' })).expect(201);
+      await submit(lawyer, validCase({ title: 'Another civil matter' })).expect(201);
       await ctx.prisma.case.update({
         where: { id: a.body.case.id },
         data: { status: 'HEARING_FIXED' },
@@ -544,8 +541,16 @@ describe('Cases (e2e)', () => {
       await litigant.get('/api/cases?limit=500').expect(400);
     });
 
-    it('shows a lawyer the cases where they are counsel, even if someone else filed them', async () => {
-      const filed = await submit(litigant, validCase({ title: 'Filed by litigant' })).expect(201);
+    it('shows a legacy self-filed case to a lawyer only after assignment as counsel', async () => {
+      const filed = await submit(lawyer, validCase({ title: 'Historical filing' })).expect(201);
+      const filer = await ctx.prisma.user.findUniqueOrThrow({ where: { email: 'ayesha@example.test' } });
+      await ctx.prisma.case.update({
+        where: { id: filed.body.case.id },
+        data: {
+          filedById: filer.id,
+          parties: { updateMany: { where: { role: 'PETITIONER' }, data: { lawyerId: null } } },
+        },
+      });
       expect((await lawyer.get('/api/cases').expect(200)).body.meta.total).toBe(0);
       await lawyer.get(`/api/cases/${filed.body.case.id}`).expect(404);
 
@@ -562,7 +567,7 @@ describe('Cases (e2e)', () => {
     });
 
     it('returns full details with parties, documents and chronological events', async () => {
-      const created = await submit(litigant, validCase(), [
+      const created = await submit(lawyer, validCase(), [
         { name: 'one.pdf', content: pdfBuffer('1') },
         { name: 'two.pdf', content: pdfBuffer('2') },
       ]).expect(201);
@@ -574,7 +579,7 @@ describe('Cases (e2e)', () => {
         judge: null,
         court: null,
         courtroom: null,
-        filedBy: 'Ayesha Siddiqui',
+        filedBy: 'Hamza Bukhari',
       });
       expect(res.body.parties).toHaveLength(2);
       expect(res.body.documents.map((d: { name: string }) => d.name)).toEqual([
@@ -591,7 +596,7 @@ describe('Cases (e2e)', () => {
     });
 
     it("returns 404 (not 403) for another user's case, and for unknown or malformed ids", async () => {
-      const mine = await submit(litigant, validCase(), [
+      const mine = await submit(lawyer, validCase(), [
         { name: 'a.pdf', content: pdfBuffer() },
       ]).expect(201);
       const id = mine.body.case.id as string;
@@ -604,7 +609,7 @@ describe('Cases (e2e)', () => {
       await litigantB
         .post(`/api/cases/${id}/documents`)
         .attach('files', pdfBuffer('x'), 'x.pdf')
-        .expect(404);
+        .expect(403);
       await litigant.get('/api/cases/00000000-0000-4000-8000-000000000000').expect(404);
       await litigant.get('/api/cases/not-a-uuid').expect(404);
       // And the owner can still read it.
@@ -620,7 +625,7 @@ describe('Cases (e2e)', () => {
         recent: [],
       });
       for (let i = 0; i < 7; i++)
-        await submit(litigant, validCase({ title: `Case ${i}` })).expect(201);
+        await submit(lawyer, validCase({ title: `Case ${i}` })).expect(201);
       const first = await ctx.prisma.case.findFirstOrThrow({ where: { title: 'Case 0' } });
       await ctx.prisma.case.update({ where: { id: first.id }, data: { status: 'ALLOCATED' } });
       const res = await litigant.get('/api/cases/summary').expect(200);
@@ -632,10 +637,10 @@ describe('Cases (e2e)', () => {
 
   describe('documents', () => {
     it('attaches more PDFs to an active case, with an event and an audit entry', async () => {
-      const created = await submit(litigant, validCase()).expect(201);
+      const created = await submit(lawyer, validCase()).expect(201);
       const id = created.body.case.id as string;
       const content = pdfBuffer('extra');
-      const res = await litigant
+      const res = await lawyer
         .post(`/api/cases/${id}/documents`)
         .attach('files', content, 'Extra statement.pdf')
         .expect(201);
@@ -656,15 +661,15 @@ describe('Cases (e2e)', () => {
     });
 
     it('rejects invalid files and an empty request without saving anything', async () => {
-      const created = await submit(litigant, validCase()).expect(201);
+      const created = await submit(lawyer, validCase()).expect(201);
       const id = created.body.case.id as string;
-      const bad = await litigant
+      const bad = await lawyer
         .post(`/api/cases/${id}/documents`)
         .attach('files', pdfBuffer('ok'), 'ok.pdf')
         .attach('files', Buffer.from('MZ not pdf'), 'fake.pdf')
         .expect(400);
       expect(bad.body.message).toBe(Messages.INVALID_FILE);
-      const none = await litigant.post(`/api/cases/${id}/documents`).expect(400);
+      const none = await lawyer.post(`/api/cases/${id}/documents`).expect(400);
       expect(none.body.message).toBe(Messages.MISSING_FILE);
       expect(await ctx.prisma.caseDocument.count()).toBe(0);
       expect(storedFiles()).toEqual([]);
@@ -672,12 +677,12 @@ describe('Cases (e2e)', () => {
     });
 
     it('refuses new documents on a closed case', async () => {
-      const created = await submit(litigant, validCase()).expect(201);
+      const created = await submit(lawyer, validCase()).expect(201);
       await ctx.prisma.case.update({
         where: { id: created.body.case.id },
         data: { status: 'DECIDED' },
       });
-      const res = await litigant
+      const res = await lawyer
         .post(`/api/cases/${created.body.case.id}/documents`)
         .attach('files', pdfBuffer(), 'late.pdf')
         .expect(409);
@@ -694,7 +699,7 @@ describe('Cases (e2e)', () => {
 
     it('streams the original bytes with an attachment header; the SHA-256 matches the upload', async () => {
       const content = pdfBuffer('download me');
-      const created = await submit(litigant, validCase(), [
+      const created = await submit(lawyer, validCase(), [
         { name: 'My Petition (final).pdf', content },
       ]).expect(201);
       const id = created.body.case.id as string;
@@ -724,7 +729,7 @@ describe('Cases (e2e)', () => {
     });
 
     it('has no update or delete routes: documents are locked once attached', async () => {
-      const created = await submit(litigant, validCase(), [
+      const created = await submit(lawyer, validCase(), [
         { name: 'a.pdf', content: pdfBuffer() },
       ]).expect(201);
       const id = created.body.case.id as string;

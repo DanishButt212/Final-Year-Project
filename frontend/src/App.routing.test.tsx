@@ -41,11 +41,12 @@ function renderApp(route: string, role?: Role) {
 }
 
 const HOME: Record<Role, { path: string; heading: RegExp; portal: string }> = {
+  STENOGRAPHER: { path: '/stenographer', heading: /assigned hearings/i, portal: 'Stenographer Portal' },
   LITIGANT: { path: '/litigant', heading: /welcome, ayesha siddiqui/i, portal: 'Litigant Portal' },
   LAWYER: { path: '/lawyer', heading: /welcome, ayesha siddiqui/i, portal: 'Lawyer Chamber' },
   INTERN: { path: '/intern', heading: /^dashboard$/i, portal: 'Legal Intern Portal' },
   JUDGE: { path: '/judge', heading: /welcome, ayesha siddiqui/i, portal: 'Judge Portal' },
-  ADMIN: { path: '/admin', heading: /welcome, ayesha siddiqui/i, portal: 'Administration' },
+  ADMIN: { path: '/admin', heading: /welcome, ayesha siddiqui/i, portal: 'Reader' },
   PROCESS_SERVER: {
     path: '/process-server',
     heading: /my duty roster/i,
@@ -81,7 +82,7 @@ describe('role-based routing', () => {
     },
   );
 
-  it('shows the operations and analytics board on the admin dashboard', async () => {
+  it('shows the operations and analytics board on the reader dashboard', async () => {
     renderApp('/admin', 'ADMIN');
     expect(
       await screen.findByRole('heading', { level: 1, name: /welcome, ayesha siddiqui/i }),

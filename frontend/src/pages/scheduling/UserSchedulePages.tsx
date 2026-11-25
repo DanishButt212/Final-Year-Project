@@ -24,6 +24,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import {
   addDaysIso,
@@ -36,7 +37,6 @@ import {
   type HearingView,
 } from '@/lib/scheduling-api';
 import { cn } from '@/lib/utils';
-import { JoinRoomButton, VirtualBadge } from '@/pages/virtual/JoinRoomButton';
 import { useTranslation } from 'react-i18next';
 
 import { msg } from '@/i18n';
@@ -159,11 +159,7 @@ export function HearingSchedulePage() {
                               <TableCell className="space-y-2">
                                 <div className="flex flex-wrap gap-1">
                                   <HearingStatusBadge status={h.status} />
-                                  {h.isVirtual && <VirtualBadge />}
                                 </div>
-                                {h.isVirtual && when === 'upcoming' && h.status === 'SCHEDULED' && (
-                                  <JoinRoomButton hearingId={h.id} />
-                                )}
                                 {when === 'upcoming' && h.status === 'SCHEDULED' && (
                                   <AddToCalendar
                                     hearing={{
@@ -173,10 +169,14 @@ export function HearingSchedulePage() {
                                       startTime: h.startTime,
                                       endTime: h.endTime,
                                       courtroom: h.courtroom?.name,
-                                      isVirtual: h.isVirtual,
                                     }}
                                     casePath={portalPath(portal, `cases/${h.caseId}`)}
                                   />
+                                )}
+                                {user.role === 'LAWYER' && h.canReportClash !== false && when === 'upcoming' && (h.status === 'SCHEDULED' || h.status === 'ADJOURNED') && (
+                                  <Button asChild variant="secondary" size="sm">
+                                    <Link to={`/lawyer/hearing-clashes?hearing=${h.id}`}>{t('Report clash')}</Link>
+                                  </Button>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -319,13 +319,7 @@ export function CauseListsPage() {
                                 {e.title}
                                 <span className="mt-1 flex flex-wrap gap-1">
                                   {e.isMine && <Badge variant="accent">{t('Your case')}</Badge>}
-                                  {e.isVirtual && <VirtualBadge />}
                                 </span>
-                                {e.isMine && e.isVirtual && e.status === 'SCHEDULED' && (
-                                  <div className="mt-2">
-                                    <JoinRoomButton hearingId={e.hearingId} />
-                                  </div>
-                                )}
                               </TableCell>
                               <TableCell>{e.judge}</TableCell>
                             </TableRow>
@@ -432,11 +426,7 @@ export function JudgeSchedulePage() {
                         <span className="flex flex-col items-end gap-2">
                           <span className="flex flex-wrap gap-1">
                             <HearingStatusBadge status={h.status} />
-                            {h.isVirtual && <VirtualBadge />}
                           </span>
-                          {h.isVirtual && h.status === 'SCHEDULED' && d >= todayIso() && (
-                            <JoinRoomButton hearingId={h.id} />
-                          )}
                           {h.status === 'SCHEDULED' && d >= todayIso() && (
                             <AddToCalendar
                               hearing={{
@@ -446,7 +436,6 @@ export function JudgeSchedulePage() {
                                 startTime: h.startTime,
                                 endTime: h.endTime,
                                 courtroom: h.courtroom?.name,
-                                isVirtual: h.isVirtual,
                               }}
                               casePath={`/judge/cases/${h.caseId}`}
                             />

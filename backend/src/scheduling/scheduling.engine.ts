@@ -28,10 +28,20 @@ export const conflictMessages = {
     `Scheduling Conflict: ${room ?? 'This courtroom'} is already booked for this time slot.`,
 };
 
+const approvedCoverage = {
+  where: { status: 'APPROVED' },
+  select: {
+    hearingDate: true,
+    hearingSlot: true,
+    substituteId: true,
+    substitute: { select: { user: { select: { firstName: true, lastName: true } } } },
+  },
+} satisfies NonNullable<Prisma.HearingInclude['coverageRequests']>;
+
 export const scanInclude = {
   courtroom: { select: { id: true, name: true, courtId: true } },
   judge: { select: { id: true, firstName: true, lastName: true } },
-  session: { select: { id: true, status: true } },
+  coverageRequests: approvedCoverage,
   case: {
     select: {
       id: true,
@@ -41,6 +51,8 @@ export const scanInclude = {
       parties: {
         select: {
           lawyerId: true,
+          cnic: true,
+          role: true,
           lawyer: {
             select: { userId: true, user: { select: { firstName: true, lastName: true } } },
           },
@@ -61,12 +73,26 @@ export interface Candidate {
   excludeHearingId?: string;
 }
 
-export const lawyerIdsOf = (h: ScanHearing) => [
-  ...new Set(h.case.parties.map((p) => p.lawyerId).filter((x): x is string => Boolean(x))),
+type CoverageSlot = Pick<ScanHearing, 'date' | 'timeSlot' | 'lastSummons' | 'coverageRequests'>;
+const currentCoverage = (h: CoverageSlot) =>
+  h.lastSummons
+    ? []
+    : h.coverageRequests.filter(
+        (r) => r.hearingDate.getTime() === h.date.getTime() && r.hearingSlot === h.timeSlot,
+      );
+
+const lawyerIdsOf = (h: CoverageSlot & { case: { parties: { lawyerId: string | null }[] } }) => [
+  ...new Set([
+    ...h.case.parties.flatMap((p) => (p.lawyerId ? [p.lawyerId] : [])),
+    ...currentCoverage(h).flatMap((r) => (r.substituteId ? [r.substituteId] : [])),
+  ]),
 ];
 
 export const lawyerNamesOf = (h: ScanHearing) => [
-  ...new Set(h.case.parties.flatMap((p) => (p.lawyer ? [fullName(p.lawyer.user)] : []))),
+  ...new Set([
+    ...h.case.parties.flatMap((p) => (p.lawyer ? [fullName(p.lawyer.user)] : [])),
+    ...currentCoverage(h).flatMap((r) => (r.substitute ? [fullName(r.substitute.user)] : [])),
+  ]),
 ];
 
 /** The anti-clash engine: pure reads, usable inside or outside a transaction. */
@@ -113,7 +139,23 @@ export class SchedulingEngine {
     }
     if (c.lawyerIds.length > 0) {
       const lawyer = await db.hearing.findFirst({
-        where: { ...base, case: { parties: { some: { lawyerId: { in: c.lawyerIds } } } } },
+        where: {
+          ...base,
+          OR: [
+            { case: { parties: { some: { lawyerId: { in: c.lawyerIds } } } } },
+            {
+              lastSummons: false,
+              coverageRequests: {
+                some: {
+                  status: 'APPROVED',
+                  hearingDate: c.date,
+                  hearingSlot: c.slot,
+                  substituteId: { in: c.lawyerIds },
+                },
+              },
+            },
+          ],
+        },
         select: pick,
       });
       if (lawyer) {
@@ -204,7 +246,18 @@ export class SchedulingEngine {
           { judgeId: input.judgeId },
           { courtroom: { courtId: input.courtId } },
           ...(input.lawyerIds.length
-            ? [{ case: { parties: { some: { lawyerId: { in: input.lawyerIds } } } } }]
+            ? [
+                { case: { parties: { some: { lawyerId: { in: input.lawyerIds } } } } },
+                {
+                  lastSummons: false,
+                  coverageRequests: {
+                    some: {
+                      status: 'APPROVED' as const,
+                      substituteId: { in: input.lawyerIds },
+                    },
+                  },
+                },
+              ]
             : []),
         ],
       },
@@ -213,6 +266,8 @@ export class SchedulingEngine {
         timeSlot: true,
         judgeId: true,
         courtroomId: true,
+        lastSummons: true,
+        coverageRequests: approvedCoverage,
         case: { select: { parties: { select: { lawyerId: true } } } },
       },
     });
@@ -236,9 +291,7 @@ export class SchedulingEngine {
         if (slotHasPassed(day, s)) continue;
         const hits = busy.filter((b) => isoDate(b.date) === key && b.timeSlot === s.slot);
         const judgeBusy = hits.some((b) => b.judgeId === input.judgeId);
-        const lawyerBusy = hits.some((b) =>
-          b.case.parties.some((p) => p.lawyerId && lawyers.has(p.lawyerId)),
-        );
+        const lawyerBusy = hits.some((b) => lawyerIdsOf(b).some((id) => lawyers.has(id)));
         if (judgeBusy || lawyerBusy) continue;
         const takenRooms = new Set(hits.map((b) => b.courtroomId));
         const free = rooms.filter((r) => !takenRooms.has(r.id));

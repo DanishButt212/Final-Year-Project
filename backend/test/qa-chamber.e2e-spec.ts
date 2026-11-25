@@ -1,7 +1,8 @@
 /** QA: chamber silo (clients, billable, retainers, alerts, expenses), interns, research logs, geo-fenced attendance, certificate. */
-import { Api, buildWorld, fileCase, login, World } from './fixtures';
-import { createTestApp, mailer, resetDatabase, TestContext } from './helpers';
+import { Api, buildWorld, fileCase, login, PASSWORD, World } from './fixtures';
+import { createTestApp, createUser, mailer, resetDatabase, TestContext } from './helpers';
 import { anon } from './fixtures';
+import { openTestPortals } from './browser-fixture';
 
 const INSIDE = { latitude: 30.1979, longitude: 71.4698, accuracy: 15 };
 const OUTSIDE = { latitude: 30.26, longitude: 71.53, accuracy: 15 };
@@ -97,7 +98,8 @@ describe('QA chamber, interns and certificate (e2e)', () => {
     });
 
     it('accepts a research log only for a case where the supervising lawyer is counsel', async () => {
-      const otherUcn = (await fileCase(litigant)).case.ucn;
+      const otherLawyer = await login(ctx, w.emails.lawyer2);
+      const otherUcn = (await fileCase(otherLawyer)).case.ucn;
       const bad = await intern
         .post('/api/intern/research-logs')
         .send({ caseNumber: otherUcn, keywords: ['jurisdiction'], citation: 'PLD 2020 SC 1', notes: NOTES });
@@ -189,4 +191,70 @@ describe('QA chamber, interns and certificate (e2e)', () => {
       expect(res.body.message).toBe('A certificate can be issued once the intern has at least one approved research log.');
     });
   });
+
+  const browserTest = process.env.COVERAGE_BROWSER_URL ? it : it.skip;
+  browserTest('persists an intern research submission, supervisor approval and sealed certificate across portals', async () => {
+    const web = process.env.COVERAGE_BROWSER_URL!;
+    const trainee = await createUser(ctx.prisma, {
+      role: 'INTERN', email: 'research.trainee@qa.test', cnic: '36302-7111199-4', password: PASSWORD,
+    });
+    const profile = await ctx.prisma.internProfile.create({
+      data: { userId: trainee.id, supervisorId: w.lawyerProfileId, startDate: new Date('2026-09-01') },
+    });
+    const citation = 'PLD 2020 SC 214';
+    const comment = 'Approved for drafting the chamber brief.';
+    const { browser, signIn } = await openTestPortals(ctx, web);
+    try {
+      const apprentice = await signIn(trainee.email);
+      const supervisor = await signIn(w.emails.lawyer);
+      await apprentice.goto(`${web}/intern/research-logs`);
+      await apprentice.getByLabel('Target Case Number').selectOption(ucn);
+      await apprentice.getByLabel('Citation Reference').fill(citation);
+      const keywords = apprentice.getByRole('textbox', { name: /^Keywords/ });
+      await keywords.fill('jurisdiction');
+      await keywords.press('Enter');
+      await apprentice.getByLabel('Relevant Law Notes').fill(NOTES);
+      const submitted = apprentice.waitForResponse((res) =>
+        res.request().method() === 'POST' && res.url().endsWith('/api/intern/research-logs'));
+      await apprentice.getByRole('button', { name: 'Submit Research Record Log', exact: true }).click();
+      expect((await submitted).status()).toBe(201);
+
+      await supervisor.goto(`${web}/lawyer/chamber/research-logs`);
+      const research = supervisor.getByRole('row').filter({ hasText: citation });
+      await research.getByText(ucn, { exact: true }).waitFor();
+      await research.getByRole('button', { name: 'Review', exact: true }).click();
+      const review = supervisor.getByRole('dialog');
+      await review.getByLabel('Comment (optional)').fill(comment);
+      const saved = supervisor.waitForResponse((res) =>
+        res.request().method() === 'PATCH' && /\/api\/chamber\/research-logs\/[^/]+\/review$/.test(res.url()));
+      await review.getByRole('button', { name: 'Approve', exact: true }).click();
+      expect((await saved).status()).toBe(200);
+
+      await apprentice.reload();
+      const ownLog = apprentice.getByRole('listitem').filter({ hasText: citation });
+      await ownLog.getByText('Approved', { exact: true }).waitFor();
+      await ownLog.getByText(comment, { exact: false }).waitFor();
+      expect(await ownLog.getByRole('button', { name: 'Edit', exact: true }).count()).toBe(0);
+
+      await supervisor.goto(`${web}/lawyer/chamber/interns/${profile.id}`);
+      await supervisor.getByRole('button', { name: 'Issue completion certificate', exact: true }).click();
+      const issued = supervisor.waitForResponse((res) =>
+        res.request().method() === 'POST' && res.url().endsWith(`/interns/${profile.id}/certificate`));
+      await supervisor.getByRole('dialog').getByRole('button', { name: 'Issue certificate', exact: true }).click();
+      const certificate = await issued;
+      expect(certificate.status()).toBe(201);
+      const number = (await certificate.json()).certificate.certificateNo;
+      await apprentice.goto(`${web}/intern/certificate`);
+      await apprentice.reload();
+      await apprentice.getByText(number, { exact: true }).waitFor();
+      const download = apprentice.waitForEvent('download');
+      await apprentice.getByRole('button', { name: 'Download PDF certificate', exact: true }).click();
+      expect((await download).suggestedFilename()).toBe(`${number}.pdf`);
+      const verified = apprentice.waitForResponse((res) => res.url().endsWith('/api/intern/certificate/verify'));
+      await apprentice.getByRole('button', { name: 'Verify seal', exact: true }).click();
+      expect((await (await verified).json()).valid).toBe(true);
+    } finally {
+      await browser.close();
+    }
+  }, 150_000);
 });

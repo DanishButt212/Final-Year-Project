@@ -61,9 +61,12 @@ export function LedgerTable({ challan }: { challan: Challan }) {
 }
 
 /** UC-4.1: "Fees & Payment" tab of the case detail page. */
-export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: string | null }) {
+export default function FeesPanel({ caseId, claim, coverageReadOnly }: {
+  caseId: string; claim?: string | null; coverageReadOnly?: boolean;
+}) {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const readOnly = user?.role === 'ADMIN' || coverageReadOnly;
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [message, setMessage] = useState<string | null>(null);
@@ -78,6 +81,7 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
     queryKey: challanKey(caseId),
     queryFn: () => feesApi.getChallan(caseId),
     enabled: Boolean(user),
+    refetchInterval: user?.role === 'ADMIN' ? 10_000 : false,
   });
 
   const calculate = useMutation({
@@ -117,16 +121,24 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
         <Card>
           <EmptyState
             icon={Calculator}
-            title={t('Court fee not calculated yet')}
+            title={
+              readOnly
+                ? t('No challan has been generated for this case yet.')
+                : t('Court fee not calculated yet')
+            }
             description={
-              claim
-                ? t('The fee is worked out from the case type and your claim value.')
-                : t('The fee is worked out from the case type.')
+              readOnly
+                ? undefined
+                : claim && user.role === 'LAWYER'
+                  ? t('The fee is worked out from the case type and your claim value.')
+                  : t('The fee is worked out from the case type.')
             }
             action={
-              <Button onClick={() => calculate.mutate()} loading={calculate.isPending}>
-                <Calculator aria-hidden="true" /> {t('Calculate Costs and Fees')}
-              </Button>
+              !readOnly && (
+                <Button onClick={() => calculate.mutate()} loading={calculate.isPending}>
+                  <Calculator aria-hidden="true" /> {t('Calculate Costs and Fees')}
+                </Button>
+              )
             }
           />
         </Card>
@@ -156,25 +168,29 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
           <CardContent className="space-y-5">
             <LedgerTable challan={challan} />
             <div className="flex flex-wrap gap-3">
-              {challan.status === 'UNPAID' && (
+              {!readOnly && challan.status === 'UNPAID' && (
                 <>
                   <Button onClick={() => navigate(portalPath(portal, `pay/${challan.id}`))}>
                     <CreditCard aria-hidden="true" /> {t('Pay Fee Online')}
                   </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => calculate.mutate()}
-                    loading={calculate.isPending}
-                  >
-                    <Calculator aria-hidden="true" /> {t('Recalculate')}
-                  </Button>
+                  {user.role === 'LAWYER' && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => calculate.mutate()}
+                      loading={calculate.isPending}
+                    >
+                      <Calculator aria-hidden="true" /> {t('Recalculate')}
+                    </Button>
+                  )}
                 </>
               )}
-              <Button variant="secondary" asChild>
-                <Link to={portalPath(portal, `cases/${caseId}/challan`)}>
-                  <Printer aria-hidden="true" /> {t('Print Challan')}
-                </Link>
-              </Button>
+              {!readOnly && (
+                <Button variant="secondary" asChild>
+                  <Link to={portalPath(portal, `cases/${caseId}/challan`)}>
+                    <Printer aria-hidden="true" /> {t('Print Challan')}
+                  </Link>
+                </Button>
+              )}
               <PreviewButton
                 label={t('Preview challan')}
                 size="default"
@@ -211,7 +227,7 @@ export default function FeesPanel({ caseId, claim }: { caseId: string; claim?: s
                 </Button>
               )}
             </div>
-            {challan.status === 'PAID' && (
+            {!readOnly && challan.status === 'PAID' && (
               <Alert variant="success" title={t('Fee paid')}>
                 <Trans
                   i18nKey="Receipt {{receiptNo}}. See all payments under <link>Payments & Receipts</link>."

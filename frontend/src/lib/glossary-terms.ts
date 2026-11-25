@@ -52,6 +52,5 @@ export const GLOSSARY_TERMS: Record<string, string> = {
   summons: msg('Summons'),
   ucn: msg('Unique Case Number (UCN)'),
   vakalatnama: msg('Vakalatnama'),
-  'virtual-hearing': msg('Virtual hearing'),
   'writ-petition': msg('Writ petition'),
 };

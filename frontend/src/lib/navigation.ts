@@ -28,7 +28,6 @@ import {
   NotebookPen,
   Shuffle,
   ScrollText,
-  Video,
   ShieldAlert,
   UserCircle,
 } from 'lucide-react';
@@ -67,12 +66,6 @@ export const PORTALS: Record<Role, Portal> = {
     label: msg('Litigant Portal'),
     items: [
       dash(msg('Your cases, hearings and payments at a glance.')),
-      {
-        slug: 'new-case',
-        label: msg('New Case Submission'),
-        icon: FilePlus2,
-        description: msg('Multi-step electronic filing with PDF pleadings.'),
-      },
       {
         slug: 'cases',
         label: msg('My Case Portfolio'),
@@ -124,8 +117,20 @@ export const PORTALS: Record<Role, Portal> = {
     items: [
       dash(msg('Your chamber, clients and cases at a glance.')),
       {
+        slug: 'hearing-clashes',
+        label: msg('Hearing clashes'),
+        icon: CalendarClock,
+        description: msg('Report clashes and respond to substitute invitations.'),
+      },
+      {
+        slug: 'chamber-portal',
+        label: msg('Chamber Portal'),
+        icon: Briefcase,
+        description: msg('Allocate coverage for hearings shared with your chamber.'),
+      },
+      {
         slug: 'new-case',
-        label: msg('New Case Submission'),
+        label: msg('File a Case'),
         icon: FilePlus2,
         description: msg('Electronic filing for your clients.'),
       },
@@ -263,11 +268,30 @@ export const PORTALS: Record<Role, Portal> = {
       },
     ],
   },
+  STENOGRAPHER: {
+    slug: 'stenographer',
+    role: 'STENOGRAPHER',
+    label: msg('Stenographer Portal'),
+    items: [
+      {
+        slug: '',
+        label: msg('Assigned hearings'),
+        icon: NotebookPen,
+        description: msg('Write and submit hearing transcripts.'),
+      },
+    ],
+  },
   JUDGE: {
     slug: 'judge',
     role: 'JUDGE',
     label: msg('Judge Portal'),
     items: [
+      {
+        slug: 'transcripts',
+        label: msg('Hearing transcripts'),
+        icon: FileText,
+        description: msg('Review and digitally sign hearing transcripts.'),
+      },
       dash(msg('Today’s cause list and your caseload.')),
       {
         slug: 'schedule',
@@ -293,12 +317,18 @@ export const PORTALS: Record<Role, Portal> = {
         icon: Gavel,
         description: msg('Hearing orders and decisions you have recorded.'),
       },
+      {
+        slug: 'hearing-clashes',
+        label: msg('Hearing clashes'),
+        icon: CalendarClock,
+        description: msg('Review substitutions and record lawyer absences.'),
+      },
     ],
   },
   ADMIN: {
     slug: 'admin',
     role: 'ADMIN',
-    label: msg('Administration'),
+    label: msg('Reader'),
     items: [
       {
         slug: '',
@@ -367,16 +397,22 @@ export const PORTALS: Record<Role, Portal> = {
         description: msg('Judicial performance statistics with PDF and Excel export.'),
       },
       {
+        slug: 'transcript-assignments',
+        label: msg('Stenographer assignments'),
+        icon: NotebookPen,
+        description: msg('Assign stenographers to scheduled hearings.'),
+      },
+      {
         slug: 'hearings',
         label: msg('Bench Scheduling'),
         icon: CalendarClock,
         description: msg('Master board, anti-clash checks and cause lists.'),
       },
       {
-        slug: 'virtual-courtroom',
-        label: msg('Virtual Courtroom Control'),
-        icon: Video,
-        description: msg('Live virtual hearing sessions and room participants.'),
+        slug: 'hearing-clashes',
+        label: msg('Hearing clashes'),
+        icon: CalendarClock,
+        description: msg('Review hearing clashes and enter fines ordered by a judge.'),
       },
     ],
   },
@@ -391,8 +427,9 @@ export const ROLE_LABEL: Record<Role, string> = {
   LAWYER: msg('Lawyer'),
   INTERN: msg('Legal Intern'),
   PROCESS_SERVER: msg('Process Server'),
+  STENOGRAPHER: msg('Stenographer'),
   JUDGE: msg('Judge'),
-  ADMIN: msg('Administrator'),
+  ADMIN: msg('Reader'),
 };
 
 export const roleHome = (role: Role) => `/${PORTALS[role].slug}`;

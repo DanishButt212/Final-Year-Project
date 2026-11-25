@@ -29,7 +29,7 @@ export function ForbiddenPage() {
           title={t('403: You do not have access to this page')}
           titleAs="h1"
           description={t(
-            'Your account type cannot open this page. If you think this is a mistake, contact an administrator.',
+            'Your account type cannot open this page. If you think this is a mistake, contact a reader.',
           )}
           action={<HomeButton />}
         />

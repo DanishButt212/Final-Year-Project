@@ -54,9 +54,3 @@ services:
         sync: false
       - key: S3_SECRET_ACCESS_KEY
         sync: false
-      - key: JAAS_APP_ID
-        sync: false
-      - key: JAAS_KID
-        sync: false
-      - key: JAAS_PRIVATE_KEY
-        sync: false

@@ -192,7 +192,7 @@ export class InsightsService {
     };
   }
 
-  /** Administrators: filings, disposal rate, categories, fee revenue, days to decision, busiest courtrooms. */
+  /** Readers: filings, disposal rate, categories, fee revenue, days to decision, busiest courtrooms. */
   private async admin() {
     const months = lastMonths(12);
     const from = monthStart(months[0]);

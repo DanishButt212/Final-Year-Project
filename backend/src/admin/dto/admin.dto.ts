@@ -21,8 +21,16 @@ import { PageQueryDto } from '../../common/pagination';
 import { Trim, TrimLower, TrimOrUndefined, NoHtml } from '../../common/validators';
 import { CaseStatus, CaseType, Role, UserStatus } from '../../generated/prisma/client';
 
-export const PROVISIONABLE_ROLES = ['INTERN', 'PROCESS_SERVER', 'JUDGE', 'ADMIN'] as const;
+export const PROVISIONABLE_ROLES = ['INTERN', 'PROCESS_SERVER', 'STENOGRAPHER', 'JUDGE', 'ADMIN'] as const;
 export type ProvisionableRole = (typeof PROVISIONABLE_ROLES)[number];
+
+export class AssignCaseCounselDto {
+  @Trim()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
+  barNumber: string;
+}
 
 export class DashboardQueryDto {
   @IsOptional()
@@ -48,7 +56,7 @@ export class AdminListUsersQueryDto extends PageQueryDto {
 
 export class CreateStaffDto {
   @IsNotEmpty()
-  @IsIn(PROVISIONABLE_ROLES, { message: 'Role must be INTERN, PROCESS_SERVER, JUDGE or ADMIN.' })
+  @IsIn(PROVISIONABLE_ROLES, { message: 'Choose a supported staff role.' })
   role: ProvisionableRole;
 
   @Trim()

@@ -125,7 +125,7 @@ export default function LoginPage() {
   return (
     <AuthCard
       title={t('Log in')}
-      description={t('Use your email address. Administrators can also use their username.')}
+      description={t('Use your email address. Readers can also use their username.')}
       footer={
         <p>
           {t('New here?')}{' '}

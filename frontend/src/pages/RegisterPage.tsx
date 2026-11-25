@@ -77,7 +77,7 @@ export default function RegisterPage() {
       wide
       title={t('Create an account')}
       description={t(
-        'Public registration is for litigants and lawyers. Other accounts are created by an administrator.',
+        'Public registration is for litigants and lawyers. Other accounts are created by a reader.',
       )}
       footer={
         <p>
@@ -162,7 +162,7 @@ export default function RegisterPage() {
           <Field
             label={t('Bar Council number')}
             required
-            hint={t('An administrator checks it with the Bar Council before you can file cases.')}
+            hint={t('A reader checks it with the Bar Council before you can file cases.')}
             error={errors.barNumber?.message}
           >
             {(p) => <Input {...p} {...register('barNumber')} />}

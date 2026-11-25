@@ -35,7 +35,7 @@ export class SummonsCaseService {
   /** Filers and lawyers: status, attempt dates and outcome notes only. Judge and admin: also server and telemetry. */
   async list(user: AuthUser, caseId: string) {
     const c = await this.prisma.case.findFirst({
-      where: { id: caseId, ...(await caseScopeFor(this.prisma, user)) },
+      where: { id: caseId, ...(await caseScopeFor(this.prisma, user, true)) },
       select: { id: true },
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
@@ -106,7 +106,7 @@ export class SummonsCaseService {
 
   async proofPdf(user: AuthUser, id: string, meta: RequestMeta) {
     const s = await this.prisma.summons.findFirst({
-      where: { id, status: 'EXECUTED', case: await caseScopeFor(this.prisma, user) },
+      where: { id, status: 'EXECUTED', case: await caseScopeFor(this.prisma, user, true) },
       include: {
         case: { select: { ucn: true, title: true } },
         server: {

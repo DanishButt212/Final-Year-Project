@@ -2,8 +2,6 @@
 import { expect, test } from '@playwright/test';
 import { heading, login, pdf, watchConsole } from './support';
 
-test.describe.configure({ mode: 'serial' });
-
 test('a new litigant can register', async ({ page }) => {
   const n = Date.now() % 1_000_000;
   await page.goto('/register');
@@ -27,32 +25,72 @@ test('rejects a bad CNIC and phone with inline messages', async ({ page }) => {
   await expect(page.getByText(/\+92 3XX XXXXXXX/).first()).toBeVisible();
 });
 
-test('files a case with a PDF, pays the fee and downloads the receipt', async ({ page }) => {
+test('a lawyer files for the litigant, who can view the case and pay its fee', async ({ page, browser }) => {
   const errors = watchConsole(page);
   await login(page, 'LITIGANT');
   await page.goto('/litigant/new-case');
-  await page.getByLabel('Case type').selectOption('CIVIL_SUIT');
-  await page.getByLabel('Relief sought').fill('Recovery of PKR 500,000 under the sale agreement dated 01-01-2026.');
-  await page.getByRole('button', { name: /^next/i }).click();
-  // Parties: the litigant is prefilled as the first petitioner; add the opposing party.
-  const names = page.getByLabel('Full name');
+  await expect(page).toHaveURL(/\/forbidden$/);
+  const { user: me } = await (await page.request.get('/api/auth/me')).json();
+  const lawyer = await browser.newPage({ baseURL: test.info().project.use.baseURL });
+  await login(lawyer, 'LAWYER');
+  await lawyer.goto('/lawyer/new-case');
+  await lawyer.getByLabel('Case type').selectOption('CIVIL_SUIT');
+  const filingTitle = `Sale agreement recovery ${Date.now()}`;
+  await lawyer.getByLabel(/case title/i).fill(filingTitle);
+  await lawyer.getByLabel('Relief sought').fill('Recovery of PKR 500,000 under the sale agreement dated 01-01-2026.');
+  await lawyer.getByRole('button', { name: /^next/i }).click();
+  const names = lawyer.getByLabel('Full name');
+  await names.first().fill(`${me.firstName} ${me.lastName}`);
+  await lawyer.getByLabel('Represented litigant CNIC').fill(me.cnic);
   await names.nth(1).fill('Bilal Ahmed');
-  await page.getByRole('button', { name: /^next/i }).click();
-  await page.getByTestId('pdf-input').setInputFiles({ name: 'petition.pdf', mimeType: 'application/pdf', buffer: pdf('ui-petition') });
-  await expect(page.getByText('petition.pdf')).toBeVisible();
-  await page.getByRole('button', { name: /^next/i }).click();
-  await page.getByRole('button', { name: /submit case/i }).click();
-  const ucn = page.getByTestId('ucn');
+  await lawyer.getByRole('button', { name: /^next/i }).click();
+  await lawyer.getByTestId('pdf-input').setInputFiles({ name: 'petition.pdf', mimeType: 'application/pdf', buffer: pdf('ui-petition') });
+  await expect(lawyer.getByText('petition.pdf')).toBeVisible();
+  await lawyer.getByRole('button', { name: /^next/i }).click();
+  let submissions = 0;
+  await lawyer.route('**/api/cases', async (route) => {
+    if (route.request().method() === 'POST') submissions += 1;
+    await route.continue();
+  });
+  await lawyer.getByRole('button', { name: /submit case/i }).dblclick();
+  const ucn = lawyer.getByTestId('ucn');
   await expect(ucn).toHaveText(/^DA-\d{4}-CIV-\d{6}$/, { timeout: 20_000 });
-  await expect(ucn).toHaveCSS('font-family', /mono/i);
-
-  await page.getByRole('link', { name: 'View case' }).click();
-  await heading(page);
+  await expect(lawyer.getByText('Unpaid challan', { exact: true })).toBeVisible();
+  await expect(lawyer.getByText('Due date', { exact: true })).toBeVisible();
+  const view = await lawyer.getByRole('link', { name: 'View case' }).getAttribute('href');
+  const caseNumber = await ucn.innerText();
+  const filed = await lawyer.request.get(`/api/cases?search=${encodeURIComponent(filingTitle)}`);
+  expect(filed.ok()).toBe(true);
+  const filingResults = (await filed.json()).data;
+  expect(filingResults.map((item: { ucn: string }) => item.ucn)).toEqual([caseNumber]);
+  expect(submissions).toBe(1);
+  const outsider = await browser.newPage({ baseURL: test.info().project.use.baseURL });
+  try {
+    await login(outsider, 'LITIGANT2');
+    const caseId = view!.split('/').pop();
+    const detail = await lawyer.request.get(`/api/cases/${caseId}`);
+    expect(detail.ok()).toBe(true);
+    const { documents } = await detail.json();
+    expect((await outsider.request.get(`/api/cases/${caseId}`)).status()).toBe(404);
+    expect((await outsider.request.get(`/api/cases/${caseId}/documents/${documents[0].id}/download`)).status()).toBe(404);
+  } finally {
+    await outsider.close();
+  }
+  await lawyer.close();
+  const reader = await browser.newPage({ baseURL: test.info().project.use.baseURL });
+  await login(reader, 'ADMIN');
+  await reader.goto('/admin/cases');
+  const feeRow = reader.getByRole('row').filter({ hasText: caseNumber });
+  await expect(feeRow.getByText('Unpaid', { exact: true })).toBeVisible();
+  await page.goto(view!.replace('/lawyer/', '/litigant/'));
   await page.getByRole('tab', { name: 'Fees & Payment' }).click();
-  await page.getByRole('button', { name: /calculate costs and fees/i }).click();
+  await expect(page.getByText('Unpaid', { exact: true })).toBeVisible();
   await expect(page.getByRole('table', { name: 'Cost ledger' })).toBeVisible();
   await expect(page.getByText(/PKR 2,500/).first()).toBeVisible();
   await page.getByRole('button', { name: /pay fee online/i }).click();
+  await expect(page.getByLabel('Payment method').locator('option')).toHaveText([
+    'Stripe card demo', 'JazzCash', 'Easypaisa', 'Bank transfer',
+  ]);
 
   const pay = async (card: string) => {
     await page.getByLabel('Cardholder name').fill('Ayesha Siddiqui');
@@ -69,6 +107,9 @@ test('files a case with a PDF, pays the fee and downloads the receipt', async ({
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: /download receipt/i }).click();
   expect((await download).suggestedFilename()).toMatch(/RCPT-\d{4}-\d{6}/);
+  await reader.reload();
+  await expect(feeRow.getByText('Paid', { exact: true })).toBeVisible();
+  await reader.close();
   expect(errors).toEqual([]);
 });
 
@@ -90,16 +131,23 @@ test('sees the case timeline, documents, hearings, cause lists and notifications
 
 test('uploads an exhibit to an allocated case and submits feedback', async ({ page }) => {
   await login(page, 'LITIGANT');
-  await page.goto('/litigant/cases?status=HEARING_FIXED');
-  await page.goto('/litigant/cases');
-  await page.getByRole('link', { name: /DA-\d{4}-BAL-/ }).first().click().catch(async () => {
-    await page.locator('a.case-number').last().click();
-  });
+  const listed = await page.request.get('/api/cases?status=HEARING_FIXED');
+  expect(listed.ok()).toBe(true);
+  const { data } = await listed.json();
+  expect(data.length).toBeGreaterThan(0);
+  await page.goto(`/litigant/cases/${data[0].id}`);
   await page.getByRole('tab', { name: 'Evidence Vault' }).click();
   const chooser = page.getByLabel('Choose exhibit files');
-  if (await chooser.isVisible().catch(() => false)) {
-    await chooser.setInputFiles({ name: 'scan.pdf', mimeType: 'application/pdf', buffer: pdf('ui-exhibit') });
-  }
+  await page.getByLabel('File category').selectOption('SCANNED_DOCUMENT');
+  await chooser.setInputFiles({ name: 'scan.pdf', mimeType: 'application/pdf', buffer: pdf('ui-exhibit') });
+  await page.getByLabel('Descriptive summary').fill('A scanned statement filed for browser verification.');
+  const uploaded = page.waitForResponse((res) =>
+    res.url().endsWith('/evidence') && res.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Submit Exhibit Entry to Vault' }).click();
+  expect((await uploaded).status()).toBe(201);
+  await page.reload();
+  await page.getByRole('tab', { name: 'Evidence Vault' }).click();
+  await expect(page.getByText('scan.pdf', { exact: true })).toBeVisible();
   await page.goto('/litigant/feedback');
   await page.getByLabel('Category').selectOption({ index: 1 });
   await page.getByLabel('Narrative notes').fill('The hearing schedule page is clear and easy to read.');
@@ -107,14 +155,10 @@ test('uploads an exhibit to an allocated case and submits feedback', async ({ pa
   await expect(page.locator('[role="status"], [role="alert"]').filter({ hasText: /feedback/i }).first()).toBeVisible();
 });
 
-test('the video room button is greyed out or closed outside the session window', async ({ page }) => {
+test('the current build has no courtroom link in the hearing schedule', async ({ page }) => {
   await login(page, 'LITIGANT');
   await page.goto('/litigant/hearings');
-  const btn = page.getByRole('button', { name: 'Join Remote Hearing Video Room' }).first();
-  const link = page.getByRole('link', { name: 'Join Remote Hearing Video Room' }).first();
-  if (await link.isVisible().catch(() => false)) {
-    await expect(link).toHaveAttribute('href', /\/courtroom\//);
-  } else if (await btn.isVisible().catch(() => false)) {
-    await expect(btn).toBeDisabled();
-  }
+  await expect(page.getByRole('heading', { name: 'Hearing Schedule' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Join Remote Hearing Video Room' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Join Remote Hearing Video Room' })).toHaveCount(0);
 });

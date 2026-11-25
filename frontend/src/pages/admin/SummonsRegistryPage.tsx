@@ -506,7 +506,7 @@ function DetailDialog({ id, onClose }: { id: string; onClose: () => void }) {
           data && (
             <div className="space-y-5">
               <div className="flex flex-wrap items-center gap-2">
-                <SummonsStatusBadge status={data.status} />
+                <SummonsStatusBadge status={data.status} serviceMode={data.serviceMode} />
                 <PriorityBadge priority={data.priority} />
                 <OverdueBadge overdue={data.overdue} />
               </div>
@@ -872,7 +872,7 @@ export default function SummonsRegistryPage() {
                     <TableCell>{s.sector}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
-                        <SummonsStatusBadge status={s.status} />
+                        <SummonsStatusBadge status={s.status} serviceMode={s.serviceMode} />
                         <OverdueBadge overdue={s.overdue} />
                       </div>
                     </TableCell>

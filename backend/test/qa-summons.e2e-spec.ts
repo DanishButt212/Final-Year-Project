@@ -24,7 +24,11 @@ describe('QA summons and process server (e2e)', () => {
     litigant = await login(ctx, w.emails.litigant);
     litigant2 = await login(ctx, w.emails.litigant2);
     judge = await login(ctx, w.emails.judge);
-    const { case: c } = await fileCase(litigant);
+    const party = await ctx.prisma.user.findUniqueOrThrow({ where: { id: w.ids.litigant } });
+    const lawyer = await login(ctx, w.emails.lawyer);
+    const { case: c } = await fileCase(lawyer, {
+      petitioners: [{ name: `${party.firstName} ${party.lastName}`, cnic: party.cnic }],
+    });
     caseId = c.id;
   });
   afterAll(() => ctx.app.close());
@@ -130,5 +134,27 @@ describe('QA summons and process server (e2e)', () => {
     await admin.post(`/api/admin/summons/${res.body.id}/cancel`).send({ reason: 'Respondent appeared voluntarily.' }).expect(200);
     const attempt = await server.post(`/api/server/summons/${res.body.id}/attempts`).send({ ...GPS, notes: 'Trying after cancel.' });
     expect([404, 409]).toContain(attempt.status);
+  });
+
+  it('keeps a refusal distinct when sealing proof of an affixed notice', async () => {
+    const res = await issue({ assignedServerId: w.ids.server, recipientName: 'Refusal sample' }).expect(201);
+    const id = res.body.id;
+    await server.post(`/api/server/summons/${id}/attempts`)
+      .send({ ...GPS, notes: 'The named recipient refused the notice.' }).expect(201);
+    await server.post(`/api/server/summons/${id}/finalize`)
+      .field('serviceMode', 'REFUSED_AFFIXED')
+      .field('latitude', String(GPS.latitude))
+      .field('longitude', String(GPS.longitude))
+      .field('accuracyM', String(GPS.accuracyM))
+      .field('notes', 'The recipient refused and the notice was affixed.')
+      .attach('photo', png(64, 48), 'refusal.png').expect(200);
+    const detail = await admin.get(`/api/admin/summons/${id}`).expect(200);
+    expect(detail.body.serviceMode).toBe('REFUSED_AFFIXED');
+    const notice = await ctx.prisma.notification.findFirstOrThrow({
+      where: { userId: w.ids.litigant, body: { contains: 'Refusal sample' }, type: 'SUMMONS_EXECUTED' },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(notice.body).toContain('refused');
+    expect(notice.body).not.toContain('was served');
   });
 });

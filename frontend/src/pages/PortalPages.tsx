@@ -15,6 +15,7 @@ import {
   LitigantDashboard,
 } from './dashboards';
 import { useTranslation } from 'react-i18next';
+import { StenographerPortal } from './transcripts/TranscriptsPage';
 
 /** Process servers work in their own console at /process-server. */
 const ProcessServerHome = () => <Navigate to="/process-server" replace />;
@@ -26,6 +27,7 @@ const DASHBOARDS = {
   JUDGE: JudgeDashboard,
   ADMIN: AdminDashboard,
   PROCESS_SERVER: ProcessServerHome,
+  STENOGRAPHER: StenographerPortal,
 } as const;
 
 /** /:portal → the dashboard for that portal, but only for users who belong to it. */
@@ -98,6 +100,7 @@ export function CaseRoute({
   const portal = slug ? PORTAL_BY_SLUG[slug] : undefined;
   if (!portal) return <NotFoundPage />;
   if (!user || user.role !== portal.role) return <Navigate to="/forbidden" replace />;
+  if (feature === 'new-case' && user.role === 'LITIGANT') return <Navigate to="/forbidden" replace />;
   if (!CASE_ROLES.includes(user.role))
     return detail ? <NotFoundPage /> : <ComingSoonPage feature={feature} />;
   return <>{children}</>;

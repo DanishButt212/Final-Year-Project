@@ -2,8 +2,8 @@ import { QueryError } from '@/components/ui/query-error';
 import { CopyButton } from '@/components/ui/copy-button';
 import { PreviewButton } from '@/components/viewer/PreviewButton';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Printer } from 'lucide-react';
-import { useParams } from 'react-router';
+import { CreditCard, Download, Printer } from 'lucide-react';
+import { Link, useParams } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
@@ -48,7 +48,7 @@ export default function ChallanPrintPage() {
   return (
     <>
       <PageHeader
-        title={t('Print Challan')}
+        title={t('Court Fee Challan')}
         crumbs={[
           { label: t('Dashboard'), to: portalPath(portal, '') },
           { label: t('My Case Portfolio'), to: portalPath(portal, 'cases') },
@@ -105,7 +105,9 @@ export default function ChallanPrintPage() {
           </div>
           <div>
             <dt className="text-sm text-text-muted">{t('Case number')}</dt>
-            <dd className="case-number font-semibold">{data.ucn}</dd>
+            <dd className="case-number font-semibold" data-testid="ucn">
+              {data.ucn}
+            </dd>
           </div>
           <div>
             <dt className="text-sm text-text-muted">{t('Case type')}</dt>
@@ -123,7 +125,9 @@ export default function ChallanPrintPage() {
           </div>
           <div>
             <dt className="text-sm text-text-muted">{t('Due date')}</dt>
-            <dd className="font-semibold">{formatDate(data.dueDate)}</dd>
+            <dd className="font-semibold">
+              <time dateTime={data.dueDate}>{formatDate(data.dueDate)}</time>
+            </dd>
           </div>
         </dl>
         <LedgerTable challan={data} />
@@ -133,6 +137,21 @@ export default function ChallanPrintPage() {
           )}
         </p>
       </article>
+      {data.status === 'UNPAID' && (
+        <section className="mt-6 max-w-3xl space-y-3 print:hidden" aria-label={t('Payment method')}>
+          <ul className="flex list-inside list-disc flex-wrap gap-x-5 gap-y-1 text-sm text-text-muted">
+            <li>{t('Bank transfer')}</li>
+            <li>{t('Stripe card demo')}</li>
+            <li>{t('JazzCash')}</li>
+            <li>{t('Easypaisa')}</li>
+          </ul>
+          <Button asChild>
+            <Link to={portalPath(portal, `pay/${data.id}`)}>
+              <CreditCard aria-hidden="true" /> {t('Pay Fee Online')}
+            </Link>
+          </Button>
+        </section>
+      )}
     </>
   );
 }

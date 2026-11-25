@@ -36,7 +36,7 @@ export class RolesGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request & { user?: AuthUser }>();
     const user = req.user;
     if (!user || !required.includes(user.role)) {
-      // A signed-in account that is refused on an /admin route is a possible privilege escalation.
+      // A signed-in account that is refused on an /reader route is a possible privilege escalation.
       if (user && user.role !== 'ADMIN' && req.originalUrl.startsWith('/api/admin')) {
         await this.security?.recordEscalation({
           actor: { id: user.id, role: user.role },

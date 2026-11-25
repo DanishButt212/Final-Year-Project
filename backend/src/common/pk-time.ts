@@ -1,6 +1,6 @@
 /**
  * Pakistan time (Asia/Karachi, UTC+05:00, no daylight saving) independent of the machine's time zone.
- * Hearing slots, the virtual courtroom window and "today" are always evaluated with these helpers, so the API
+ * Hearing slots and "today" are always evaluated with these helpers, so the API
  * behaves the same on a laptop in Pakistan and on a UTC server. TZ=Asia/Karachi is still set in deployment as a
  * second line of defence for libraries that format local time.
  */

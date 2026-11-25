@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -44,11 +45,15 @@ export class FeesController {
     return this.challans.generate(user, id, meta(req));
   }
 
+  @Roles('LITIGANT', 'LAWYER', 'ADMIN')
+  @Header('Cache-Control', 'private, no-store')
   @Get('cases/:id/challan')
   challan(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
     return this.challans.get(user, id);
   }
 
+  @Roles('LITIGANT', 'LAWYER', 'ADMIN')
+  @Header('Cache-Control', 'private, no-store')
   @Get('challans/:id/pdf')
   challanPdf(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
     return this.challans.pdf(user, id);
@@ -66,6 +71,8 @@ export class FeesController {
     return this.payments.mine(user, q, q.includeFailed === true);
   }
 
+  @Roles('LITIGANT', 'LAWYER', 'ADMIN')
+  @Header('Cache-Control', 'private, no-store')
   @Get('payments/:id/receipt')
   receipt(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
     return this.payments.receipt(user, id);

@@ -34,16 +34,13 @@ const render = (role: 'LITIGANT' | 'LAWYER' = 'LITIGANT') =>
   });
 
 describe('CaseOverview (dashboard)', () => {
-  it('shows real totals, the recent cases and a clear New Case Submission button', async () => {
+  it('shows real totals and recent cases without offering filing to litigants', async () => {
     restore = mockApi(() => ({ data: { total: 7, pendingAssignment: 6, recent: recent(5) } }));
     render();
 
     expect(await screen.findByTestId('stat-Total cases')).toHaveTextContent('7');
     expect(screen.getByTestId('stat-Pending assignment')).toHaveTextContent('6');
-    expect(screen.getByRole('link', { name: /new case submission/i })).toHaveAttribute(
-      'href',
-      '/litigant/new-case',
-    );
+    expect(screen.queryByRole('link', { name: /file a case/i })).not.toBeInTheDocument();
 
     const list = screen.getByRole('list');
     expect(within(list).getAllByRole('link')).toHaveLength(5);
@@ -58,7 +55,7 @@ describe('CaseOverview (dashboard)', () => {
   it('uses the lawyer portal paths for lawyers', async () => {
     restore = mockApi(() => ({ data: { total: 1, pendingAssignment: 1, recent: recent(1) } }));
     render('LAWYER');
-    expect(await screen.findByRole('link', { name: /new case submission/i })).toHaveAttribute(
+    expect(await screen.findByRole('link', { name: /file a case/i })).toHaveAttribute(
       'href',
       '/lawyer/new-case',
     );

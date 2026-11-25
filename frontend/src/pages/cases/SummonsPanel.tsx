@@ -138,7 +138,7 @@ export default function SummonsPanel({
               <TableCell>{s.noticeType === 'NOTICE' ? t('Notice') : t('Summons')}</TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
-                  <SummonsStatusBadge status={s.status} />
+                  <SummonsStatusBadge status={s.status} serviceMode={s.serviceMode} />
                   <OverdueBadge overdue={s.overdue} />
                 </div>
               </TableCell>

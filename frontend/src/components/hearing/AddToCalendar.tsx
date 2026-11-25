@@ -18,7 +18,6 @@ export interface AddToCalendarProps {
     endTime?: string | null;
     courtroom?: string | null;
     court?: string | null;
-    isVirtual?: boolean;
   };
   /** Path of the case page in this portal, e.g. /litigant/cases/<id>. */
   casePath: string;
@@ -32,11 +31,7 @@ export function AddToCalendar({ hearing, casePath, size = 'sm' }: AddToCalendarP
     ...hearing,
     caseUrl: `${window.location.origin}${casePath}`,
     title: t('Hearing: {{ucn}}', { ucn: hearing.ucn }),
-    details: hearing.isVirtual
-      ? t('Virtual hearing for case {{ucn}}. Join from your DigitalAdaalat portal.', {
-          ucn: hearing.ucn,
-        })
-      : t('Court hearing for case {{ucn}}.', { ucn: hearing.ucn }),
+    details: t('Court hearing for case {{ucn}}.', { ucn: hearing.ucn }),
   };
   return (
     <DropdownMenu>

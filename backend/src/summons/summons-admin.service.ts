@@ -94,7 +94,7 @@ function toItem(s: ListRow) {
   };
 }
 
-/** Admin side of summons and notices: issue, assign, reassign, cancel, view the proof and verify its seal. */
+/** Reader side of summons and notices: issue, assign, reassign, cancel, view the proof and verify its seal. */
 @Injectable()
 export class SummonsAdminService {
   constructor(
@@ -396,7 +396,7 @@ export class SummonsAdminService {
     return { message: 'Summons cancelled.' };
   }
 
-  /** Decrypted proof photo or signature for admins and the judge of the case. */
+  /** Decrypted proof photo or signature for readers and the judge of the case. */
   async proofFile(user: AuthUser, id: string, kind: 'photo' | 'signature', meta: RequestMeta) {
     const s = await this.prisma.summons.findUnique({
       where: { id },

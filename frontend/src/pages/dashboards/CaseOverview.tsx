@@ -53,19 +53,19 @@ export default function CaseOverview() {
     <section aria-label={t('Case overview')} className="mb-6 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3" data-tour="new-case">
         <h2 className="text-xl font-bold">{t('Your cases')}</h2>
-        {gate.canFile ? (
+        {user.role === 'LAWYER' && (gate.canFile ? (
           <Button asChild size="lg">
             <Link to={portalPath(portal, 'new-case')}>
-              <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
+              <FilePlus2 aria-hidden="true" /> {t('File a Case')}
             </Link>
           </Button>
         ) : (
           <Button size="lg" disabled aria-describedby="filing-gate-reason">
-            <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
+            <FilePlus2 aria-hidden="true" /> {t('File a Case')}
           </Button>
-        )}
+        ))}
       </div>
-      {gate.reason && (
+      {user.role === 'LAWYER' && gate.reason && (
         <Alert
           variant={
             user.role === 'LAWYER' && !gate.canFile && gate.reason.includes('pending')
@@ -129,11 +129,15 @@ export default function CaseOverview() {
                 <EmptyState
                   icon={Briefcase}
                   title={MESSAGES.emptyPortfolio}
-                  description={t('Submit your first case to see it here.')}
+                  description={user.role === 'LAWYER'
+                    ? t('Submit your first case to see it here.')
+                    : t('Cases your lawyer files on your behalf will appear here.')}
                   action={
-                    <Button asChild variant="secondary" size="sm">
-                      <Link to={portalPath(portal, 'new-case')}>{t('New Case Submission')}</Link>
-                    </Button>
+                    user.role === 'LAWYER' && gate.canFile && (
+                      <Button asChild variant="secondary" size="sm">
+                        <Link to={portalPath(portal, 'new-case')}>{t('File a Case')}</Link>
+                      </Button>
+                    )
                   }
                 />
               ) : (

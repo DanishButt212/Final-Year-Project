@@ -22,7 +22,6 @@ const ALLOWED_HEARING = [
   'courtroom',
   'date',
   'endTime',
-  'isVirtual',
   'published',
   'startTime',
   'timeSlot',

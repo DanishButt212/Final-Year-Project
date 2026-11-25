@@ -40,7 +40,7 @@ const RULES = [
   [/^pages\/admin\//, 'admin'],
   [/^pages\/cases\/|^lib\/case-status|^components\/case\//, 'cases'],
   [/^pages\/payments\//, 'fees'],
-  [/^pages\/(scheduling|virtual)\/|^components\/hearing/, 'hearings'],
+  [/^pages\/scheduling\/|^components\/hearing/, 'hearings'],
   [/^pages\/server\/|^lib\/summons/, 'summons'],
   [/^pages\/chamber\//, 'chamber'],
   [/^pages\/intern\//, 'intern'],

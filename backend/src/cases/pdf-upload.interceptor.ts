@@ -19,7 +19,7 @@ const invalidFile = (message: string) => new BadRequestException({ code: 'INVALI
 
 /**
  * Receives multipart uploads (field `files`, up to 10 PDFs) into a temp folder. multer enforces only the
- * 100 MB hard cap; the administrator's policy limit (max_attachment_mb) is checked in the service.
+ * 100 MB hard cap; the reader's policy limit (max_attachment_mb) is checked in the service.
  * It rejects wrong extensions and absurdly large files while streaming, and deletes every temp file
  * when the request ends, whether it succeeded or failed. Content checks happen in the service.
  */

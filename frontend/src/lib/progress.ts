@@ -15,7 +15,6 @@ export interface ProgressHearing {
   endTime: string | null;
   timeSlot: number | null;
   courtroom: string | null;
-  isVirtual: boolean;
   /** Public status only: time and courtroom are shown once the cause list is published. */
   published?: boolean;
 }

@@ -10,11 +10,10 @@ import { formatDateTime } from '@/lib/format';
 import { judgeOrdersApi } from '@/lib/phase5-api';
 import { isoToDdMmYyyy, schedulingApi, todayIso, weekdayName } from '@/lib/scheduling-api';
 import { HearingStatusBadge } from '@/pages/scheduling/UserSchedulePages';
-import { JoinRoomButton, VirtualBadge } from '@/pages/virtual/JoinRoomButton';
 import { OrderOutcomeBadge } from './JudgeOrdersPage';
 import { useTranslation } from 'react-i18next';
 
-/** Judge dashboard: today's hearings before this judge, in time order, with the video room link when virtual. */
+/** Judge dashboard: today's hearings before this judge, in time order. */
 export function TodayHearingsPanel() {
   const { t } = useTranslation();
   const today = todayIso();
@@ -69,9 +68,7 @@ export function TodayHearingsPanel() {
               <div className="flex flex-col items-end gap-2">
                 <span className="flex flex-wrap gap-1">
                   <HearingStatusBadge status={h.status} />
-                  {h.isVirtual && <VirtualBadge />}
                 </span>
-                {h.isVirtual && h.status === 'SCHEDULED' && <JoinRoomButton hearingId={h.id} />}
               </div>
             </li>
           ))}

@@ -99,6 +99,7 @@ export interface CaseDecision {
 }
 
 export interface CaseDetail {
+  coverageReadOnly?: boolean;
   progress?: CaseProgressData;
   id: string;
   ucn: string;
@@ -156,6 +157,7 @@ export const casesApi = {
     return (
       await api.post<{
         message: string;
+        challan: { challanNo: string; amount: string; dueDate: string } | null;
         case: { id: string; ucn: string; status: CaseStatus; title: string; documentCount: number };
       }>('/cases', form, multipart(onProgress))
     ).data;

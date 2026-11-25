@@ -37,7 +37,7 @@ describe('PortfolioPage', () => {
     expect(
       await screen.findByText('No active or past legal cases found in your portfolio.'),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: /new case submission/i }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole('link', { name: /file a case/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 

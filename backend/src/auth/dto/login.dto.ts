@@ -2,7 +2,7 @@ import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Trim } from '../../common/validators';
 
 export class LoginDto {
-  /** Email address (or username for admin accounts). */
+  /** Email address (or username for reader accounts). */
   @Trim()
   @IsNotEmpty()
   @IsString()

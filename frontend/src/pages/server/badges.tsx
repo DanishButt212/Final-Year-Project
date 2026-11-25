@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import { STATUS_LABEL, type Priority, type SummonsStatus } from '@/lib/summons-api';
+import { STATUS_LABEL, type Priority, type ServiceMode, type SummonsStatus } from '@/lib/summons-api';
 import { useTranslation } from 'react-i18next';
 
 const VARIANT = {
@@ -10,7 +10,14 @@ const VARIANT = {
   CANCELLED: 'neutral',
 } as const;
 
-export function SummonsStatusBadge({ status }: { status: SummonsStatus }) {
+export function SummonsStatusBadge({ status, serviceMode }: {
+  status: SummonsStatus;
+  serviceMode?: ServiceMode | null;
+}) {
+  const { t } = useTranslation();
+  if (status === 'EXECUTED' && serviceMode === 'REFUSED_AFFIXED') {
+    return <Badge variant="rejected">{t('Refused')}</Badge>;
+  }
   return <Badge variant={VARIANT[status]}>{STATUS_LABEL[status]}</Badge>;
 }
 

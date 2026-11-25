@@ -59,18 +59,19 @@ describe('case filing routes and sidebar', () => {
     ['LITIGANT', 'litigant'],
     ['LAWYER', 'lawyer'],
   ] as const)(
-    '%s sidebar lists Dashboard, New Case Submission and My Case Portfolio',
+    '%s sidebar offers filing only to lawyers',
     async (role, slug) => {
       renderApp(`/${slug}`, role);
       const nav = await screen.findByRole('navigation', { name: /portal navigation/i });
       const links = within(nav)
         .getAllByRole('link')
         .map((a) => a.textContent);
-      expect(links.slice(0, 3)).toEqual(['Dashboard', 'New Case Submission', 'My Case Portfolio']);
-      expect(within(nav).getByRole('link', { name: 'New Case Submission' })).toHaveAttribute(
-        'href',
-        `/${slug}/new-case`,
-      );
+      expect(links).toContain('Dashboard');
+      if (role === 'LAWYER') {
+        expect(within(nav).getByRole('link', { name: 'File a Case' })).toHaveAttribute('href', '/lawyer/new-case');
+      } else {
+        expect(within(nav).queryByRole('link', { name: 'File a Case' })).not.toBeInTheDocument();
+      }
       expect(within(nav).getByRole('link', { name: 'My Case Portfolio' })).toHaveAttribute(
         'href',
         `/${slug}/cases`,
@@ -79,8 +80,7 @@ describe('case filing routes and sidebar', () => {
   );
 
   it.each([
-    ['LITIGANT', '/litigant/new-case', /new case submission/i],
-    ['LAWYER', '/lawyer/new-case', /new case submission/i],
+    ['LAWYER', '/lawyer/new-case', /file a case/i],
     ['LITIGANT', '/litigant/cases', /my case portfolio/i],
     ['LAWYER', '/lawyer/cases', /my case portfolio/i],
   ] as const)('%s can open %s', async (role, path, heading) => {
@@ -96,6 +96,7 @@ describe('case filing routes and sidebar', () => {
   });
 
   it.each([
+    ['LITIGANT', '/litigant/new-case'],
     ['ADMIN', '/litigant/new-case'],
     ['JUDGE', '/litigant/cases'],
     ['INTERN', '/lawyer/cases/abc'],

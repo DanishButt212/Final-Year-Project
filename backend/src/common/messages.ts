@@ -39,6 +39,6 @@ export const Messages = {
   CNIC_NOT_VERIFIED: 'The CNIC could not be verified with NADRA. Please check the number.',
 } as const;
 
-/** The upload rejection message shows the limit currently set by the administrator. */
+/** The upload rejection message shows the limit currently set by the reader. */
 export const invalidFileMessage = (maxMb: number) =>
   `Only PDF format files under ${maxMb}MB are allowed.`;

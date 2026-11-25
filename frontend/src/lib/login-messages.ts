@@ -7,7 +7,7 @@ export function loginToast(role: string, serverMessage: string) {
     case 'PROCESS_SERVER':
       return msg('Field session initialized successfully.');
     case 'ADMIN':
-      return msg('Welcome Admin: High-clearance system operational console activated.');
+      return msg('Welcome Reader: High-clearance system operational console activated.');
     default:
       return serverMessage;
   }

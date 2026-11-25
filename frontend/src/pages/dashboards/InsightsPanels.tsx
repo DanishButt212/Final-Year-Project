@@ -250,7 +250,7 @@ export function JudgeInsightsPanel() {
   );
 }
 
-/** Admin dashboard: 12-month trends, categories, fee revenue, days to decision and the busiest courtrooms. */
+/** Reader dashboard: 12-month trends, categories, fee revenue, days to decision and the busiest courtrooms. */
 export function AdminInsightsPanel() {
   const { t } = useTranslation();
   const { data, isPending, isError, error } = useInsights<AdminInsights>(['ADMIN']);

@@ -73,10 +73,6 @@ export class CreateHearingDto {
   @MaxLength(200)
   purpose?: string;
 
-  /** UC-4.1: held in the virtual courtroom. */
-  @IsOptional()
-  @IsBoolean({ message: 'Virtual hearing must be true or false.' })
-  isVirtual?: boolean;
 }
 
 export class RescheduleDto {

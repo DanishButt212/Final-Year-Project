@@ -185,7 +185,7 @@ export class ReportsService {
       dataSha256,
       createdAt,
     });
-    const admins = await this.prisma.user.findUnique({
+    const readers = await this.prisma.user.findUnique({
       where: { id: admin.id },
       select: { firstName: true, lastName: true, email: true },
     });
@@ -193,7 +193,7 @@ export class ReportsService {
       code,
       seal,
       generatedAt: karachiStamp(createdAt),
-      generatedBy: admins ? `${fullName(admins)} (${admins.email})` : admin.email,
+      generatedBy: readers ? `${fullName(readers)} (${readers.email})` : admin.email,
       dataSha256,
       params,
       kindLabel: KIND_LABEL[dto.kind],

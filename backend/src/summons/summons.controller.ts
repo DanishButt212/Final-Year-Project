@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -107,7 +108,7 @@ export class AdminSummonsController {
   }
 }
 
-/** Case side: read-only for the parties, the judge and admins. */
+/** Case side: read-only for the parties, the judge and readers. */
 @ApiTags('summons')
 @ApiCookieAuth()
 @ApiBearerAuth()
@@ -119,11 +120,13 @@ export class CaseSummonsController {
     private readonly admin: SummonsAdminService,
   ) {}
 
+  @Header('Cache-Control', 'private, no-store')
   @Get('cases/:id/summons')
   list(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
     return this.cases.list(user, id);
   }
 
+  @Header('Cache-Control', 'private, no-store')
   @Get('summons/:id/proof.pdf')
   pdf(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string, @Req() req: Request) {
     return this.cases.proofPdf(user, id, meta(req));

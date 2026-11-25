@@ -9,7 +9,6 @@ vi.mock('@/components/ui/toaster', () => ({
   Toaster: () => null,
 }));
 
-const litigant = makeAuth({ user: sampleUser({ role: 'LITIGANT' }) });
 const lawyer = makeAuth({
   user: sampleUser({
     role: 'LAWYER',
@@ -23,13 +22,13 @@ const RELIEF = 'Recovery of PKR 500,000 under the sale agreement dated 01-01-202
 let restore: (() => void) | undefined;
 afterEach(() => restore?.());
 
-const setup = (auth = litigant) =>
+const setup = (auth = lawyer) =>
   renderPage(
     <>
-      <a href="/litigant/hearings">Hearings link</a>
+      <a href="/lawyer/hearings">Hearings link</a>
       <NewCasePage />
     </>,
-    { auth, path: '/litigant/new-case', route: '/litigant/new-case' },
+    { auth, path: '/lawyer/new-case', route: '/lawyer/new-case' },
   );
 
 const pdf = (name = 'petition.pdf', size = 2048) => {
@@ -45,17 +44,22 @@ const currentStep = () =>
     .getAllByRole('listitem')
     .find((li) => li.getAttribute('aria-current') === 'step');
 
-async function fillStep1(user: ReturnType<typeof userEvent.setup>) {
+async function chooseCivil(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText(/case type/i), 'CIVIL_SUIT');
-  await user.type(screen.getByLabelText(/relief sought/i), RELIEF);
+}
+async function fillPetitioner(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getAllByLabelText(/full name/i)[0], 'Ayesha Siddiqui');
+  await user.type(screen.getByLabelText(/represented litigant cnic/i), '36302-1111111-1');
 }
 async function fillRespondent(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getAllByLabelText(/full name/i)[1], 'Bilal Ahmed');
 }
 async function toStep(user: ReturnType<typeof userEvent.setup>, n: 2 | 3 | 4) {
-  await fillStep1(user);
+  await chooseCivil(user);
+  await user.type(screen.getByLabelText(/relief sought/i), RELIEF);
   await user.click(screen.getByRole('button', { name: /next/i }));
   if (n === 2) return;
+  await fillPetitioner(user);
   await fillRespondent(user);
   await user.click(screen.getByRole('button', { name: /next/i }));
   if (n === 3) return;
@@ -78,13 +82,37 @@ describe('NewCasePage wizard', () => {
     expect(await screen.findByText('Incomplete case details.')).toBeInTheDocument();
     expect(screen.getByLabelText(/case type/i)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText(/relief sought/i)).toHaveAttribute('aria-invalid', 'true');
-    expect(currentStep()).toHaveTextContent('Case details'); // did not advance
+    expect(currentStep()).toHaveTextContent('Case details');
+  });
+
+  it('shows the civil filing fields when a lawyer selects Civil Suit', async () => {
+    const user = userEvent.setup();
+    setup();
+    await chooseCivil(user);
+
+    expect(currentStep()).toHaveTextContent('Case details');
+    expect(screen.getByLabelText(/relief sought/i)).toBeRequired();
+    expect(screen.getByLabelText(/claim value/i)).toBeInTheDocument();
+  });
+
+  it('validates the civil claim value without blocking other case types', async () => {
+    const user = userEvent.setup();
+    setup();
+    await chooseCivil(user);
+    await user.type(screen.getByLabelText(/relief sought/i), RELIEF);
+    await user.type(screen.getByLabelText(/claim value/i), '-1');
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(screen.getByLabelText(/claim value/i)).toHaveAttribute('aria-invalid', 'true');
+
+    await user.selectOptions(screen.getByLabelText(/case type/i), 'BAIL_APPLICATION');
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(currentStep()).toHaveTextContent('Parties');
   });
 
   it('rejects relief sought under 20 characters', async () => {
     const user = userEvent.setup();
     setup();
-    await user.selectOptions(screen.getByLabelText(/case type/i), 'CIVIL_SUIT');
+    await chooseCivil(user);
     await user.type(screen.getByLabelText(/relief sought/i), 'too short');
     await user.click(screen.getByRole('button', { name: /next/i }));
     expect(
@@ -93,17 +121,15 @@ describe('NewCasePage wizard', () => {
     expect(screen.getByText('Incomplete case details.')).toBeInTheDocument();
   });
 
-  it("prefills a litigant as the first petitioner, and leaves a lawyer's blank", async () => {
+  it('requires the represented litigant CNIC', async () => {
     const user = userEvent.setup();
-    const { unmount } = setup(litigant);
-    await toStep(user, 2);
-    expect(screen.getAllByLabelText(/full name/i)[0]).toHaveValue('Ayesha Siddiqui');
-    expect(screen.getAllByLabelText(/cnic/i)[0]).toHaveValue('36302-1111111-1');
-    unmount();
-
-    setup(lawyer);
+    setup();
     await toStep(user, 2);
     expect(screen.getAllByLabelText(/full name/i)[0]).toHaveValue('');
+    await user.type(screen.getAllByLabelText(/full name/i)[0], 'Ayesha Siddiqui');
+    await fillRespondent(user);
+    await user.click(screen.getByRole('button', { name: /next/i }));
+    expect(await screen.findByText(/Enter the represented litigant.s CNIC/)).toBeInTheDocument();
   });
 
   it('requires a respondent name and validates CNIC and phone formats on step 2', async () => {
@@ -115,6 +141,7 @@ describe('NewCasePage wizard', () => {
     expect(await screen.findByText('Incomplete case details.')).toBeInTheDocument();
     expect(screen.getAllByLabelText(/full name/i)[1]).toHaveAttribute('aria-invalid', 'true');
 
+    await fillPetitioner(user);
     await fillRespondent(user);
     await user.type(screen.getAllByLabelText(/cnic/i)[1], '3630211111111');
     await user.type(screen.getAllByLabelText(/mobile number/i)[1], '30011');
@@ -238,7 +265,7 @@ describe('NewCasePage wizard', () => {
       expect(ucn).toHaveClass('case-number');
       expect(screen.getByRole('link', { name: /view case/i })).toHaveAttribute(
         'href',
-        '/litigant/cases/c1',
+        '/lawyer/cases/c1',
       );
 
       const call = (restore as unknown as { calls: { data: FormData }[] }).calls[0];
@@ -351,6 +378,7 @@ describe('NewCasePage wizard', () => {
     it('asks before following a link while there is unsaved input, and lets you stay', async () => {
       const user = userEvent.setup();
       setup();
+      await chooseCivil(user);
       await user.type(screen.getByLabelText(/relief sought/i), 'something typed');
       await user.click(screen.getByRole('link', { name: 'Hearings link' }));
 
@@ -363,10 +391,11 @@ describe('NewCasePage wizard', () => {
     it('leaves after confirmation', async () => {
       const user = userEvent.setup();
       setup();
+      await chooseCivil(user);
       await user.type(screen.getByLabelText(/relief sought/i), 'something typed');
       await user.click(screen.getByRole('link', { name: 'Hearings link' }));
       await user.click(await screen.findByRole('button', { name: /leave and discard/i }));
-      expect(await screen.findByTestId('location')).toHaveTextContent('/litigant/hearings');
+      expect(await screen.findByTestId('location')).toHaveTextContent('/lawyer/hearings');
     });
 
     it('does not interrupt when nothing has been entered', async () => {
@@ -385,7 +414,7 @@ describe('NewCasePage wizard', () => {
         return event.defaultPrevented;
       };
       expect(fire()).toBe(false);
-      await user.type(screen.getByLabelText(/relief sought/i), 'x');
+      await user.selectOptions(screen.getByLabelText(/case type/i), 'CIVIL_SUIT');
       expect(fire()).toBe(true);
     });
   });

@@ -79,17 +79,17 @@ export default function PortfolioPage() {
           { label: t('My Case Portfolio') },
         ]}
         actions={
-          gate.canFile ? (
+          user.role === 'LAWYER' && (gate.canFile ? (
             <Button asChild>
               <Link to={portalPath(portal, 'new-case')}>
-                <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
+                <FilePlus2 aria-hidden="true" /> {t('File a Case')}
               </Link>
             </Button>
           ) : (
             <Button disabled title={gate.reason ?? undefined}>
-              <FilePlus2 aria-hidden="true" /> {t('New Case Submission')}
+              <FilePlus2 aria-hidden="true" /> {t('File a Case')}
             </Button>
-          )
+          ))
         }
       />
 
@@ -150,12 +150,14 @@ export default function PortfolioPage() {
             description={
               filtering
                 ? t('Try a different case number, title or status.')
-                : t('Cases you file will appear here, together with their full history.')
+                : user.role === 'LAWYER'
+                  ? t('Cases you file will appear here, together with their full history.')
+                  : t('Cases your lawyer files on your behalf will appear here.')
             }
             action={
-              !filtering && (
+              !filtering && user.role === 'LAWYER' && gate.canFile && (
                 <Button asChild>
-                  <Link to={portalPath(portal, 'new-case')}>{t('New Case Submission')}</Link>
+                  <Link to={portalPath(portal, 'new-case')}>{t('File a Case')}</Link>
                 </Button>
               )
             }

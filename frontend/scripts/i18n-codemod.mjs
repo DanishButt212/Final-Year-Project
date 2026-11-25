@@ -45,7 +45,7 @@ const TOAST = /^(success|error|info|warning|message)$/;
 const hasWords = (s) => /[A-Za-z]{2,}/.test(s);
 /** Brand and code-like text that must stay as is. */
 const KEEP = (s) =>
-  /^(DigitalAdaalat|PKR|UCN|CNIC|PDF|OK|GPS|ID|URL|HMAC|SHA-256|JaaS|Jitsi|Excel|A[−+-]?)$/.test(
+  /^(DigitalAdaalat|PKR|UCN|CNIC|PDF|OK|GPS|ID|URL|HMAC|SHA-256|Excel|A[−+-]?)$/.test(
     s,
   ) ||
   /^[A-Z0-9_-]+$/.test(s) ||

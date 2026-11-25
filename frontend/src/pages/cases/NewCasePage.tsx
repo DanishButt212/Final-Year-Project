@@ -3,7 +3,7 @@ import { translateText } from '@/lib/server-messages';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, Banknote, Plus, Send, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   useFieldArray,
   useForm,
@@ -13,7 +13,7 @@ import {
   type Path,
   type UseFormRegister,
 } from 'react-hook-form';
-import { Link } from 'react-router';
+import { Link, Navigate } from 'react-router';
 import { useAuth } from '@/auth/useAuth';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Alert } from '@/components/ui/alert';
@@ -33,7 +33,7 @@ import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes';
 import { parseApiError } from '@/lib/api';
 import { casesApi, type CreateCasePayload, type PartyPayload } from '@/lib/cases-api';
 import { CASE_TYPES, caseTypeLabel } from '@/lib/case-status';
-import { formatFileSize, formatPkr } from '@/lib/format';
+import { formatDate, formatFileSize, formatPkr } from '@/lib/format';
 import { PORTALS, portalPath } from '@/lib/navigation';
 import {
   CASE_STEP_FIELDS,
@@ -46,12 +46,19 @@ import { useTranslation } from 'react-i18next';
 
 import { msg } from '@/i18n';
 
-const STEPS = [msg('Case details'), msg('Parties'), msg('Documents'), msg('Review & submit')];
+const STEPS = [
+  msg('Case type'),
+  msg('Case details'),
+  msg('Parties'),
+  msg('Documents'),
+  msg('Review & submit'),
+];
 const MAX_PARTIES = 10;
 const emptyParty = (): PartyValues => ({ name: '', cnic: '', address: '', phone: '' });
 
 /** Which wizard step a field belongs to (used to jump to the step that has errors). */
 function stepOfField(name: string): number {
+  if (name === 'caseType') return 0;
   if (name.startsWith('petitioners') || name.startsWith('respondents')) return 2;
   return 1;
 }
@@ -127,9 +134,10 @@ function PartyRows({
                 </Field>
               </div>
               <Field
-                label={t('CNIC (optional)')}
+                label={name === 'petitioners' && index === 0 ? t('Represented litigant CNIC') : t('CNIC (optional)')}
                 hint={t('Format: 12345-1234567-1')}
                 error={e?.cnic?.message}
+                required={name === 'petitioners' && index === 0}
               >
                 {(p) => (
                   <Input
@@ -196,13 +204,27 @@ function NewCaseWizard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(1);
+  const firstStep = 1;
+  const [step, setStep] = useState(firstStep);
+  const previousStep = useRef(step);
+  const stepStart = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (previousStep.current === step) return;
+    previousStep.current = step;
+    stepStart.current?.focus();
+    stepStart.current?.scrollIntoView?.({ block: 'start' });
+  }, [step]);
   const [attempted, setAttempted] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
-  const [result, setResult] = useState<{ id: string; ucn: string; message: string } | null>(null);
+  const [result, setResult] = useState<{
+    id: string;
+    ucn: string;
+    message: string;
+    challan: { challanNo: string; amount: string; dueDate: string } | null;
+  } | null>(null);
 
   const {
     register,
@@ -219,17 +241,7 @@ function NewCaseWizard() {
       title: '',
       reliefSought: '',
       claimAmountPkr: '',
-      // A litigant files as the first petitioner; a lawyer files on behalf of a client.
-      petitioners: [
-        user?.role === 'LITIGANT'
-          ? {
-              name: `${user.firstName} ${user.lastName}`,
-              cnic: user.cnic,
-              address: '',
-              phone: user.phone,
-            }
-          : emptyParty(),
-      ],
+      petitioners: [emptyParty()],
       respondents: [emptyParty()],
     },
   });
@@ -243,20 +255,24 @@ function NewCaseWizard() {
   const portal = PORTALS[user.role];
   const portfolioPath = portalPath(portal, 'cases');
 
-  const stepFields: readonly (keyof CaseValues)[] = CASE_STEP_FIELDS[step as 1 | 2] ?? [];
+  const stepFields: readonly (keyof CaseValues)[] =
+    step === 1 && firstStep === 1
+      ? [...CASE_STEP_FIELDS[0], ...CASE_STEP_FIELDS[1]]
+      : (CASE_STEP_FIELDS[step as 0 | 1 | 2] ?? []);
   const stepHasErrors = stepFields.some((f) => errors[f]);
 
   async function goNext() {
     setAttempted(true);
     setFormError(null);
-    const ok = stepFields.length === 0 ? true : await trigger([...stepFields]);
+    const ok =
+      stepFields.length === 0 ? true : await trigger([...stepFields], { shouldFocus: true });
     if (!ok) return;
     setAttempted(false);
-    setStep((s) => Math.min(4, s + 1));
+    setStep(Math.min(4, step + 1));
   }
 
   /**
-   * The form submits only from step 4. Enter in a field on steps 1-3 behaves like Next (validates the step and
+   * The form submits only from review. Enter in a field on earlier steps behaves like Next (validates the step and
    * moves on), so the case is never filed before the review step.
    */
   function onFormSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -271,13 +287,13 @@ function NewCaseWizard() {
   function goBack() {
     setAttempted(false);
     setFormError(null);
-    setStep((s) => Math.max(1, s - 1));
+    setStep((s) => Math.max(firstStep, s - 1));
   }
 
   function jumpToErrors(errs: FieldErrors<CaseValues>) {
     const target = firstStepWithErrors(errs);
-    if (target) {
-      setStep(target);
+    if (target !== null) {
+      setStep(Math.max(firstStep, target));
       setAttempted(true);
     }
   }
@@ -300,7 +316,7 @@ function NewCaseWizard() {
       const res = await casesApi.create(payload, files, setProgress);
       await queryClient.invalidateQueries({ queryKey: ['cases'] });
       toast.success(res.message);
-      setResult({ id: res.case.id, ucn: res.case.ucn, message: res.message });
+      setResult({ id: res.case.id, ucn: res.case.ucn, message: res.message, challan: res.challan });
     } catch (error) {
       setProgress(null);
       const body = parseApiError(error);
@@ -311,12 +327,12 @@ function NewCaseWizard() {
         return;
       }
       for (const d of body.details ?? []) {
-        if (/^(caseType|title|reliefSought|petitioners|respondents)/.test(d.field)) {
+        if (/^(caseType|title|reliefSought|claimAmountPkr|petitioners|respondents)/.test(d.field)) {
           setError(d.field as Path<CaseValues>, { type: 'server', message: d.messages[0] });
         }
       }
       if (body.details?.length) {
-        setStep(Math.min(...body.details.map((d) => stepOfField(d.field))));
+        setStep(Math.max(firstStep, Math.min(...body.details.map((d) => stepOfField(d.field)))));
         setAttempted(true);
       }
     }
@@ -333,10 +349,10 @@ function NewCaseWizard() {
     return (
       <>
         <PageHeader
-          title={t('New Case Submission')}
+          title={t('File a Case')}
           crumbs={[
             { label: t('Dashboard'), to: portalPath(portal, '') },
-            { label: t('New Case Submission') },
+            { label: t('File a Case') },
           ]}
         />
         <SuccessPanel
@@ -363,6 +379,20 @@ function NewCaseWizard() {
             </>
           }
         />
+        {result.challan && (
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>{t('Unpaid challan')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-3 sm:grid-cols-3">
+                <div><dt>{t('Challan number')}</dt><dd>{result.challan.challanNo}</dd></div>
+                <div><dt>{t('Amount')}</dt><dd>{formatPkr(result.challan.amount)}</dd></div>
+                <div><dt>{t('Due date')}</dt><dd>{formatDate(result.challan.dueDate)}</dd></div>
+              </dl>
+            </CardContent>
+          </Card>
+        )}
       </>
     );
   }
@@ -375,82 +405,93 @@ function NewCaseWizard() {
   return (
     <>
       <PageHeader
-        title={t('New Case Submission')}
-        description={t(
-          'Fill in the four steps below. Nothing is saved until you submit on the last step.',
-        )}
+        title={t('File a Case')}
+        description={t('Complete each step and review your case before submitting it.')}
         crumbs={[
           { label: t('Dashboard'), to: portalPath(portal, '') },
-          { label: t('New Case Submission') },
+          { label: t('File a Case') },
         ]}
       />
       {leaveDialog}
-      <Stepper steps={STEPS} current={step} />
+      <div ref={stepStart} tabIndex={-1} className="scroll-mt-4">
+        <Stepper steps={STEPS.slice(firstStep)} current={step - firstStep + 1} />
+      </div>
 
       <form noValidate onSubmit={onFormSubmit} className="max-w-3xl space-y-6">
         {(formError || (attempted && stepHasErrors)) && (
           <Alert variant="error">{formError ?? caseSummaryFor(errors)}</Alert>
         )}
 
-        {step === 1 && (
+        {step <= 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>{t('Case details')}</CardTitle>
-              <TermsHint ids={['relief', 'court-fee', 'ad-valorem']} />
+              <CardTitle>{step === 0 ? t('Case type') : t('Case details')}</CardTitle>
+              {step === 1 && <TermsHint ids={['relief', 'court-fee', 'ad-valorem']} />}
             </CardHeader>
             <CardContent className="space-y-4">
-              <Field label={t('Case type')} error={errors.caseType?.message} required>
-                {(p) => (
-                  <NativeSelect defaultValue="" {...p} {...register('caseType')}>
-                    <option value="" disabled>
-                      {t('Select a case type')}
-                    </option>
-                    {CASE_TYPES.map((ct) => (
-                      <option key={ct.value} value={ct.value}>
-                        {t(ct.label)}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                )}
-              </Field>
-              <Field
-                label={t('Case title (optional)')}
-                hint={t('Leave empty and we will use “Petitioner vs. Respondent”.')}
-                error={errors.title?.message}
-              >
-                {(p) => <Input {...p} {...register('title')} />}
-              </Field>
-              <Field
-                label={t('Relief sought')}
-                hint={t('Explain what you are asking the court to decide. At least 20 characters.')}
-                error={errors.reliefSought?.message}
-                required
-              >
-                {(p) => <Textarea rows={6} {...p} {...register('reliefSought')} />}
-              </Field>
-              {caseTypeValue === 'CIVIL_SUIT' && (
-                <Field
-                  label={t('Claim value (PKR, optional)')}
-                  hint={
-                    claimValue && /^\d{1,12}(\.\d{1,2})?$/.test(claimValue)
-                      ? t('{{pkr}}. Used to calculate the claim value part of the court fee.', {
-                          pkr: formatPkr(claimValue),
-                        })
-                      : t(
-                          'The value of your claim. Used to calculate the claim value part of the court fee.',
-                        )
-                  }
-                  error={errors.claimAmountPkr?.message}
-                >
+              {step === firstStep && (
+                <Field label={t('Case type')} error={errors.caseType?.message} required>
                   {(p) => (
-                    <Input
-                      inputMode="decimal"
-                      placeholder="1850000"
-                      {...p}
-                      {...register('claimAmountPkr')}
-                    />
+                    <NativeSelect defaultValue="" {...p} {...register('caseType')}>
+                      <option value="" disabled>
+                        {t('Select a case type')}
+                      </option>
+                      {CASE_TYPES.map((ct) => (
+                        <option key={ct.value} value={ct.value}>
+                          {t(ct.label)}
+                        </option>
+                      ))}
+                    </NativeSelect>
                   )}
                 </Field>
+              )}
+              {step === 1 && (
+                <>
+                  <Field
+                    label={t('Case title (optional)')}
+                    hint={t('Leave empty and we will use “Petitioner vs. Respondent”.')}
+                    error={errors.title?.message}
+                  >
+                    {(p) => <Input {...p} {...register('title')} />}
+                  </Field>
+                  <Field
+                    label={t('Relief sought')}
+                    hint={t(
+                      'Explain what you are asking the court to decide. At least 20 characters.',
+                    )}
+                    error={errors.reliefSought?.message}
+                    required
+                  >
+                    {(p) => <Textarea rows={6} {...p} {...register('reliefSought')} />}
+                  </Field>
+                  {caseTypeValue === 'CIVIL_SUIT' && (
+                    <Field
+                      label={t('Claim value (PKR, optional)')}
+                      hint={
+                        claimValue && /^\d{1,12}(\.\d{1,2})?$/.test(claimValue)
+                            ? t(
+                                '{{pkr}}. Used to calculate the claim value part of the court fee.',
+                                {
+                                  pkr: formatPkr(claimValue),
+                                },
+                              )
+                            : t(
+                                'The value of your claim. Used to calculate the claim value part of the court fee.',
+                              )
+                      }
+                      error={errors.claimAmountPkr?.message}
+                    >
+                      {(p) => (
+                        <Input
+                          inputMode="decimal"
+                          placeholder="1850000"
+                          {...p}
+                          {...register('claimAmountPkr')}
+                        />
+                      )}
+                    </Field>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -567,7 +608,7 @@ function NewCaseWizard() {
             type="button"
             variant="secondary"
             onClick={goBack}
-            disabled={step === 1 || submitting}
+            disabled={step === firstStep || submitting}
           >
             <ArrowLeft className="rtl:-scale-x-100" aria-hidden="true" /> {t('Back')}
           </Button>
@@ -593,15 +634,16 @@ export default function NewCasePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const gate = useFilingGate();
-  if (!user || gate.canFile) return <NewCaseWizard />;
+  if (!user || user.role !== 'LAWYER') return <Navigate to="/forbidden" replace />;
+  if (gate.canFile) return <NewCaseWizard />;
   const portal = PORTALS[user.role];
   return (
     <>
       <PageHeader
-        title={t('New Case Submission')}
+        title={t('File a Case')}
         crumbs={[
           { label: t('Dashboard'), to: portalPath(portal, '') },
-          { label: t('New Case Submission') },
+          { label: t('File a Case') },
         ]}
       />
       <Alert variant="info" title={t('New filing unavailable')}>

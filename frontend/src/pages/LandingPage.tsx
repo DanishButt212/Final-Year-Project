@@ -61,7 +61,7 @@ const ROLES: { icon: LucideIcon; title: string; summary: string; points: string[
     points: [
       msg('File a case online with PDF pleadings and receive a Unique Case Number'),
       msg('Generate the court fee challan, pay online and keep your receipts'),
-      msg('Track hearings and cause lists, and join virtual hearings'),
+      msg('Track hearings and published cause lists'),
     ],
   },
   {
@@ -106,7 +106,7 @@ const ROLES: { icon: LucideIcon; title: string; summary: string; points: string[
   },
   {
     icon: Landmark,
-    title: msg('Administrator'),
+    title: msg('Reader'),
     summary: msg('Run the court registry with full oversight.'),
     points: [
       msg('Allocate cases to judges at random or by hand'),
@@ -238,7 +238,7 @@ export default function LandingPage() {
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-text-muted">
                 {t(
-                  'File cases, pay court fees, track hearings and attend virtual hearings online, from anywhere in Pakistan.',
+                  'File cases, pay court fees, track hearings online, from anywhere in Pakistan.',
                 )}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">

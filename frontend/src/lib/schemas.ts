@@ -153,21 +153,27 @@ export const caseSchema = z.object({
     .min(1, MESSAGES.fieldRequired)
     .min(20, msg('Relief sought must be at least 20 characters.'))
     .max(5000, 'Use 5000 characters or fewer.'),
-  claimAmountPkr: z
-    .string()
-    .trim()
-    .regex(
-      /^(\d{1,12}(\.\d{1,2})?)?$/,
-      msg('Enter an amount of 0 or more in PKR, for example 1850000.'),
-    )
-    .optional(),
-  petitioners: z.array(partySchema).min(1, 'Add at least one petitioner.'),
+  claimAmountPkr: z.string().trim().optional(),
+  petitioners: z.array(partySchema).min(1, 'Add at least one petitioner.').refine(
+    (parties) => Boolean(parties[0]?.cnic),
+    { path: [0, 'cnic'], message: msg('Enter the represented litigant’s CNIC.') },
+  ),
   respondents: z.array(partySchema).min(1, 'Add at least one respondent.'),
-});
+}).refine(
+  (values) =>
+    values.caseType !== 'CIVIL_SUIT' ||
+    !values.claimAmountPkr ||
+    /^\d{1,12}(\.\d{1,2})?$/.test(values.claimAmountPkr),
+  {
+    path: ['claimAmountPkr'],
+    message: msg('Enter an amount of 0 or more in PKR, for example 1850000.'),
+  },
+);
 export type CaseValues = z.infer<typeof caseSchema>;
 
 export const CASE_STEP_FIELDS = {
-  1: ['caseType', 'title', 'reliefSought', 'claimAmountPkr'],
+  0: ['caseType'],
+  1: ['title', 'reliefSought', 'claimAmountPkr'],
   2: ['petitioners', 'respondents'],
 } as const;
 
@@ -186,8 +192,8 @@ export function caseSummaryFor(errors: unknown): string {
     ) {
       return true;
     }
-    return Object.values(node as Record<string, unknown>).some(
-      (child) => child !== node && typeof child === 'object' && incomplete(child),
+    return Object.entries(node as Record<string, unknown>).some(
+      ([key, child]) => key !== 'ref' && typeof child === 'object' && incomplete(child),
     );
   };
   return incomplete(errors) ? MESSAGES.caseIncomplete : MESSAGES.invalidFields;

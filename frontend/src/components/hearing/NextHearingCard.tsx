@@ -16,7 +16,6 @@ import {
   weekdayName,
   type HearingView,
 } from '@/lib/scheduling-api';
-import { JoinRoomButton, VirtualBadge } from '@/pages/virtual/JoinRoomButton';
 import { AddToCalendar } from './AddToCalendar';
 
 /** The next scheduled hearing of the signed-in user (party or lawyer: their cases; judge: their bench). */
@@ -40,8 +39,7 @@ function useNextHearing() {
 
 /**
  * "Next hearing" card for litigant, lawyer and judge dashboards: a live countdown in the reader's language
- * (updated every minute without refetching), the courtroom, Add to calendar, and the join button for a
- * virtual hearing (it stays disabled with the lobby message until the room opens).
+ * (updated every minute without refetching), the courtroom, and Add to calendar.
  */
 export function NextHearingCard() {
   const { t } = useTranslation();
@@ -111,10 +109,8 @@ export function NextHearingCard() {
             <span className="text-sm">
               <bdi>{next.title}</bdi>
             </span>
-            {next.isVirtual && <VirtualBadge />}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            {next.isVirtual && <JoinRoomButton hearingId={next.id} />}
             <AddToCalendar
               hearing={{
                 id: next.id,
@@ -123,7 +119,6 @@ export function NextHearingCard() {
                 startTime: next.startTime,
                 endTime: next.endTime,
                 courtroom: next.courtroom?.name,
-                isVirtual: next.isVirtual,
               }}
               casePath={casePath(next)}
             />

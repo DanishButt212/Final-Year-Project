@@ -12,6 +12,7 @@ export const REGISTRATION_CLOSED_MESSAGE = msg('Case registration is currently c
 export function useFilingGate(): { canFile: boolean; reason: string | null } {
   const { user } = useAuth();
   const { caseRegistrationOpen } = usePublicSettings();
+  if (user?.role !== 'LAWYER') return { canFile: false, reason: null };
   if (user?.role === 'LAWYER' && user.lawyerProfile?.verificationStatus !== 'VERIFIED') {
     return { canFile: false, reason: LAWYER_PENDING_MESSAGE };
   }

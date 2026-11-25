@@ -13,7 +13,6 @@ export interface CalendarHearing {
   endTime?: string | null;
   courtroom?: string | null;
   court?: string | null;
-  isVirtual?: boolean;
   /** Absolute link back to the case page. */
   caseUrl: string;
   /** Translated texts: "Hearing: DA-...", the details line. */

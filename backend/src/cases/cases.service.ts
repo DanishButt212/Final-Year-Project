@@ -13,7 +13,9 @@ import { AuditAction, AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/decorators';
 import { invalidFileMessage, Messages } from '../common/messages';
 import { buildValidationException } from '../common/validation';
+import { caseScopeFor } from '../common/case-access';
 import { CaseEventType, CaseStatus, Prisma } from '../generated/prisma/client';
+import { ChallansService } from '../fees/challans.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../storage/storage.service';
@@ -169,6 +171,7 @@ export class CasesService {
     private readonly storage: StorageService,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly challans: ChallansService,
   ) {}
 
   // ------------------------------------------------------------------ submit
@@ -182,15 +185,18 @@ export class CasesService {
     // Permission first (also enforced by FilingGateGuard before the upload), then input validation.
     const counselId = await this.assertCanFile(user);
     const dto = await this.parseBody(body);
+    if (!dto.petitioners[0].cnic) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: Messages.CASE_INCOMPLETE,
+        details: [{ field: 'petitioners.0.cnic', messages: ['Enter the represented litigant’s CNIC.'] }],
+      });
+    }
 
+    const fee = await this.challans.fixedFee(dto.caseType);
     const caseId = randomUUID();
     const prepared = await this.prepareFiles(caseId, files);
 
-    const profile = await this.prisma.user.findUniqueOrThrow({
-      where: { id: user.id },
-      select: { firstName: true, lastName: true, cnic: true, phone: true },
-    });
-    const petitioners = this.withProfileDefaults(user, dto.petitioners, profile);
     const title = dto.title ?? this.generateTitle(dto);
     const base = Date.now();
 
@@ -213,7 +219,7 @@ export class CasesService {
             filedById: user.id,
             parties: {
               create: [
-                ...petitioners.map((p, i) => ({
+                ...dto.petitioners.map((p, i) => ({
                   role: 'PETITIONER' as const,
                   name: p.name,
                   cnic: p.cnic,
@@ -278,12 +284,18 @@ export class CasesService {
           metadata: { ucn: row.ucn, caseType: row.caseType, documents: prepared.length },
           ...meta,
         });
-        return row;
+        const litigant = await tx.user.findFirst({
+          where: { role: 'LITIGANT', cnic: dto.petitioners[0].cnic },
+          select: { id: true },
+        });
+        const challan = await this.challans.issueOnFiling(tx, user, row, fee, litigant?.id, meta);
+        return { row, challan };
       });
 
       return {
         message: Messages.CASE_SUBMITTED,
-        case: { ...created, documentCount: prepared.length },
+        case: { ...created.row, documentCount: prepared.length },
+        challan: created.challan,
       };
     } catch (error) {
       // Nothing may survive a failed submission: remove the files we already moved into storage.
@@ -358,11 +370,13 @@ export class CasesService {
 
   async detail(user: AuthUser, id: string) {
     const c = await this.prisma.case.findFirst({
-      where: { AND: [{ id }, await this.scopeFor(user)] },
+      where: { AND: [{ id }, await caseScopeFor(this.prisma, user, true)] },
       include: caseDetailInclude,
     });
     if (!c) throw new NotFoundException(Messages.NOT_FOUND);
-    return toCaseDetail(c, await this.slotMinutes());
+    const coverageReadOnly = user.role === 'LAWYER' &&
+      !(await this.prisma.case.count({ where: { AND: [{ id }, await this.scopeFor(user)] } }));
+    return { ...toCaseDetail(c, await this.slotMinutes()), coverageReadOnly };
   }
 
   /** Length of a hearing slot (court policy): the end time of a hearing in the progress data. */
@@ -441,7 +455,7 @@ export class CasesService {
 
   async download(user: AuthUser, caseId: string, docId: string, meta: RequestMeta) {
     const doc = await this.prisma.caseDocument.findFirst({
-      where: { id: docId, caseId, case: await this.scopeFor(user) },
+      where: { id: docId, caseId, case: await caseScopeFor(this.prisma, user, true) },
     });
     if (!doc || !(await this.storage.exists(doc.filePath))) {
       throw new NotFoundException(Messages.NOT_FOUND);
@@ -469,22 +483,13 @@ export class CasesService {
 
   /** Cases the user may see: filed by them, or where they are the lawyer on a party. */
   private async scopeFor(user: AuthUser): Promise<Prisma.CaseWhereInput> {
-    if (user.role === 'ADMIN') return {};
-    if (user.role === 'JUDGE') return { judgeId: user.id };
-    const or: Prisma.CaseWhereInput[] = [{ filedById: user.id }];
-    if (user.role === 'LAWYER') {
-      const profile = await this.prisma.lawyerProfile.findUnique({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (profile) or.push({ parties: { some: { lawyerId: profile.id } } });
-    }
-    return { OR: or };
+    return caseScopeFor(this.prisma, user);
   }
 
   /** For lawyers: the LawyerProfile id stored as CaseParty.lawyerId on petitioners. */
-  /** Registration must be open and a lawyer must be verified. Returns the lawyer's profile id (null for litigants). */
-  async assertCanFile(user: AuthUser): Promise<string | null> {
+  /** Registration must be open and a lawyer must be verified. */
+  async assertCanFile(user: AuthUser): Promise<string> {
+    if (user.role !== 'LAWYER') throw new ForbiddenException(Messages.FORBIDDEN);
     if (!(await this.settings.caseRegistrationOpen())) {
       throw new ForbiddenException({
         code: 'REGISTRATION_CLOSED',
@@ -494,8 +499,8 @@ export class CasesService {
     return this.counselIdFor(user);
   }
 
-  private async counselIdFor(user: AuthUser): Promise<string | null> {
-    if (user.role !== 'LAWYER') return null;
+  private async counselIdFor(user: AuthUser): Promise<string> {
+    if (user.role !== 'LAWYER') throw new ForbiddenException(Messages.FORBIDDEN);
     const profile = await this.prisma.lawyerProfile.findUnique({
       where: { userId: user.id },
       select: { id: true, verificationStatus: true },
@@ -562,21 +567,6 @@ export class CasesService {
   private async removeStored(key: string) {
     // Only used for rollback of files we just wrote.
     await this.storage.removePrefix(key).catch(() => undefined);
-  }
-
-  /** A litigant's own details fill in a petitioner who is clearly themselves. */
-  private withProfileDefaults(
-    user: AuthUser,
-    petitioners: PartyDto[],
-    profile: { firstName: string; lastName: string; cnic: string; phone: string },
-  ): PartyDto[] {
-    if (user.role !== 'LITIGANT') return petitioners;
-    const self = `${profile.firstName} ${profile.lastName}`.toLowerCase();
-    return petitioners.map((p, i) =>
-      i === 0 && p.name.trim().toLowerCase() === self
-        ? { ...p, cnic: p.cnic ?? profile.cnic, phone: p.phone ?? profile.phone }
-        : p,
-    );
   }
 
   private generateTitle(dto: CreateCaseDto): string {

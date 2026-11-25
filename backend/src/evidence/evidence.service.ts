@@ -67,9 +67,9 @@ export class EvidenceService {
   // ------------------------------------------------------------------ access
 
   /** The case, if the user may see it (otherwise 404), with what they may do. */
-  private async access(user: AuthUser, caseId: string) {
+  private async access(user: AuthUser, caseId: string, readCoverage = false) {
     const c = await this.prisma.case.findFirst({
-      where: { AND: [{ id: caseId }, await caseScopeFor(this.prisma, user)] },
+      where: { AND: [{ id: caseId }, await caseScopeFor(this.prisma, user, readCoverage)] },
       select: {
         id: true,
         ucn: true,
@@ -89,7 +89,8 @@ export class EvidenceService {
       });
       isCounsel = Boolean(profile && c.parties.some((p) => p.lawyerId === profile.id));
     }
-    const party = (isFiler || isCounsel) && (user.role === 'LITIGANT' || user.role === 'LAWYER');
+    // The case scope has already matched a litigant to their own or represented case.
+    const party = user.role === 'LITIGANT' || (user.role === 'LAWYER' && (isFiler || isCounsel));
     return { case: c, isFiler, isParty: party, canUpload: party };
   }
 
@@ -120,7 +121,7 @@ export class EvidenceService {
   // ------------------------------------------------------------------ vault
 
   async vault(user: AuthUser, caseId: string) {
-    const a = await this.access(user, caseId);
+    const a = await this.access(user, caseId, true);
     const [documents, exhibits] = await Promise.all([
       this.prisma.caseDocument.findMany({
         where: { caseId },
@@ -136,10 +137,12 @@ export class EvidenceService {
     const allocated = a.case.judgeId !== null;
     return {
       caseId,
-      canUpload: a.canUpload && allocated,
+      canUpload: a.canUpload && allocated && a.case.status !== 'DECIDED',
       uploadBlockedReason: !a.canUpload
-        ? 'Only the filer and the lawyers on the case can add exhibits.'
-        : allocated
+        ? 'Only the parties and the lawyers on the case can add exhibits.'
+        : a.case.status === 'DECIDED'
+          ? 'This case has been decided. No new exhibits can be added.'
+          : allocated
           ? null
           : NOT_ALLOCATED_MESSAGE,
       pleadings: documents.map((d) => ({
@@ -367,7 +370,7 @@ export class EvidenceService {
   // ------------------------------------------------------------------ download
 
   async download(user: AuthUser, caseId: string, evidenceId: string, meta: RequestMeta) {
-    await this.access(user, caseId);
+    await this.access(user, caseId, true);
     const e = await this.prisma.evidence.findFirst({
       where: { id: evidenceId, caseId, deletedAt: null },
     });
@@ -396,9 +399,9 @@ export class EvidenceService {
     });
   }
 
-  /** Pleadings for judges and admins (litigants and lawyers already have /cases/:id/documents/:docId/download). */
+  /** Pleadings for judges and readers (litigants and lawyers already have /cases/:id/documents/:docId/download). */
   async downloadPleading(user: AuthUser, caseId: string, docId: string, meta: RequestMeta) {
-    await this.access(user, caseId);
+    await this.access(user, caseId, true);
     const d = await this.prisma.caseDocument.findFirst({ where: { id: docId, caseId } });
     if (!d || !(await this.storage.exists(d.filePath)))
       throw new NotFoundException(Messages.NOT_FOUND);

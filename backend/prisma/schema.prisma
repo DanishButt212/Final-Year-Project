@@ -21,6 +21,15 @@ enum Role {
   PROCESS_SERVER
   JUDGE
   ADMIN
+  STENOGRAPHER
+}
+
+enum TranscriptStatus {
+  DRAFT
+  SUBMITTED
+  RETURNED
+  APPROVED
+  SIGNED
 }
 
 /// Interface language of a signed-in user (UX upgrade). Generated PDFs stay in English.
@@ -87,6 +96,43 @@ enum CaseEventType {
   CASE_DECIDED
   SESSION_INITIALIZED
   SESSION_ENDED
+  DELIVERY_REPORT_FORWARDED
+}
+
+enum DeliveryStatus {
+  ASSIGNED
+  OUT_FOR_DELIVERY
+  REPORTED
+  CLARIFICATION_REQUESTED
+  REVIEWED
+}
+
+enum HearingCoverageStatus {
+  NEEDS_NOMINEE
+  CHAMBER_PENDING
+  NOMINEE_PENDING
+  READER_PENDING
+  JUDGE_PENDING
+  APPROVED
+  REJECTED
+  RESCHEDULE_REQUIRED
+  RESCHEDULED
+  SUPERSEDED
+}
+
+enum DeliveryOutcome {
+  DELIVERED
+  UNAVAILABLE
+  REFUSED
+  INCORRECT_ADDRESS
+}
+
+enum DeliveryReviewAction {
+  ACCEPT
+  REQUEST_CLARIFICATION
+  CLARIFICATION_REPLY
+  RETRY
+  FORWARD
 }
 
 enum EvidenceCategory {
@@ -127,7 +173,6 @@ enum DocumentType {
 
 enum HearingType {
   PHYSICAL
-  VIRTUAL
 }
 
 enum HearingStatus {
@@ -172,6 +217,8 @@ enum ChallanStatus {
 }
 
 enum PaymentMethod {
+  MOCK_JAZZCASH
+  MOCK_EASYPAISA
   MOCK_CARD
   MOCK_WALLET
   MOCK_BANK_TRANSFER
@@ -237,34 +284,6 @@ enum NotificationChannel {
   SMS
 }
 
-enum SessionStatus {
-  LOBBY_LOCKED
-  ACTIVE
-  ENDED
-}
-
-enum ParticipantRole {
-  JUDGE
-  LAWYER
-  LITIGANT
-  OBSERVER
-  ADMIN
-}
-
-enum ParticipantStatus {
-  JOINED
-  MUTED
-  VIDEO_OFF
-  EJECTED
-}
-
-enum SessionCommand {
-  MUTE_AUDIO
-  DISABLE_VIDEO
-  EJECT
-  READMIT
-}
-
 // ---------------------------------------------------------------- identity
 
 /// FR: registration, login, user management (UC: Register, Login, Manage Users)
@@ -304,6 +323,10 @@ model User {
   filedCases             Case[]                    @relation("CaseFiledBy")
   judgeCases             Case[]                    @relation("CaseJudge")
   judgeHearings          Hearing[]                 @relation("HearingJudge")
+  stenoHearings          Hearing[]                 @relation("HearingStenographer")
+  submittedTranscripts   HearingTranscript[]       @relation("TranscriptSubmitter")
+  approvedTranscripts    HearingTranscript[]       @relation("TranscriptApprover")
+  signedTranscripts      HearingTranscript[]       @relation("TranscriptSigner")
   uploadedDocuments      CaseDocument[]
   uploadedEvidence       Evidence[]                @relation("EvidenceUploader")
   lockedEvidence         Evidence[]                @relation("EvidenceLocker")
@@ -316,14 +339,16 @@ model User {
   serverProfile          ProcessServerProfile?
   reviewedDiaryEntries   InternDiaryEntry[]        @relation("DiaryReviewer")
   verifiedLawyers        LawyerProfile[]           @relation("LawyerVerifier")
-  sessionParticipation   CourtSessionParticipant[]
-  initializedSessions    CourtSession[]
   issuedCertificates     InternCertificate[]
   createdCauseLists      CauseList[]
   caseEvents             CaseEvent[]
   blockedHosts           BlockedHost[]
   generatedReports       GeneratedReport[]
   hearingReminders       HearingReminder[]
+  documentDeliveries     DocumentDelivery[]        @relation("DeliveryServer")
+  assignedDeliveries     DocumentDelivery[]        @relation("DeliveryAssigner")
+  documentDeliveryAttempts DocumentDeliveryAttempt[]
+  documentDeliveryReviews   DocumentDeliveryReview[]
 
   @@index([role, status])
   @@index([courtId])
@@ -350,6 +375,10 @@ model LawyerProfile {
   expenses    ChamberExpense[]
   chamber     ChamberProfile?
   alertLogs   ChamberAlertLog[]
+  chamberMembership ChamberMembership?
+  coverageRequests HearingCoverage[] @relation("CoverageOriginal")
+  coverageAssignments HearingCoverage[] @relation("CoverageSubstitute")
+  hearingAbsences HearingAbsence[]
 
   @@index([verificationStatus])
 }
@@ -459,6 +488,7 @@ model Case {
   updatedAt      DateTime      @updatedAt
 
   filedBy      User               @relation("CaseFiledBy", fields: [filedById], references: [id])
+  documentDeliveries DocumentDelivery[]
   judge        User?              @relation("CaseJudge", fields: [judgeId], references: [id])
   court        Court?             @relation(fields: [courtId], references: [id])
   courtroom    Courtroom?         @relation(fields: [courtroomId], references: [id])
@@ -496,6 +526,7 @@ model CaseParty {
   case    Case           @relation(fields: [caseId], references: [id])
   lawyer  LawyerProfile? @relation(fields: [lawyerId], references: [id])
   summons Summons[]
+  deliveries DocumentDelivery[]
 
   @@index([caseId])
   @@index([lawyerId, caseId]) // supports lawyer double-booking lookups
@@ -517,6 +548,7 @@ model CaseDocument {
 
   case       Case @relation(fields: [caseId], references: [id])
   uploadedBy User @relation(fields: [uploadedById], references: [id])
+  deliveries DocumentDelivery[]
 
   @@index([caseId, type])
 }
@@ -579,17 +611,19 @@ model CaseCounter {
 
 /// FR: hearing scheduling with anti-clash (UC: Schedule Hearing); one hearing per judge per date per slot
 model Hearing {
+  readerId     String?
   id           String        @id @default(uuid())
   caseId       String
   courtroomId  String?
   judgeId      String
+  stenographerId String?
   date         DateTime      @db.Date
   timeSlot     Int // 1..N slot of the day
   startTime    String? // HH:mm
   type         HearingType   @default(PHYSICAL)
-  isVirtual    Boolean       @default(false) // UC-4.1: held in the virtual courtroom (kept in sync with type)
   status       HearingStatus @default(SCHEDULED)
   purpose      String?
+  lastSummons  Boolean       @default(false)
   orderSummary String?
   outcomeAt    DateTime? // when the judge recorded the hearing outcome
   createdAt    DateTime      @default(now())
@@ -598,8 +632,12 @@ model Hearing {
   case           Case            @relation(fields: [caseId], references: [id])
   courtroom      Courtroom?      @relation(fields: [courtroomId], references: [id])
   judge          User            @relation("HearingJudge", fields: [judgeId], references: [id])
+  stenographer   User?           @relation("HearingStenographer", fields: [stenographerId], references: [id])
+  transcript     HearingTranscript?
+  coverageRequests HearingCoverage[]
+  absences HearingAbsence[]
+  deliveries     DocumentDelivery[]
   causeListEntry CauseListEntry?
-  session        CourtSession?
   reminders      HearingReminder[]
 
   // One judge / one courtroom per date and slot is enforced by PARTIAL unique indexes that ignore
@@ -607,8 +645,37 @@ model Hearing {
   @@index([judgeId, date, timeSlot])
   @@index([outcomeAt])
   @@index([caseId])
+  @@index([stenographerId, date])
   @@index([date, status])
   @@index([courtroomId, date])
+}
+
+model HearingTranscript {
+  id                 String           @id @default(uuid())
+  hearingId          String           @unique
+  status             TranscriptStatus @default(DRAFT)
+  revision           Int              @default(0)
+  text               String
+  correctionNote     String?
+  submittedById      String?
+  submittedAt        DateTime?
+  approvedById       String?
+  approvedAt         DateTime?
+  signedById         String?
+  signedAt           DateTime?
+  reviewPdfKey       String?
+  reviewPdfSha256    String?
+  signedPdfKey       String?
+  signedPdfSha256    String?
+  signingFingerprint String?
+  updatedAt          DateTime         @updatedAt
+
+  hearing     Hearing @relation(fields: [hearingId], references: [id], onDelete: Restrict)
+  submittedBy User?   @relation("TranscriptSubmitter", fields: [submittedById], references: [id])
+  approvedBy  User?   @relation("TranscriptApprover", fields: [approvedById], references: [id])
+  signedBy    User?   @relation("TranscriptSigner", fields: [signedById], references: [id])
+
+  @@index([status])
 }
 
 /// FR: daily cause list builder and publishing (UC: Build Cause List, View Cause List)
@@ -780,6 +847,73 @@ model SummonsAttempt {
   @@index([summonsId, createdAt])
 }
 
+model DocumentDelivery {
+  id            String         @id @default(uuid())
+  caseId        String
+  documentId    String
+  recipientId   String
+  recipientName String
+  address       String
+  serverId      String
+  assignedById  String
+  hearingId     String?
+  dueDate       DateTime       @db.Date
+  status        DeliveryStatus @default(ASSIGNED)
+  version       Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  case       Case                      @relation(fields: [caseId], references: [id])
+  document   CaseDocument              @relation(fields: [documentId], references: [id])
+  recipient  CaseParty                 @relation(fields: [recipientId], references: [id])
+  server     User                      @relation("DeliveryServer", fields: [serverId], references: [id])
+  assignedBy User                      @relation("DeliveryAssigner", fields: [assignedById], references: [id])
+  hearing    Hearing?                  @relation(fields: [hearingId], references: [id])
+  attempts   DocumentDeliveryAttempt[]
+
+  @@unique([documentId, recipientId])
+  @@index([caseId])
+  @@index([serverId, status])
+}
+
+model DocumentDeliveryAttempt {
+  id         String          @id @default(uuid())
+  deliveryId String
+  serverId   String
+  number     Int
+  address    String
+  occurredAt DateTime
+  reportedAt DateTime        @default(now())
+  outcome    DeliveryOutcome
+  remarks    String
+  receivedBy String?
+  reason     String?
+  ackKey     String?
+  ackIv      String?
+  ackTag     String?
+  ackType    String?
+
+  delivery DocumentDelivery         @relation(fields: [deliveryId], references: [id])
+  server   User                     @relation(fields: [serverId], references: [id])
+  reviews  DocumentDeliveryReview[]
+
+  @@unique([deliveryId, number])
+}
+
+model DocumentDeliveryReview {
+  id        String               @id @default(uuid())
+  attemptId String
+  actorId   String
+  action    DeliveryReviewAction
+  note      String?
+  createdAt DateTime             @default(now())
+
+  attempt DocumentDeliveryAttempt @relation(fields: [attemptId], references: [id])
+  actor   User                    @relation(fields: [actorId], references: [id])
+
+  @@index([attemptId, createdAt])
+}
+
 /// Staff profile of a process server (Tamila officer).
 model ProcessServerProfile {
   id          String       @id @default(uuid())
@@ -928,6 +1062,68 @@ model ChamberProfile {
   updatedAt              DateTime             @updatedAt
 
   lawyer LawyerProfile @relation(fields: [lawyerId], references: [id])
+  members ChamberMembership[]
+  coverageRequests HearingCoverage[]
+}
+
+model ChamberMembership {
+  lawyerId  String @id
+  chamberId String
+  lawyer LawyerProfile @relation(fields: [lawyerId], references: [id])
+  chamber ChamberProfile @relation(fields: [chamberId], references: [id])
+
+  @@index([chamberId])
+}
+
+model HearingCoverage {
+  id            String                @id @default(uuid())
+  hearingId     String
+  originalId    String
+  substituteId  String?
+  chamberId     String?
+  hearingDate   DateTime              @db.Date
+  hearingSlot   Int
+  status        HearingCoverageStatus
+  reason        String
+  decisionNote  String?
+  readerId      String?
+  readerAt      DateTime?
+  judgeId       String?
+  judgeAt       DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  hearing    Hearing         @relation(fields: [hearingId], references: [id])
+  original   LawyerProfile   @relation("CoverageOriginal", fields: [originalId], references: [id])
+  substitute LawyerProfile?  @relation("CoverageSubstitute", fields: [substituteId], references: [id])
+  chamber    ChamberProfile? @relation(fields: [chamberId], references: [id])
+
+  @@unique([hearingId, originalId, hearingDate, hearingSlot])
+  @@index([substituteId, hearingDate, status])
+  @@index([chamberId, status])
+  @@index([status])
+}
+
+model HearingAbsence {
+  id           String   @id @default(uuid())
+  hearingId    String
+  lawyerId     String
+  hearingDate  DateTime @db.Date
+  judgeId      String
+  fineRequired Boolean?
+  decidedAt    DateTime?
+  assignedReaderId String?
+  fineAmount   Decimal? @db.Decimal(12, 2)
+  reason       String
+  readerId     String?
+  recordedAt   DateTime @default(now())
+  finedAt      DateTime?
+
+  hearing Hearing @relation(fields: [hearingId], references: [id])
+  lawyer LawyerProfile @relation(fields: [lawyerId], references: [id])
+
+  @@unique([hearingId, lawyerId, hearingDate])
+  @@index([assignedReaderId, fineRequired, fineAmount])
 }
 
 /// Record of "Issue Low Balance Alert Notification" (mock SMS)
@@ -1103,51 +1299,6 @@ model AuditLog {
   @@index([actorId, createdAt])
   @@index([action, createdAt])
   @@index([entity, entityId])
-}
-
-// ---------------------------------------------------------------- virtual hearings
-
-/// FR: virtual courtroom control via Jitsi embed (UC: Control Virtual Courtroom)
-model CourtSession {
-  id              String        @id @default(uuid())
-  hearingId       String        @unique // only one session per hearing
-  roomName        String        @unique // random, unguessable (24 chars)
-  status          SessionStatus @default(LOBBY_LOCKED)
-  provider        String        @default("JITSI_PUBLIC") // JAAS or JITSI_PUBLIC at initialization
-  initializedById String
-  startedAt       DateTime?
-  endedAt         DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  hearing       Hearing                   @relation(fields: [hearingId], references: [id])
-  initializedBy User                      @relation(fields: [initializedById], references: [id])
-  participants  CourtSessionParticipant[]
-
-  @@index([status])
-}
-
-/// FR: participants of a virtual hearing (UC-3.3 Access Virtual Courtroom Link, UC-4.2 Manage Room Participants)
-model CourtSessionParticipant {
-  id                    String            @id @default(uuid())
-  sessionId             String
-  userId                String
-  role                  ParticipantRole
-  status                ParticipantStatus @default(JOINED)
-  audioMuted            Boolean           @default(false)
-  videoOff              Boolean           @default(false)
-  providerParticipantId String? // the Jitsi participant id reported by the client, used for kickParticipant
-  joinedAt              DateTime?
-  leftAt                DateTime?
-  lastSeenAt            DateTime?
-  lastCommand           SessionCommand?
-  lastCommandAt         DateTime?
-  lastCommandById       String?
-
-  session CourtSession @relation(fields: [sessionId], references: [id])
-  user    User         @relation(fields: [userId], references: [id])
-
-  @@unique([sessionId, userId])
 }
 
 /// Raw security exceptions (for example a non-admin account refused on an /admin route).

@@ -64,7 +64,7 @@ export class AuthController {
   }
 
   /**
-   * Logs in with email (or admin username) and password. Sets an httpOnly cookie.
+   * Logs in with email (or reader username) and password. Sets an httpOnly cookie.
    * Mobile clients send `X-Client: mobile` to also receive the token in the response body for Bearer use.
    */
   @Public()

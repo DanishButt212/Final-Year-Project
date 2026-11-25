@@ -102,7 +102,7 @@ export class SettingsService {
     };
   }
 
-  /** Refused /admin attempts (within 10 minutes) that raise a privilege escalation alert. */
+  /** Refused /reader attempts (within 10 minutes) that raise a privilege escalation alert. */
   async securityEscalationThreshold(): Promise<number> {
     const n = Number(await this.raw(SETTING_KEYS.securityEscalationThreshold));
     return Number.isInteger(n) && n >= 1 && n <= 20 ? n : 3;
@@ -130,9 +130,11 @@ export class SettingsService {
   }
 
   async publicSettings() {
+    const fees = await this.currentFees();
     return {
       maxAttachmentMb: await this.maxAttachmentMb(),
       caseRegistrationOpen: await this.caseRegistrationOpen(),
+      filingFees: Object.fromEntries(fees.map(({ caseType, amount }) => [caseType, amount])),
     };
   }
 
@@ -157,7 +159,7 @@ export class SettingsService {
   /** The newest active fee row for each case type. */
   private async currentFees() {
     const rows = await this.prisma.feeStructure.findMany({
-      where: { isActive: true },
+      where: { isActive: true, effectiveFrom: { lte: new Date() } },
       orderBy: [{ caseType: 'asc' }, { effectiveFrom: 'desc' }],
     });
     const seen = new Set<string>();
@@ -261,7 +263,7 @@ export class SettingsService {
       entries.push([
         SETTING_KEYS.securityEscalationThreshold,
         String(dto.securityEscalationThreshold),
-        'Refused admin-route attempts within 10 minutes that raise a security alert',
+        'Refused reader-route attempts within 10 minutes that raise a security alert',
       ]);
     }
     if (dto.filingFeeRateModifier !== undefined) {

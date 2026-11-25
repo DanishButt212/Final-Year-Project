@@ -7,8 +7,8 @@ import { defineConfig, devices } from '@playwright/test';
  * preview server (port 5174), so a running development stack is never touched. global-setup.ts empties the test database
  * and loads the demo data with a random one-run password (never written to disk or printed).
  */
-const API_PORT = 4100;
-const WEB_PORT = 5174;
+const API_PORT = Number(process.env.PW_API_PORT ?? 4100);
+const WEB_PORT = Number(process.env.PW_WEB_PORT ?? 5174);
 const uploads = join(tmpdir(), 'digitaladaalat-ui-uploads');
 
 export default defineConfig({

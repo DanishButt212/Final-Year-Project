@@ -24,7 +24,7 @@ export interface ReminderRun {
  * the next day (the filer, every lawyer on the case and the judge) gets one in-app notification; e-mail, SMS and
  * push follow their notification preferences through NotificationsService. A HearingReminder row per hearing,
  * person and hearing date makes the job idempotent: running it twice, or by hand after the scheduled run, sends
- * nothing new. Each run is audit-logged as a system action (or as the administrator who started it).
+ * nothing new. Each run is audit-logged as a system action (or as the reader who started it).
  */
 @Injectable()
 export class RemindersService {
@@ -50,7 +50,7 @@ export class RemindersService {
     }
   }
 
-  /** Sends tomorrow's reminders. `actor` is the administrator for a manual run, null for the scheduled job. */
+  /** Sends tomorrow's reminders. `actor` is the reader for a manual run, null for the scheduled job. */
   async run(
     actor: AuthUser | null,
     trigger: 'schedule' | 'manual',

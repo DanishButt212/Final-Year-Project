@@ -21,6 +21,7 @@ export interface Slot {
 }
 
 export interface HearingView {
+  canReportClash?: boolean;
   id: string;
   caseId: string;
   ucn: string;
@@ -36,8 +37,6 @@ export interface HearingView {
   judge: { id: string; name: string };
   lawyers: string[];
   conflicts: Conflict[];
-  isVirtual: boolean;
-  virtualSession: { id: string; status: 'LOBBY_LOCKED' | 'ACTIVE' | 'ENDED' } | null;
 }
 
 export interface Board {
@@ -105,7 +104,6 @@ export interface CauseListsResult {
     publishedAt: string | null;
     entries: {
       hearingId: string;
-      isVirtual: boolean;
       serialNo: number;
       time: string | null;
       courtroom: string | null;
@@ -126,7 +124,6 @@ export interface HearingInput {
   date: string;
   slot: number;
   purpose?: string;
-  isVirtual?: boolean;
 }
 
 export const schedulingApi = {

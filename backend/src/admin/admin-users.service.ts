@@ -24,7 +24,7 @@ import {
   UpdateUserStatusDto,
 } from './dto/admin.dto';
 
-/** Provisioned accounts get a link valid for 72 hours (the admin hands it over in person). */
+/** Provisioned accounts get a link valid for 72 hours (the reader hands it over in person). */
 const PROVISION_LINK_HOURS = 72;
 
 const userSelect = {
@@ -284,7 +284,7 @@ export class AdminUsersService {
         where: { role: 'ADMIN', status: 'ACTIVE', id: { not: target.id } },
       });
       if (others === 0) {
-        throw conflict('The last active administrator cannot be removed.', 'LAST_ADMIN');
+        throw conflict('The last active reader cannot be removed.', 'LAST_ADMIN');
       }
     }
 

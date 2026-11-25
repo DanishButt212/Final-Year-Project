@@ -69,7 +69,7 @@ export default function PaymentsPage() {
       </label>
       {isError && <QueryError error={error} />}
       {isPending ? (
-        <TableSkeleton rows={5} cols={6} />
+        <TableSkeleton rows={5} cols={7} />
       ) : data && data.data.length === 0 ? (
         <Card>
           <EmptyState
@@ -95,6 +95,7 @@ export default function PaymentsPage() {
                   <TableHead>{t('Case')}</TableHead>
                   <TableHead>{t('Challan')}</TableHead>
                   <TableHead className="text-end">{t('Amount')}</TableHead>
+                  <TableHead>{t('Payment method')}</TableHead>
                   <TableHead>{t('Status')}</TableHead>
                   <TableHead>{t('Receipt')}</TableHead>
                 </TableRow>
@@ -117,6 +118,17 @@ export default function PaymentsPage() {
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-end">
                       {formatPkr(p.amount)}
+                    </TableCell>
+                    <TableCell>
+                      {p.method === 'MOCK_JAZZCASH'
+                        ? t('JazzCash')
+                        : p.method === 'MOCK_EASYPAISA'
+                          ? t('Easypaisa')
+                          : p.method === 'MOCK_WALLET'
+                            ? t('Wallet')
+                            : p.method === 'MOCK_BANK_TRANSFER'
+                              ? t('Bank transfer')
+                              : t('Card')}
                     </TableCell>
                     <TableCell>
                       {p.status === 'SUCCESS' ? (

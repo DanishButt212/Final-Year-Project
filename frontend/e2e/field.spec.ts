@@ -7,7 +7,7 @@ test.describe.configure({ mode: 'serial' });
 test('pending lawyer sees the verification gate', async ({ page }) => {
   await login(page, 'LAWYER_PENDING');
   await expect(page.getByText(/Your lawyer profile is pending verification/).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /new case submission/i }).first()).toBeDisabled();
+  await expect(page.getByRole('button', { name: /file a case/i }).first()).toBeDisabled();
 });
 
 test('verified lawyer: chamber dashboard, clients, billable, retainer, expenses, ID card', async ({ page }) => {

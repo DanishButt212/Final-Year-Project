@@ -1,5 +1,5 @@
 import i18n, { msg } from '@/i18n';
-/** Default until /settings/public answers; the administrator can change it (UC-2.3). */
+/** Default until /settings/public answers; the reader can change it (UC-2.3). */
 export const DEFAULT_MAX_MB = 25;
 export const MAX_PDF_BYTES = DEFAULT_MAX_MB * 1024 * 1024;
 export const MAX_FILES = 10;

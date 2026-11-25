@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -51,6 +52,7 @@ export class CasesController {
   constructor(private readonly cases: CasesService) {}
 
   /** UC-2.1 / UC-2.2: submit a new case with 0..10 PDF pleadings. Generates the UCN. */
+  @Roles('LAWYER')
   @Throttle(uploadThrottle())
   @UseGuards(FilingGateGuard)
   @UseInterceptors(PdfUploadInterceptor)
@@ -79,12 +81,14 @@ export class CasesController {
   }
 
   /** Case details with parties, documents and lifecycle events. 404 if it is not the caller's. */
+  @Header('Cache-Control', 'private, no-store')
   @Get(':id')
   detail(@CurrentUser() user: AuthUser, @Param('id', ParseIdPipe) id: string) {
     return this.cases.detail(user, id);
   }
 
   /** UC-2.2: attach more PDFs to an active case. Documents are locked once attached. */
+  @Roles('LAWYER')
   @Throttle(uploadThrottle())
   @UseInterceptors(PdfUploadInterceptor)
   @ApiConsumes('multipart/form-data')
@@ -101,6 +105,7 @@ export class CasesController {
   }
 
   /** Streams the original PDF as an attachment. There is deliberately no update or delete route. */
+  @Header('Cache-Control', 'private, no-store')
   @Get(':id/documents/:docId/download')
   download(
     @CurrentUser() user: AuthUser,
