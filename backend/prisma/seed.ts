@@ -28,6 +28,10 @@ import { SealService } from '../src/summons/seal.service';
 import { createStorage } from '../src/storage/storage.module';
 import { PASSWORD_REGEX } from '../src/common/patterns';
 import { pkToday } from '../src/common/pk-time';
+import { renderTranscript } from '../src/transcripts/transcript-pdf';
+import PDFDocument from 'pdfkit';
+import { createHash } from 'node:crypto';
+import { Readable } from 'node:stream';
 
 // DOTENV_CONFIG_PATH selects another env file (for example .env.production for seed:demo against Neon).
 config({ path: process.env.DOTENV_CONFIG_PATH || '.env', quiet: true });
@@ -246,6 +250,16 @@ const USERS: SeedUser[] = [
     firstName: 'Zubair',
     lastName: 'Ahmed',
     email: `server3@${DOMAIN}`,
+    dev: true,
+  },
+  // Added in the workflow update (appended so the CNICs of earlier accounts do not change).
+  {
+    key: 'steno',
+    role: 'STENOGRAPHER',
+    firstName: 'Rizwan',
+    lastName: 'Akhtar',
+    email: `steno@${DOMAIN}`,
+    court: 'SESSIONS',
     dev: true,
   },
 ];
@@ -2828,6 +2842,749 @@ async function seedDecisionDemo(ids: Record<string, string>, lawyers: Record<str
   );
 }
 
+// ------------------------------------------------------------------ Workflow update (25-11-2026)
+
+const seedStorageConfig = {
+  get: (k: string) => process.env[k],
+  getOrThrow: (k: string) => {
+    const v = process.env[k] ?? (k === 'UPLOAD_DIR' ? join(process.cwd(), 'uploads') : undefined);
+    if (!v) throw new Error(`${k} is not set`);
+    return v;
+  },
+} as never;
+
+const sha256Hex = (data: Buffer) => createHash('sha256').update(data).digest('hex');
+
+/** A small one-page plaint PDF for the delivery demo (Latin text only, built-in font). */
+function pleadingPdf(ucn: string, title: string, paragraphs: string[]): Promise<Buffer> {
+  const doc = new PDFDocument({ size: 'A4', margin: 60, pdfVersion: '1.7' });
+  const chunks: Buffer[] = [];
+  const done = new Promise<Buffer>((resolveDone, reject) => {
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    doc.once('end', () => resolveDone(Buffer.concat(chunks)));
+    doc.once('error', reject);
+  });
+  doc.font('Helvetica-Bold').fontSize(13).text('IN THE COURT OF THE SENIOR CIVIL JUDGE, MULTAN', {
+    align: 'center',
+  });
+  doc.moveDown(0.5).font('Helvetica').fontSize(11).text(ucn, { align: 'center' });
+  doc.moveDown().font('Helvetica-Bold').fontSize(12).text(title, { align: 'center' });
+  doc.moveDown().font('Helvetica-Bold').fontSize(11).text('PLAINT', { align: 'center' });
+  doc.moveDown().font('Helvetica').fontSize(11);
+  paragraphs.forEach((p, i) => doc.text(`${i + 1}. ${p}`, { align: 'justify' }).moveDown(0.6));
+  doc.moveDown().text('Through counsel: Hamza Bukhari, Advocate High Court (MBA-2016-0101)');
+  doc.end();
+  return done;
+}
+
+/** First free slot of a judge and courtroom on a date that also keeps the given lawyers free. */
+async function freeSlot(judgeId: string, courtroomId: string, date: Date, lawyerIds: string[]) {
+  const setting = async (key: string, fallback: string) =>
+    (await prisma.systemSetting.findUnique({ where: { key } }))?.value ?? fallback;
+  const toMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+  const dayStart = toMin(await setting('court_day_start', '09:00'));
+  const dayEnd = toMin(await setting('court_day_end', '14:00'));
+  const slotMin = Number(await setting('hearing_slot_minutes', '30')) || 30;
+  const slotCount = Math.max(1, Math.floor((dayEnd - dayStart) / slotMin));
+  const taken = new Set(
+    (
+      await prisma.hearing.findMany({
+        where: {
+          date,
+          status: { not: 'CANCELLED' },
+          OR: [
+            { judgeId },
+            { courtroomId },
+            { case: { parties: { some: { lawyerId: { in: lawyerIds } } } } },
+          ],
+        },
+        select: { timeSlot: true },
+      })
+    ).map((h) => h.timeSlot),
+  );
+  const slot = Array.from({ length: slotCount }, (_, i) => i + 1).find((n) => !taken.has(n));
+  if (!slot) return null;
+  const m = dayStart + (slot - 1) * slotMin;
+  return {
+    slot,
+    startTime: `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`,
+  };
+}
+
+/**
+ * Demo data for the modules added in the workflow update: stenographer transcripts, document deliveries,
+ * hearing coverage (substitute lawyers, chamber portal, last summons) and lawyer absence fines.
+ * Re-runnable: every record is matched before it is created, and nothing that already exists is changed.
+ */
+async function seedWorkflowUpdate(ids: Record<string, string>, lawyers: Record<string, string>) {
+  const judge = await prisma.user.findUniqueOrThrow({
+    where: { id: ids.judge },
+    select: { id: true, firstName: true, lastName: true, courtId: true, courtroomId: true },
+  });
+  const room = judge.courtroomId
+    ? await prisma.courtroom.findUnique({ where: { id: judge.courtroomId }, include: { court: true } })
+    : null;
+  if (!room) {
+    console.log('Workflow update: the demo judge has no courtroom, skipping.');
+    return;
+  }
+  const storage = createStorage(seedStorageConfig);
+  const now = Date.now();
+  const hoursAgo = (h: number) => new Date(now - h * 3_600_000);
+
+  // Hearings fixed through Bench Scheduling carry the Reader who scheduled them; the seeded ones had none.
+  await prisma.hearing.updateMany({ where: { readerId: null }, data: { readerId: ids.admin } });
+
+  const latestHeld = async (title: string, order: 'asc' | 'desc' = 'desc') =>
+    prisma.hearing.findFirst({
+      where: { judgeId: judge.id, status: 'HELD', case: { title } },
+      orderBy: [{ date: order }, { timeSlot: 'asc' }],
+      include: { case: { select: { ucn: true, title: true } } },
+    });
+
+  // ---- 1. Stenographer transcripts on held hearings of the demo judge.
+  const steno = await prisma.user.findUniqueOrThrow({
+    where: { id: ids.steno },
+    select: { id: true, firstName: true, lastName: true },
+  });
+  const stenoName = `${steno.firstName} ${steno.lastName}`;
+  const transcripts: {
+    title: string;
+    order: 'asc' | 'desc';
+    status: 'DRAFT' | 'SUBMITTED' | 'RETURNED';
+    text: string;
+    note?: string;
+  }[] = [
+    {
+      title: 'Rukhsana Bibi vs. Habib Bank Limited',
+      order: 'desc',
+      status: 'SUBMITTED',
+      text: [
+        'Present: Petitioner Rukhsana Bibi in person. Mr. Adnan Saleem, Advocate, for the respondent bank.',
+        'The petitioner stated that PKR 640,000 was deducted from her savings account without her consent.',
+        'Counsel for the respondent produced the statement of account and the transaction log of 14-07-2026.',
+        'The petitioner disputed the signature on the withdrawal slip and requested its verification.',
+        'Counsel for the respondent did not object to sending the slip to the handwriting expert.',
+        'ORDER: The original withdrawal slip be sent to the handwriting expert for opinion.',
+        'The respondent bank shall preserve the CCTV record of the branch for the date of the transaction.',
+        'To come up for the expert report and further arguments.',
+      ].join('\n'),
+    },
+    {
+      title: 'Munir Hussain vs. The State',
+      order: 'desc',
+      status: 'RETURNED',
+      text: [
+        'Present: Appellant Munir Hussain on bail. Mr. Faisal Kharal, Advocate, for the appellant.',
+        'Mr. Shahid Nawaz, Deputy District Public Prosecutor, for the State.',
+        'Counsel for the appellant argued that the recovery witnesses were not residents of the locality.',
+        'He further argued that the medical evidence does not support the time of occurrence given in the FIR.',
+        'The learned DDPP opposed the appeal and relied on the statement of the complainant.',
+        'ORDER: Arguments heard in part. The State to produce the case diary on the next date.',
+      ].join('\n'),
+      note:
+        'Line 2: the prosecutor is Mr. Shahid Nawaz Bhatti, not Mr. Shahid Nawaz. Line 4: add that counsel referred to the post-mortem report (Exh. PD). Please correct and resubmit.',
+    },
+    {
+      title: 'Asif Raza vs. The State',
+      order: 'desc',
+      status: 'DRAFT',
+      text: [
+        'Present: Petitioner Asif Raza produced from judicial lock-up.',
+        'Mr. Hamza Bukhari, Advocate, counsel for the petitioner, absent. No request for adjournment received.',
+        'Ms. Rabia Anjum, Assistant District Public Prosecutor, for the State, with the investigating officer.',
+        'The investigating officer stated that the challan has been submitted under section 173 Cr.P.C.',
+        'ORDER: In the interest of justice, one opportunity is given to the petitioner to arrange arguments.',
+      ].join('\n'),
+    },
+  ];
+  let transcriptCount = 0;
+  for (const t of transcripts) {
+    const h = await latestHeld(t.title, t.order);
+    if (!h) continue;
+    if (!h.stenographerId) {
+      await prisma.hearing.update({ where: { id: h.id }, data: { stenographerId: steno.id } });
+    }
+    if (await prisma.hearingTranscript.findUnique({ where: { hearingId: h.id } })) continue;
+    let review: { reviewPdfKey: string; reviewPdfSha256: string } | Record<string, never> = {};
+    if (t.status !== 'DRAFT') {
+      const pdf = await renderTranscript({
+        ucn: h.case.ucn,
+        title: h.case.title,
+        date: h.date,
+        stenographer: stenoName,
+        text: t.text,
+        reserveSignature: true,
+      });
+      const key = `transcripts/${h.id}/${randomUUID()}.pdf`;
+      await storage.saveFromStream(Readable.from(pdf), key);
+      review = { reviewPdfKey: key, reviewPdfSha256: sha256Hex(pdf) };
+    }
+    await prisma.hearingTranscript.create({
+      data: {
+        hearingId: h.id,
+        status: t.status,
+        revision: t.status === 'DRAFT' ? 1 : t.status === 'SUBMITTED' ? 2 : 3,
+        text: t.text,
+        correctionNote: t.note ?? null,
+        ...(t.status !== 'DRAFT' ? { submittedById: steno.id, submittedAt: hoursAgo(30) } : {}),
+        ...review,
+      },
+    });
+    transcriptCount++;
+  }
+  // The stenographer is also assigned to the next hearing of the bail case, with no transcript yet.
+  const upcomingBail = await prisma.hearing.findFirst({
+    where: {
+      judgeId: judge.id,
+      status: 'SCHEDULED',
+      date: { gte: utcDate(0) },
+      case: { title: 'Muhammad Ali vs. The State' },
+    },
+    orderBy: { date: 'asc' },
+  });
+  if (upcomingBail && !upcomingBail.stenographerId) {
+    await prisma.hearing.update({
+      where: { id: upcomingBail.id },
+      data: { stenographerId: steno.id },
+    });
+  }
+
+  // ---- 2. Document deliveries on a partition suit with four respondents.
+  const DELIVERY_TITLE = 'Muhammad Ali vs. Abdul Rehman and others';
+  const litigant = await prisma.user.findUniqueOrThrow({
+    where: { id: ids.litigant },
+    select: { cnic: true, phone: true },
+  });
+  let suit = await prisma.case.findFirst({ where: { title: DELIVERY_TITLE }, select: { id: true, ucn: true } });
+  if (!suit) {
+    const filingDate = utcDate(-12);
+    const allocatedAt = utcDate(-10);
+    suit = await prisma.$transaction(async (tx) => {
+      const ucn = await generateUcn(tx, 'CIVIL_SUIT', filingDate.getUTCFullYear());
+      const created = await tx.case.create({
+        data: {
+          ucn,
+          caseType: 'CIVIL_SUIT',
+          status: 'HEARING_FIXED',
+          title: DELIVERY_TITLE,
+          reliefSought:
+            'Partition of 48 kanals of jointly inherited agricultural land in Mauza Basti Malook, Tehsil and District Multan, and rendition of accounts of the crop income since 2023.',
+          filingDate,
+          filedById: ids.lawyer,
+          courtId: room.courtId,
+          courtroomId: room.id,
+          judgeId: judge.id,
+          allocatedAt,
+          parties: {
+            create: [
+              {
+                role: 'PETITIONER',
+                name: 'Muhammad Ali',
+                cnic: litigant.cnic,
+                phone: litigant.phone,
+                address: 'House 12, Street 3, Gulgasht Colony, Multan',
+                lawyerId: lawyers.lawyer,
+                position: 0,
+              },
+              {
+                role: 'RESPONDENT',
+                name: 'Abdul Rehman',
+                address: 'House 8, Mohalla Qadirabad, Basti Malook, Multan',
+                position: 0,
+              },
+              {
+                role: 'RESPONDENT',
+                name: 'Shazia Parveen',
+                address: 'House 45-C, Shah Rukn-e-Alam Colony, Multan',
+                position: 1,
+              },
+              {
+                role: 'RESPONDENT',
+                name: 'Tariq Javed',
+                address: 'Flat 6, Block B, Model Town, Multan',
+                position: 2,
+              },
+              {
+                role: 'RESPONDENT',
+                name: 'Ghulam Mustafa',
+                address: 'Chak 5-Faiz, Bosan Road, Multan',
+                position: 3,
+              },
+            ],
+          },
+        },
+        select: { id: true, ucn: true },
+      });
+      await tx.caseEvent.createMany({
+        data: [
+          {
+            caseId: created.id,
+            type: 'CASE_SUBMITTED',
+            description: `Case submitted as ${ucn} and pending assignment to a judge.`,
+            actorId: ids.lawyer,
+            createdAt: filingDate,
+          },
+          {
+            caseId: created.id,
+            type: 'CASE_ALLOCATED',
+            description: `Case allocated to ${judge.firstName} ${judge.lastName}, ${room.court.name}, ${room.name}.`,
+            actorId: ids.admin,
+            createdAt: allocatedAt,
+          },
+        ],
+      });
+      return created;
+    });
+  }
+
+  let plaint = await prisma.caseDocument.findFirst({
+    where: { caseId: suit.id, type: 'PLEADING' },
+  });
+  if (!plaint) {
+    const pdf = await pleadingPdf(suit.ucn, DELIVERY_TITLE, [
+      'The plaintiff and the defendants are the legal heirs of the late Haji Muhammad Sharif, who died at Multan on 03-02-2023.',
+      'The deceased left 48 kanals of agricultural land in Mauza Basti Malook, Khewat No. 112, which is jointly owned by the parties.',
+      'Defendant No. 1 has been cultivating the whole land and has not accounted for the crop income since the Kharif season of 2023.',
+      'The plaintiff asked the defendants to partition the land amicably, but they refused on 15-09-2026.',
+      'The plaintiff therefore prays for a preliminary decree of partition, appointment of a local commission, and rendition of accounts.',
+    ]);
+    const key = `cases/${suit.id}/${randomUUID()}.pdf`;
+    await storage.saveFromStream(Readable.from(pdf), key);
+    plaint = await prisma.caseDocument.create({
+      data: {
+        caseId: suit.id,
+        type: 'PLEADING',
+        title: 'Plaint for partition and rendition of accounts',
+        originalName: 'plaint-partition-suit.pdf',
+        filePath: key,
+        sha256: sha256Hex(pdf),
+        sizeBytes: pdf.length,
+        uploadedById: ids.lawyer,
+        createdAt: utcDate(-12),
+      },
+    });
+  }
+
+  // The suit's next hearing is a last-summons date (see the coverage requests below).
+  let suitHearing = await prisma.hearing.findFirst({
+    where: { caseId: suit.id, status: 'SCHEDULED', date: { gte: utcDate(0) } },
+    orderBy: { date: 'asc' },
+  });
+  if (!suitHearing) {
+    const date = workingDayAfterToday(4);
+    const free = await freeSlot(judge.id, room.id, date, [lawyers.lawyer]);
+    if (free) {
+      suitHearing = await prisma.hearing.create({
+        data: {
+          caseId: suit.id,
+          judgeId: judge.id,
+          courtroomId: room.id,
+          readerId: ids.admin,
+          date,
+          timeSlot: free.slot,
+          startTime: free.startTime,
+          status: 'SCHEDULED',
+          purpose: 'Service on the defendants (last summons)',
+          lastSummons: true,
+        },
+      });
+      const iso = date.toISOString();
+      await prisma.caseEvent.create({
+        data: {
+          caseId: suit.id,
+          type: 'HEARING_SCHEDULED',
+          description: `Hearing scheduled for ${iso.slice(8, 10)}-${iso.slice(5, 7)}-${iso.slice(0, 4)} at ${free.startTime} in ${room.name}.`,
+          actorId: ids.admin,
+          createdAt: utcDate(-9),
+        },
+      });
+    }
+  }
+
+  let deliveryCount = 0;
+  if ((await prisma.documentDelivery.count({ where: { caseId: suit.id } })) === 0) {
+    const respondents = await prisma.caseParty.findMany({
+      where: { caseId: suit.id, role: 'RESPONDENT' },
+      orderBy: { position: 'asc' },
+    });
+    const byName = (n: string) => respondents.find((r) => r.name === n);
+    const atTime = (daysAgo: number, hour: number) =>
+      new Date(utcDate(-daysAgo).getTime() + (hour - 5) * 3_600_000); // hour in Pakistan time (UTC+5)
+    type Review = { action: 'ACCEPT' | 'RETRY' | 'FORWARD'; note?: string; hours: number };
+    const plan: {
+      name: string;
+      status: 'ASSIGNED' | 'REPORTED' | 'REVIEWED';
+      version: number;
+      due: number;
+      attempt?: {
+        outcome: 'DELIVERED' | 'UNAVAILABLE';
+        daysAgo: number;
+        hour: number;
+        remarks: string;
+        receivedBy?: string;
+        reason?: string;
+        reviews: Review[];
+      };
+    }[] = [
+      { name: 'Abdul Rehman', status: 'ASSIGNED', version: 0, due: 3 },
+      {
+        name: 'Shazia Parveen',
+        status: 'REPORTED',
+        version: 2,
+        due: 2,
+        attempt: {
+          outcome: 'DELIVERED',
+          daysAgo: 1,
+          hour: 11,
+          remarks: 'Copy of the plaint handed over at the residence; receiver signed the acknowledgment.',
+          receivedBy: 'Muhammad Irfan (son of the respondent)',
+          reviews: [],
+        },
+      },
+      {
+        name: 'Tariq Javed',
+        status: 'ASSIGNED',
+        version: 3,
+        due: 5,
+        attempt: {
+          outcome: 'UNAVAILABLE',
+          daysAgo: 3,
+          hour: 10,
+          remarks: 'Visited the flat at 10:15. Nobody answered the door.',
+          reason: 'Premises locked; the neighbour said the respondent is in Lahore until next week.',
+          reviews: [
+            {
+              action: 'RETRY',
+              note: 'Retry at the same address after the respondent returns. Due date extended.',
+              hours: 44,
+            },
+          ],
+        },
+      },
+      {
+        name: 'Ghulam Mustafa',
+        status: 'REVIEWED',
+        version: 4,
+        due: 1,
+        attempt: {
+          outcome: 'DELIVERED',
+          daysAgo: 4,
+          hour: 12,
+          remarks: 'Respondent met at the dera; identity confirmed from the CNIC.',
+          receivedBy: 'Ghulam Mustafa (in person)',
+          reviews: [
+            { action: 'ACCEPT', note: 'Report complete and consistent.', hours: 70 },
+            { action: 'FORWARD', hours: 69 },
+          ],
+        },
+      },
+    ];
+    for (const d of plan) {
+      const recipient = byName(d.name);
+      if (!recipient) continue;
+      const delivery = await prisma.documentDelivery.create({
+        data: {
+          caseId: suit.id,
+          documentId: plaint.id,
+          recipientId: recipient.id,
+          recipientName: recipient.name,
+          address: recipient.address ?? 'Multan',
+          serverId: ids.server,
+          assignedById: ids.admin,
+          hearingId: suitHearing?.id,
+          dueDate: utcDate(d.due),
+          status: d.status,
+          version: d.version,
+          createdAt: utcDate(-6),
+        },
+      });
+      deliveryCount++;
+      if (!d.attempt) continue;
+      const a = d.attempt;
+      const occurredAt = atTime(a.daysAgo, a.hour);
+      const attempt = await prisma.documentDeliveryAttempt.create({
+        data: {
+          deliveryId: delivery.id,
+          serverId: ids.server,
+          number: 1,
+          address: delivery.address,
+          occurredAt,
+          reportedAt: new Date(occurredAt.getTime() + 40 * 60_000),
+          outcome: a.outcome,
+          remarks: a.remarks,
+          receivedBy: a.receivedBy ?? null,
+          reason: a.reason ?? null,
+        },
+      });
+      for (const r of a.reviews) {
+        await prisma.documentDeliveryReview.create({
+          data: {
+            attemptId: attempt.id,
+            actorId: ids.admin,
+            action: r.action,
+            note: r.note ?? null,
+            createdAt: hoursAgo(r.hours),
+          },
+        });
+        if (r.action === 'FORWARD') {
+          await prisma.caseEvent.create({
+            data: {
+              caseId: suit.id,
+              type: 'DELIVERY_REPORT_FORWARDED',
+              description: 'A reviewed delivery report was forwarded to the judge.',
+              createdAt: hoursAgo(r.hours),
+            },
+          });
+          await prisma.notification.create({
+            data: {
+              userId: judge.id,
+              type: 'DOCUMENT_DELIVERY',
+              channel: 'IN_APP',
+              title: 'Delivery report forwarded',
+              body: `See the reviewed report in the Deliveries tab for ${suit.ucn}.`,
+              sentAt: hoursAgo(r.hours),
+            },
+          });
+        }
+      }
+    }
+  }
+
+  // ---- 3. Hearing coverage: Nadia Gillani joins the chamber of Hamza Bukhari.
+  const chamber = await prisma.chamberProfile.findUniqueOrThrow({
+    where: { lawyerId: lawyers.lawyer },
+  });
+  await prisma.chamberMembership.upsert({
+    where: { lawyerId: lawyers.lawyer2 },
+    update: {},
+    create: { lawyerId: lawyers.lawyer2, chamberId: chamber.id },
+  });
+
+  // Never the decision demo's own hearings: seedDecisionDemo replaces those on every run.
+  const nextHearing = async (title: string) =>
+    prisma.hearing.findFirst({
+      where: {
+        case: { title },
+        status: 'SCHEDULED',
+        date: { gte: utcDate(0) },
+        NOT: [
+          { purpose: { startsWith: 'Decision demo' } },
+          { purpose: { startsWith: 'Upcoming demo' } },
+        ],
+      },
+      orderBy: [{ date: 'asc' }, { timeSlot: 'asc' }],
+    });
+  const coverage: {
+    title: string;
+    original: string;
+    substitute?: string;
+    chamber?: boolean;
+    status:
+      | 'CHAMBER_PENDING'
+      | 'READER_PENDING'
+      | 'JUDGE_PENDING'
+      | 'APPROVED'
+      | 'REJECTED'
+      | 'RESCHEDULE_REQUIRED';
+    reason: string;
+    decisionNote?: string;
+    reader?: boolean;
+    judgeDecided?: boolean;
+  }[] = [
+    {
+      title: 'Muhammad Ali vs. The State',
+      original: 'lawyer',
+      substitute: 'lawyer2',
+      chamber: true,
+      status: 'APPROVED',
+      reason:
+        'I am appearing before the Lahore High Court Multan Bench in a listed writ petition at the same time.',
+      reader: true,
+      judgeDecided: true,
+    },
+    {
+      title: 'Imtiaz Ahmed vs. Punjab Revenue Authority',
+      original: 'lawyer',
+      substitute: 'lawyer5',
+      status: 'JUDGE_PENDING',
+      reason: 'Cross-examination in a sessions trial is fixed in Court Room 3 for the same slot.',
+      reader: true,
+    },
+    {
+      title: 'Zubair Traders vs. Federation of Pakistan',
+      original: 'lawyer',
+      substitute: 'lawyer5',
+      status: 'READER_PENDING',
+      reason: 'Final arguments in a civil appeal before the District Judge are fixed for the same morning.',
+    },
+    {
+      title: 'Sheikh Textiles vs. Provincial Government',
+      original: 'lawyer',
+      substitute: 'lawyer5',
+      status: 'REJECTED',
+      reason: 'Medical appointment at Nishtar Hospital that cannot be moved.',
+      decisionNote:
+        'Rejected: the vakalatnama of the proposed substitute is not on the record. File it and report the clash again.',
+      reader: true,
+    },
+    {
+      title: DELIVERY_TITLE,
+      original: 'lawyer',
+      status: 'RESCHEDULE_REQUIRED',
+      reason: 'Appearing in a bail matter before the Anti-Terrorism Court at the same time.',
+      decisionNote: 'Last summons. The Reader must assign a new hearing date.',
+    },
+    {
+      title: 'Sana Noreen vs. Bilal Ahmed',
+      original: 'lawyer2',
+      chamber: true,
+      status: 'CHAMBER_PENDING',
+      reason: 'Evidence of a witness in a family suit is fixed before the Family Court at the same time.',
+    },
+  ];
+  let coverageCount = 0;
+  for (const [i, c] of coverage.entries()) {
+    const h = await nextHearing(c.title);
+    const originalId = lawyers[c.original];
+    if (!h || !originalId) continue;
+    const exists = await prisma.hearingCoverage.findFirst({
+      where: { hearingId: h.id, originalId, hearingDate: h.date, hearingSlot: h.timeSlot },
+    });
+    if (exists) continue;
+    if (c.status === 'RESCHEDULE_REQUIRED' && !h.lastSummons) {
+      await prisma.hearing.update({ where: { id: h.id }, data: { lastSummons: true } });
+    }
+    await prisma.hearingCoverage.create({
+      data: {
+        hearingId: h.id,
+        originalId,
+        substituteId: c.substitute ? lawyers[c.substitute] : null,
+        chamberId: c.chamber ? chamber.id : null,
+        hearingDate: h.date,
+        hearingSlot: h.timeSlot,
+        status: c.status,
+        reason: c.reason,
+        decisionNote: c.decisionNote ?? null,
+        ...(c.reader ? { readerId: ids.admin, readerAt: hoursAgo(20 - i) } : {}),
+        ...(c.judgeDecided ? { judgeId: h.judgeId, judgeAt: hoursAgo(6) } : {}),
+        createdAt: hoursAgo(48 - i),
+      },
+    });
+    coverageCount++;
+  }
+
+  // ---- 4. Lawyer absences on the earlier hearings of the bail case Asif Raza vs. The State.
+  const asif = await prisma.hearing.findMany({
+    where: { judgeId: judge.id, status: 'HELD', case: { title: 'Asif Raza vs. The State' } },
+    orderBy: { date: 'asc' },
+  });
+  const absences = [
+    {
+      hearing: asif[0],
+      fine: true,
+      reason: 'Counsel for the petitioner did not appear and sent no request for adjournment.',
+    },
+    {
+      hearing: asif[1],
+      fine: false,
+      reason: 'Counsel absent; the clerk informed the court that counsel was unwell.',
+    },
+  ];
+  let absenceCount = 0;
+  for (const a of absences) {
+    if (!a.hearing) continue;
+    const where = { hearingId: a.hearing.id, lawyerId: lawyers.lawyer, hearingDate: a.hearing.date };
+    if (await prisma.hearingAbsence.findFirst({ where })) continue;
+    const decidedAt = new Date(a.hearing.date.getTime() + 8 * 3_600_000);
+    await prisma.hearingAbsence.create({
+      data: {
+        ...where,
+        judgeId: judge.id,
+        reason: a.reason,
+        recordedAt: new Date(a.hearing.date.getTime() + 7 * 3_600_000),
+        fineRequired: a.fine,
+        decidedAt,
+        ...(a.fine
+          ? {
+              assignedReaderId: ids.admin,
+              fineAmount: '750.00',
+              readerId: ids.admin,
+              finedAt: new Date(decidedAt.getTime() + 2 * 3_600_000),
+            }
+          : {}),
+      },
+    });
+    absenceCount++;
+  }
+
+  console.log(
+    `Workflow update: ${transcriptCount} transcript(s), ${deliveryCount} deliver(ies) on ${suit.ucn}, ${coverageCount} coverage request(s), ${absenceCount} absence(s) seeded.`,
+  );
+}
+
+/**
+ * The demo litigant's payment history shows a JazzCash receipt (the decision demo case's filing fee, paid by
+ * seedConsistency with a mock card) and still has an unpaid challan on a case waiting for allocation.
+ */
+async function seedWalletReceipt(ids: Record<string, string>) {
+  const payment = await prisma.payment.findFirst({
+    where: {
+      payerId: ids.litigant,
+      status: 'SUCCESS',
+      challan: { case: { title: 'Muhammad Ali vs. Multan Electric Power Company' } },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+  if (payment && payment.method !== 'MOCK_JAZZCASH') {
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        method: 'MOCK_JAZZCASH',
+        gatewayRef: `MOCK-JAZZCASH-SEED${payment.receiptNo?.slice(-6) ?? '000000'}`,
+        cardBrand: null,
+        cardLast4: null,
+      },
+    });
+  }
+  const unpaid = await prisma.challan.count({ where: { payerId: ids.litigant, status: 'UNPAID' } });
+  if (unpaid > 0) return;
+  const c = await prisma.case.findFirst({
+    where: { filedById: ids.litigant, judgeId: null, challans: { none: {} } },
+    orderBy: { createdAt: 'asc' },
+  });
+  const fee = c
+    ? await prisma.feeStructure.findFirst({
+        where: { caseType: c.caseType, isActive: true },
+        orderBy: { effectiveFrom: 'desc' },
+      })
+    : null;
+  if (!c || !fee) return;
+  const inputs = {
+    caseType: c.caseType,
+    baseFee: fee.amount.toString(),
+    claimAmountPkr: null,
+    adValoremPercent: '0',
+    adValoremCapPkr: '0',
+    rateModifierPercent: '0',
+  };
+  const { lines, total } = calculateLedger(inputs);
+  await prisma.$transaction(async (tx) => {
+    await tx.challan.create({
+      data: {
+        challanNo: await nextChallanNo(tx),
+        caseId: c.id,
+        payerId: ids.litigant,
+        amount: total,
+        status: 'UNPAID',
+        dueDate: utcDate(7),
+        ledger: lines as never,
+        inputHash: feeInputHash(inputs),
+      },
+    });
+  });
+}
+
 function writeAccountsFile(credentials: { user: SeedUser; password: string }[]) {
   const rows = credentials
     .map(
@@ -2969,7 +3726,9 @@ async function main() {
   await seedPhase4C(ids);
   await seedPhase4E(ids, lawyerProfileIds);
   await seedDecisionDemo(ids, lawyerProfileIds);
+  await seedWorkflowUpdate(ids, lawyerProfileIds);
   await seedConsistency();
+  await seedWalletReceipt(ids);
   if (DEMO_PASSWORD) {
     console.log('\nSeed complete. Demo accounts (password: the DEMO_PASSWORD you set):');
     for (const { user } of credentials.filter((c) => c.user.dev)) {
