@@ -5,9 +5,7 @@ import type { TestContext } from './helpers';
 export async function openTestPortals(ctx: TestContext, web: string) {
   await ctx.app.listen(0, '127.0.0.1');
   const api = await ctx.app.getUrl();
-  const { chromium } = require('../../frontend/node_modules/playwright') as typeof import(
-    '../../frontend/node_modules/playwright'
-  );
+  const { chromium } = await import('../../frontend/node_modules/playwright');
   const browser: Browser = await chromium.launch({ channel: process.env.PW_CHANNEL || 'msedge' });
 
   async function signIn(email: string): Promise<Page> {

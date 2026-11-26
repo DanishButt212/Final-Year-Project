@@ -9,6 +9,9 @@ const reservedRange = '[0 1111111111 2222222222 3333333333]';
 const reservedContents = Buffer.alloc(16_384, 0xa5);
 const pendingField = '/DigitalAdaalatPending';
 
+// True when any character is outside Latin-1, which the built-in PDF font cannot draw (for example Urdu).
+const needsCustomFont = (s: string) => [...s].some((ch) => (ch.codePointAt(0) ?? 0) > 0xff);
+
 export async function renderTranscript(data: {
   ucn: string;
   title: string;
@@ -19,7 +22,7 @@ export async function renderTranscript(data: {
 }) {
   const doc = new PDFDocument({ size: 'A4', margin: 50, pdfVersion: '1.7' });
   if (process.env.TRANSCRIPT_FONT_PATH) doc.font(process.env.TRANSCRIPT_FONT_PATH);
-  else if (/[^\u0000-\u00ff]/.test(data.title + data.stenographer + data.text)) {
+  else if (needsCustomFont(data.title + data.stenographer + data.text)) {
     throw new ServiceUnavailableException('Configure a transcript font that supports this text.');
   }
   const chunks: Buffer[] = [];
